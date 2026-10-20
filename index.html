@@ -203,7 +203,7 @@ input.cell{width:84px;text-align:right;padding:5px 8px}
 .center{min-height:52vh;display:grid;place-items:center;text-align:center}
 .center .box{max-width:460px;display:grid;gap:10px;justify-items:center;background:var(--surface);border-radius:18px;padding:30px 26px;box-shadow:var(--shadow)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
- 
+
 .auth{min-height:calc(100vh - 140px);display:grid;place-items:center;padding-block:24px}
 .auth form{width:100%;max-width:400px;background:var(--surface);border-radius:18px;padding:28px 26px;box-shadow:var(--shadow);display:grid;gap:14px}
 .auth h2{font-size:1.5rem}
@@ -217,7 +217,7 @@ input.cell{width:84px;text-align:right;padding:5px 8px}
 .msg.ok{background:var(--ok-soft);color:var(--ok)}
 input[type=email],input[type=password]{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:9px 11px;min-width:0;width:100%}
 .who .linkbtn{color:var(--band-fg);opacity:.8;font-size:.8rem;margin-left:4px}
- 
+
 html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 body{margin:0}
 [hidden]{display:none!important}
@@ -264,7 +264,7 @@ const FIREBASE_CONFIG = {
   appId: "1:141327927174:web:c26edbf91a8e14bbd38e07"
 };
 // =================================================
- 
+
 const $ = (s, r = document) => r.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -286,7 +286,7 @@ const destTag = (n) => n ? `<span class="dest" style="${dc(n)}">${esc(n)}</span>
 const ABAS = [["inicio", "Início"], ["comissoes", "Comissões"], ["vendas", "Minhas vendas"], ["passeios", "Passeios"], ["equipe", "Resultados da equipe"]];
 const ABAS_PADRAO = { inicio: true, comissoes: true, vendas: true, passeios: true, equipe: false };
 const emailOk = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
- 
+
 // Regra de comissão: valor × percentual; paga no mês seguinte ao mês de embarque.
 function enrich(v) {
   const pct = Number(v.pct) || 0, valor = Number(v.valor) || 0;
@@ -300,7 +300,7 @@ function statusOf(v, hoje = ymNow()) {
 }
 const STATUS_PILL = { "paga": ["ok", "Paga"], "a-pagar": ["warn", "A pagar"], "prevista": ["info", "Prevista"], "cancelada": ["bad", "Cancelada"], "sem-data": ["neutral", "Sem data de embarque"] };
 const pill = (st) => { const [c, t] = STATUS_PILL[st] || ["neutral", st]; return `<span class="pill ${c}">${t}</span>`; };
- 
+
 // ---------- estado ----------
 const S = {
   auth: null, db: null, session: null, resumoAtual: "", email: "", isAdmin: false, ready: false, authMode: "entrar", authMsg: null, recovery: false,
@@ -325,7 +325,7 @@ function errMsg(e) {
   return "Não foi possível salvar agora. Tente de novo em instantes.";
 }
 const label = (uid) => (S.members[uid] && S.members[uid].apelido) || uid || "—";
- 
+
 // ---------- dados ----------
 const col = (n) => S.db.collection(n);
 const docsOf = (snap) => snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -370,7 +370,7 @@ async function reload(msg) {
   if (msg) toast(msg);
   scheduleRender();
 }
- 
+
 // ---------- render ----------
 function scheduleRender() {
   const a = document.activeElement;
@@ -380,10 +380,10 @@ function scheduleRender() {
 document.addEventListener("focusout", () => { if (S.pendingRender) { S.pendingRender = false; setTimeout(render, 0); } });
 function setMain(html) { $("#main").innerHTML = html; if (html.includes("data-midia")) carregarFotos(); }
 function centerMsg(t, p, extra = "") { $("#tabs").innerHTML = ""; setMain(`<div class="center"><div class="box"><h2>${esc(t)}</h2><p class="muted">${p}</p>${extra}</div></div>`); }
- 
+
 function ownerTabs() { return [["painel", "Visão geral"], ["vendas", "Vendas"], ["comissoes", "Comissões"], ["atendimentos", "Atendimentos"], ["acessos", "Equipe e acessos"], ["passeios", "Passeios"]]; }
 function memberTabs(data) { const ab = (data && data.abas) || {}; return ABAS.filter(([k]) => ab[k]); }
- 
+
 function render() {
   renderWho();
   if (!S.auth) return;
@@ -397,7 +397,7 @@ function render() {
   }
   renderMember(payloadFor(viewingAs || S.email), viewingAs);
 }
- 
+
 function renderWho() {
   if (!S.session) { $("#who").innerHTML = ""; return; }
   $("#who").innerHTML = `<span>${esc(S.email)}${S.isAdmin ? " · administradora" : ""}</span><button class="linkbtn" data-act="sair" type="button">Sair</button>`;
@@ -407,7 +407,7 @@ function renderTabs(list) {
   $("#tabs").innerHTML = list.map(([k, t]) => `<button type="button" data-tab="${k}" aria-current="${k === S.tab}">${t}</button>`).join("");
 }
 $("#tabs").addEventListener("click", (e) => { const b = e.target.closest("[data-tab]"); if (!b) return; S.tab = b.dataset.tab; try { localStorage.setItem("araya-tab-" + (S.isAdmin ? (S.previewUid ? "p" : "o") : "m"), S.tab); } catch (_) {} render(); window.scrollTo({ top: 0 }); });
- 
+
 // ---------- login ----------
 function renderAuth(mode) {
   $("#tabs").innerHTML = "";
@@ -465,7 +465,7 @@ document.addEventListener("click", async (e) => {
   const a = e.target.closest("[data-auth]"); if (a) { S.authMode = a.dataset.auth; S.authMsg = null; render(); return; }
   const s = e.target.closest('[data-act="sair"]'); if (s) { await S.auth.signOut(); S.previewUid = null; S.tab = null; S.authMode = "entrar"; S.authMsg = null; }
 });
- 
+
 // ---------- visão da equipe ----------
 function renderMember(data, viewingAs) {
   const tabs = memberTabs(data);
@@ -481,7 +481,7 @@ function renderMember(data, viewingAs) {
   else if (S.tab === "equipe") html += memberEquipe(data, hoje);
   setMain(html);
 }
- 
+
 function memberInicio(data, vendas, hoje, viewingAs) {
   const ativas = vendas.filter(v => v.status !== "cancelada");
   const doMes = ativas.filter(v => ymOf(v.fechamento) === hoje);
@@ -513,7 +513,7 @@ function memberInicio(data, vendas, hoje, viewingAs) {
     </section>
   </div>`;
 }
- 
+
 function memberComissoes(data, vendas, hoje) {
   const ativas = vendas.filter(v => v.status !== "cancelada" && v.mesPagamento);
   const meses = [...new Set(ativas.map(v => v.mesPagamento))].sort().reverse();
@@ -532,7 +532,7 @@ function memberComissoes(data, vendas, hoje) {
     <tbody>${vs.map(v => `<tr><td>${esc(v.cliente)}<div>${destTag(v.destino)}</div></td><td>${dLabel(v.embarque)}</td><td class="n">${money(v.valor)}</td><td class="n">${pctFmt(v.pct)}</td><td class="n">${money(v.comissao)}</td><td>${pill(statusOf(v, hoje))}</td></tr>`).join("")}</tbody></table></div></section>`;
   }).join("") : `<div class="empty"><strong>Nenhuma comissão por enquanto</strong><span>Quando uma venda sua for lançada, a comissão aparece aqui no mês em que será paga.</span></div>`}`;
 }
- 
+
 function memberVendas(vendas) {
   const meses = [...new Set(vendas.map(v => ymOf(v.fechamento)).filter(Boolean))].sort().reverse();
   const f = S.filtros.minhasMes;
@@ -545,7 +545,7 @@ function memberVendas(vendas) {
   <tbody>${lista.map(v => `<tr><td>${esc(v.cliente)}</td><td>${destTag(v.destino)}</td><td>${dLabel(v.fechamento)}</td><td>${dLabel(v.embarque)}</td><td class="n">${money(v.valor)}</td><td>${v.status === "cancelada" ? pill("cancelada") : '<span class="pill ok">Confirmada</span>'}</td></tr>`).join("")}</tbody>
   <tfoot><tr><td colspan="4">${ok.length} vendas confirmadas</td><td class="n">${money(ok.reduce((s, v) => s + v.valor, 0))}</td><td></td></tr></tfoot></table></div>` : `<div class="empty"><strong>Nenhuma venda neste período</strong></div>`}</section>`;
 }
- 
+
 function memberEquipe(data, hoje) {
   const eq = data.equipe || [];
   const meses = [hoje, addM(hoje, -1), addM(hoje, -2)];
@@ -553,7 +553,7 @@ function memberEquipe(data, hoje) {
   <section class="panel">${eq.length ? `<div class="tablewrap"><table><thead><tr><th>Pessoa</th>${meses.map(m => `<th class="n">${ymLabel(m)}</th>`).join("")}</tr></thead>
   <tbody>${eq.map(e => `<tr><td>${esc(e.apelido || e.uid)}</td>${meses.map(m => { const x = (e.meses || {})[m] || { q: 0, v: 0 }; return `<td class="n">${x.q} <span class="muted small">· ${money(x.v)}</span></td>`; }).join("")}</tr>`).join("")}</tbody></table></div>` : `<div class="empty"><strong>Sem dados da equipe</strong></div>`}</section>`;
 }
- 
+
 // ---------- passeios ----------
 function mdInline(s) {
   s = esc(s);
@@ -659,11 +659,11 @@ function passeiosView() {
     <section class="panel">${fichaHtml(item || dest, dest, !item)}</section>
   </div>`;
 }
- 
+
 // ---------- administração ----------
 const activeMembers = () => Object.entries(S.members).filter(([, m]) => m.ativo !== false).map(([u]) => u).sort((a, b) => label(a).localeCompare(label(b), "pt-BR"));
 const allVendas = () => Object.entries(S.vendas).map(([id, v]) => enrich({ id, ...v, obs: S.notas[id] || "" }));
- 
+
 function renderOwner() {
   renderTabs(ownerTabs());
   let html = "";
@@ -675,14 +675,14 @@ function renderOwner() {
   else if (S.tab === "passeios") html = passeiosView();
   setMain(html);
 }
- 
+
 function monthOptions(sel, back = 12, fwd = 2, withAll = false) {
   const hoje = ymNow();
   const set = new Set(allVendas().flatMap(v => [ymOf(v.fechamento), v.mesPagamento]).filter(Boolean));
   for (let i = -back; i <= fwd; i++) set.add(addM(hoje, i));
   return (withAll ? `<option value="">Todos</option>` : "") + [...set].sort().reverse().map(m => `<option value="${m}" ${m === sel ? "selected" : ""}>${ymLabel(m)}</option>`).join("");
 }
- 
+
 function ownerPainel() {
   const M = S.filtros.painelMes; const hoje = ymNow();
   const ativas = allVendas().filter(v => v.status !== "cancelada");
@@ -716,7 +716,7 @@ function ownerPainel() {
     <tbody>${rows.map(r => `<tr><td>${esc(label(r.u))}${S.members[r.u] && S.members[r.u].ativo !== false ? "" : ' <span class="pill neutral">sem acesso</span>'}</td><td class="n">${r.at ?? "—"}</td><td class="n">${r.q}</td><td class="n">${money(r.val)}</td><td><div class="bar"><i style="width:${maxV ? Math.round(r.val / maxV * 100) : 0}%"></i></div></td><td class="n">${r.at ? (r.q / r.at * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + "%" : "—"}</td><td class="n">${money(r.com)}${r.comPend && M <= hoje ? ` <span class="pill warn">${r.comPend} a pagar</span>` : ""}</td><td class="n">${money(r.prev)}</td></tr>`).join("")}</tbody></table></div>` : `<div class="empty"><strong>Sem dados neste mês</strong></div>`}
   </section>`;
 }
- 
+
 function ownerVendas() {
   const f = S.filtros; const mem = activeMembers();
   let vs = allVendas();
@@ -740,7 +740,7 @@ function ownerVendas() {
   <tfoot><tr><td colspan="4">${ok.length} confirmadas</td><td class="n">${money(ok.reduce((s, v) => s + v.valor, 0))}</td><td class="n">${money(ok.reduce((s, v) => s + v.comissao, 0))}</td><td colspan="2"></td></tr></tfoot></table></div>`
     : `<div class="empty"><strong>Nenhuma venda ${f.vend || f.mes || f.busca ? "com esses filtros" : "lançada ainda"}</strong><span>Use “Nova venda” para lançar a primeira.</span></div>`}</section>`;
 }
- 
+
 function ownerComissoes() {
   const M = S.filtros.comMes; const hoje = ymNow();
   const vs = allVendas().filter(v => v.status !== "cancelada");
@@ -764,7 +764,7 @@ function ownerComissoes() {
     <tbody>${ids.map(u => `<tr><td>${esc(label(u))}</td>${futuros.map(m => `<td class="n">${money(vs.filter(v => v.vendedor === u && v.mesPagamento === m).reduce((s, v) => s + v.comissao, 0))}</td>`).join("")}</tr>`).join("")}</tbody></table></div>` : `<div class="empty"><strong>Sem previsões ainda</strong></div>`}
   </section>`;
 }
- 
+
 function ownerAtendimentos() {
   const mem = activeMembers(); const hoje = ymNow();
   const meses = Array.from({ length: 12 }, (_, i) => addM(hoje, -i));
@@ -774,7 +774,7 @@ function ownerAtendimentos() {
   <tbody>${meses.map(m => { const pp = (S.atend[m] && S.atend[m].porPessoa) || {}; return `<tr><td>${ymLabel(m)}</td>${mem.map(u => `<td class="n"><input class="cell" type="number" min="0" step="1" inputmode="numeric" id="at-${m}-${esc(u)}" data-atend="${m}" data-uid="${esc(u)}" value="${pp[u] ?? ""}" aria-label="Atendimentos de ${esc(label(u))} em ${ymLabel(m)}"></td>`).join("")}<td class="n">${mem.reduce((s, u) => s + (Number(pp[u]) || 0), 0) || "—"}</td></tr>`; }).join("")}</tbody></table></div>`
     : `<div class="empty"><strong>Cadastre a equipe primeiro</strong><span>Cada coluna é uma pessoa da equipe.</span></div>`}</section>`;
 }
- 
+
 function ownerAcessos() {
   const ids = Object.keys(S.members).sort((a, b) => label(a).localeCompare(label(b), "pt-BR"));
   const portal = location.origin + location.pathname;
@@ -804,7 +804,7 @@ function ownerAcessos() {
     </div></div>`; }).join("") : `<div class="empty"><strong>Ninguém cadastrado ainda</strong><span>Use o formulário acima para cadastrar a primeira pessoa.</span></div>`}
   </section>`;
 }
- 
+
 // ---------- formulário de venda ----------
 function openVenda(id) {
   const v = id ? { id, ...S.vendas[id], obs: S.notas[id] || "" } : null;
@@ -878,7 +878,7 @@ $("#layer").addEventListener("click", async (e) => {
   }
 });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && $("#layer").innerHTML) closeLayer(); });
- 
+
 // ---------- ações ----------
 async function run(p, okMsg) { await p; await reload(okMsg); }
 $("#main").addEventListener("click", async (e) => {
@@ -966,7 +966,7 @@ $("#main").addEventListener("input", (e) => {
   S.filtros[key] = t.value; clearTimeout(buscaTimer);
   buscaTimer = setTimeout(() => { const pos = t.selectionStart; render(); const n = $("#" + t.id); if (n) { n.focus(); n.setSelectionRange(pos, pos); } }, 250);
 });
- 
+
 // ---------- importação dos passeios ----------
 async function importarPasseios(file) {
   let data;
@@ -982,7 +982,7 @@ async function importarPasseios(file) {
   }
   await reload(ds.length + " destinos e " + ps.length + " passeios importados");
 }
- 
+
 // ---------- painel de uma pessoa ----------
 function payloadFor(uid) {
   const cfg = S.members[uid] || {}; const hoje = ymNow(); const corte = addM(hoje, -24);
@@ -997,7 +997,7 @@ function payloadFor(uid) {
   }
   return { apelido: cfg.apelido || "", pct: cfg.pct ?? 0, abas, vendas, atendimentos, equipe };
 }
- 
+
 // ---------- início ----------
 async function start(user) {
   S.session = user; S.ready = false;
@@ -1027,11 +1027,6 @@ function boot() {
 }
 boot();
 })();
- 
-</script>
-</body>
-</html>
- 
 
 </script>
 </body>
