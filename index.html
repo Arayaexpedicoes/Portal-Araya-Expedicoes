@@ -149,7 +149,9 @@ input.cell{width:84px;text-align:right;padding:5px 8px}
 .tourlist .grp{font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:600;padding:10px 10px 2px}
 .tourhead{display:grid;gap:4px}
 .tourhead .dest{font-weight:600;letter-spacing:.08em;text-transform:uppercase;font-size:.7rem;color:var(--dc,var(--muted))}
-.prose{max-width:70ch;min-width:0;overflow-wrap:anywhere}
+.prose{min-width:0;overflow-wrap:anywhere}
+.prose > :not(.galeria):not(.vgrade):not(.video){max-width:70ch}
+.prose > .video{max-width:760px}
 .prose h4{font-family:var(--display);font-weight:600;font-size:1.02rem;margin:20px 0 4px}
 .prose h5{font-size:.9rem;margin:14px 0 2px}
 .prose p{margin:0 0 8px}
@@ -161,7 +163,7 @@ input.cell{width:84px;text-align:right;padding:5px 8px}
 .prose blockquote{margin:6px 0 10px;padding:9px 13px;border-left:3px solid var(--dc,var(--accent));background:color-mix(in srgb, var(--dc,var(--accent)) 8%, transparent);border-radius:0 8px 8px 0}
 /* Fotos e vídeos */
 .galeria{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;margin:6px 0 12px}
-.galeria.uma{grid-template-columns:1fr}
+.galeria.uma{grid-template-columns:1fr;max-width:620px}
 .galeria button{border:0;padding:0;background:var(--surface-2);border-radius:10px;overflow:hidden;cursor:zoom-in;display:grid;aspect-ratio:4/3;position:relative}
 .galeria.uma button{aspect-ratio:auto;max-height:460px}
 .galeria img{width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity .25s}
@@ -169,6 +171,14 @@ input.cell{width:84px;text-align:right;padding:5px 8px}
 .galeria figcaption{position:absolute;left:0;right:0;bottom:0;padding:16px 10px 7px;font-size:.76rem;color:#fff;text-align:left;background:linear-gradient(transparent,rgb(0 0 0 / .6))}
 .video{position:relative;aspect-ratio:16/9;border-radius:10px;overflow:hidden;background:#000;margin:6px 0 4px}
 .video iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.vgrade{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;margin:6px 0 12px;align-items:start}
+.vgrade figure{margin:0;display:grid;gap:4px}
+.vgrade video{width:100%;max-height:440px;border-radius:10px;background:#000;display:block}
+.vgrade figcaption{font-size:.76rem;color:var(--muted)}
+.vgrade .vfalha{aspect-ratio:9/12;border-radius:10px;background:var(--surface-2);display:grid;place-items:center;text-align:center;padding:12px;font-size:.8rem;color:var(--muted)}
+.arquivo{display:inline-flex;align-items:center;gap:8px;margin:4px 0 10px;padding:8px 12px;border-radius:10px;background:var(--surface-2);font-weight:600;font-size:.86rem;text-decoration:none;color:var(--fg)}
+.arquivo:hover{background:color-mix(in srgb, var(--dc,var(--accent)) 12%, var(--surface-2))}
+@media (max-width:520px){.galeria:not(.uma),.vgrade{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .video-leg{font-size:.8rem;color:var(--muted);margin:0 0 12px}
 .lightbox{background:rgb(10 9 6 / .88);cursor:zoom-out}
 .lightbox figure{margin:0;display:grid;gap:10px;justify-items:center;max-width:min(1400px,100%);max-height:100%}
@@ -562,14 +572,25 @@ function mdInline(s) {
   return s;
 }
 const VIDEO_URL = { youtube: (id) => `https://www.youtube-nocookie.com/embed/${id}?rel=0`, drive: (id) => `https://drive.google.com/file/d/${id}/preview`, vimeo: (id) => `https://player.vimeo.com/video/${id}` };
-function md(src, fotos = {}) {
-  let out = "", list = null, gal = [];
+function videoNotionHtml(a) {
+  if (!a || !a.url) return "";
+  const vencido = a.expira && Date.parse(a.expira) < Date.now();
+  const leg = a.legenda ? `<figcaption>${esc(a.legenda)}</figcaption>` : "";
+  if (vencido) return `<figure><div class="vfalha">Vídeo sendo atualizado.<br>Recarregue a página em alguns minutos.</div>${leg}</figure>`;
+  return `<figure><video controls playsinline preload="metadata" src="${esc(a.url)}#t=0.1" data-vnome="${esc(a.nome || "")}"></video>${leg}</figure>`;
+}
+function md(src, fotos = {}, arqs = {}) {
+  let out = "", list = null, gal = [], vids = [];
+  const fechaVid = () => { if (vids.length) { out += `<div class="vgrade">${vids.map(id => videoNotionHtml(arqs[id])).join("")}</div>`; vids = []; } };
   const fechaGal = () => { if (gal.length) { out += `<div class="galeria${gal.length === 1 ? " uma" : ""}">${gal.map(id => { const f = fotos[id] || {}; return `<button type="button" data-foto="${esc(id)}" aria-label="Ampliar foto${f.legenda ? ": " + esc(f.legenda) : ""}"><img data-midia="${esc(id)}" alt="${esc(f.legenda || "")}">${f.legenda ? `<figcaption>${esc(f.legenda)}</figcaption>` : ""}</button>`; }).join("")}</div>`; gal = []; } };
   const close = () => { if (list) { out += `</${list}>`; list = null; } };
   for (const raw of String(src || "").split("\n")) {
     const t = raw.trim(); let m;
-    if ((m = t.match(/^\[\[foto:([A-Za-z0-9_-]+)\]\]$/))) { close(); gal.push(m[1]); continue; }
+    if ((m = t.match(/^\[\[foto:([A-Za-z0-9_-]+)\]\]$/))) { close(); fechaVid(); gal.push(m[1]); continue; }
     fechaGal();
+    if ((m = t.match(/^\[\[nvideo:([A-Za-z0-9_-]+)\]\]$/))) { close(); if (arqs[m[1]]) vids.push(m[1]); continue; }
+    fechaVid();
+    if ((m = t.match(/^\[\[arquivo:([A-Za-z0-9_-]+)\]\]$/))) { close(); const a = arqs[m[1]]; if (a && a.url) out += `<a class="arquivo" href="${esc(a.url)}" target="_blank" rel="noopener">📄 ${esc(a.legenda || a.nome || "Abrir arquivo")}</a>`; continue; }
     if ((m = t.match(/^\[\[video:(youtube|drive|vimeo):([A-Za-z0-9_-]+)(?:\|([^\]]*))?\]\]$/))) {
       close(); out += `<div class="video"><iframe src="${VIDEO_URL[m[1]](m[2])}" title="${esc(m[3] || "Vídeo")}" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>${m[3] ? `<p class="video-leg">${esc(m[3])}</p>` : ""}`; continue;
     }
@@ -580,7 +601,7 @@ function md(src, fotos = {}) {
     if ((m = t.match(/^(\d+)[.)]\s+(.*)$/))) { if (list !== "ol") { close(); out += "<ol>"; list = "ol"; } out += `<li>${mdInline(m[2])}</li>`; continue; }
     close(); out += `<p>${mdInline(t)}</p>`;
   }
-  close(); fechaGal(); return out;
+  close(); fechaGal(); fechaVid(); return out;
 }
 // Fotos ficam no banco do portal; carregam só quando a ficha é aberta.
 const FOTO_CACHE = new Map();
@@ -595,6 +616,16 @@ async function carregarFotos() {
     } catch (_) { img.closest("button")?.remove(); }
   }
 }
+// Se o navegador não tocar o vídeo (formato do iPhone em alguns computadores), oferece abrir em outra aba
+document.addEventListener("error", (e) => {
+  const v = e.target;
+  if (!v || v.tagName !== "VIDEO" || v.dataset.falhou) return;
+  v.dataset.falhou = "1";
+  const url = (v.getAttribute("src") || "").replace(/#t=.*$/, "");
+  const box = document.createElement("div"); box.className = "vfalha";
+  box.innerHTML = `Este navegador não conseguiu tocar o vídeo aqui.<br><a href="${esc(url)}" target="_blank" rel="noopener">Abrir em outra aba</a>`;
+  v.replaceWith(box);
+}, true);
 function abrirFoto(id) {
   const f = FOTO_CACHE.get(id); if (!f || !f.dados) return;
   $("#layer").innerHTML = `<div class="overlay lightbox" data-close><figure><img src="${f.dados}" alt="${esc(f.legenda || "")}">${f.legenda ? `<figcaption>${esc(f.legenda)}</figcaption>` : ""}<button type="button" class="btn sm" data-close-btn>Fechar</button></figure></div>`;
@@ -610,13 +641,20 @@ function fichaHtml(f, dest, isDest) {
   const fatos = [["Duração", f.duracao], ["Altitude", f.altitude], ["Grupo", f.grupo], ["Esforço", f.esforco], ["Preço", f.preco]].filter(x => x[1]);
   const link = S.isAdmin && !S.previewUid && f.notion ? `<a class="btn sm" href="${esc(f.notion)}" target="_blank" rel="noopener">Editar no Notion</a>` : "";
   const fmap = Object.fromEntries((f.fotos || []).map(x => [x.id, x]));
-  const bloco = (k, rot, cls) => sec[k] ? `<section class="${cls}"><h4 class="fh">${rot}</h4><div class="prose">${md(sec[k], fmap)}</div></section>` : "";
+  const amap = Object.fromEntries((f.arquivos || []).map(x => [x.id, x]));
+  const bloco = (k, rot, cls) => sec[k] ? `<section class="${cls}"><h4 class="fh">${rot}</h4><div class="prose">${md(sec[k], fmap, amap)}</div></section>` : "";
+  if (sec.galeria) {
+    // na seção de fotos e vídeos: fotos primeiro, depois vídeos e arquivos
+    const ln = sec.galeria.split("\n"), peso = (l) => /^\[\[foto:/.test(l.trim()) ? 0 : /^\[\[(n?video):/.test(l.trim()) ? 1 : /^\[\[arquivo:/.test(l.trim()) ? 2 : 3;
+    sec.galeria = ln.map((l, i) => [peso(l), i, l]).sort((a, b) => a[0] - b[0] || a[1] - b[1]).map(x => x[2]).join("\n");
+  }
   let corpo;
   if (temSec) {
     corpo = bloco("descricao", isDest ? "Sobre o destino" : "Descrição", "fsec")
+      + bloco("galeria", "Fotos e vídeos", "fsec")
       + (sec.inclui || sec.atencao ? `<div class="fcards">${bloco("inclui", "O que inclui", "fcard inclui")}${bloco("atencao", "Características e atenção", "fcard atencao")}</div>` : "")
       + bloco("gastronomia", "Gastronomia", "fsec")
-      + (sec.guia ? `<section class="fsec guia"><span class="guia-tag">Uso interno · não enviar ao cliente</span><h4 class="fh">Guia interno</h4><div class="prose">${md(sec.guia, fmap)}</div></section>` : "");
+      + (sec.guia ? `<section class="fsec guia"><span class="guia-tag">Uso interno · não enviar ao cliente</span><h4 class="fh">Guia interno</h4><div class="prose">${md(sec.guia, fmap, amap)}</div></section>` : "");
   } else {
     const txt = isDest ? f.resumo : f.conteudo;
     corpo = txt ? `<div class="prose">${md(txt)}</div>` : `<p class="muted">Ainda não há texto nesta ficha.</p>`;
@@ -630,7 +668,6 @@ function fichaHtml(f, dest, isDest) {
     </header>
     ${fatos.length ? `<dl class="fatos">${fatos.map(([k, v]) => `<div><dt>${k}</dt><dd>${k === "Esforço" && ESFORCO[v] ? `<span class="pill ${ESFORCO[v]}">${esc(v)}</span>` : esc(v)}</dd></div>`).join("")}</dl>` : ""}
     ${S.isAdmin && !S.previewUid && f.pendentes ? `<div class="notice">Só você vê este aviso: na página Destinos antiga este trecho tinha ${f.pendentes} ${f.pendentes === 1 ? "foto ou vídeo" : "fotos e vídeos"}. Copie para esta ficha no Notion e depois apague o aviso 📷 da ficha.</div>` : ""}
-    ${S.isAdmin && !S.previewUid && f.videosNotion ? `<div class="notice">Só você vê este aviso: ${f.videosNotion === 1 ? "um vídeo desta ficha está guardado" : f.videosNotion + " vídeos desta ficha estão guardados"} direto no Notion e não toca no portal. Suba no Google Drive e cole o link na ficha.</div>` : ""}
     ${corpo}
     ${rev ? `<p class="rev">${rev}</p>` : ""}
   </article>`;
