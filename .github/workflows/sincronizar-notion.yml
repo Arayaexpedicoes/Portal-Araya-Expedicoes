@@ -35,6 +35,7 @@ jobs:
           ROBO_EMAIL: robo.portal@arayaexpedicoes.com
           NOTION_DATABASE_ID: ead044fa4f87493b86621b16719cf5e8
           NOTION_DATA_SOURCE_ID: e2f3a87a2c084e83906e5393dbbab421
+          NOTION_TICKETS_PAGE_ID: 1e065370b06380ae899ad5c8220284ba
         run: |
           cat > sincronizar.cjs <<'FIM_DO_ROBO'
           // Portal da Equipe Araya · robô Notion → Firestore
@@ -55,6 +56,7 @@ jobs:
 
           const NOTION_VERSION = "2022-06-28";
           const DB_ID = (process.env.NOTION_DATABASE_ID || "").replace(/-/g, "");
+          const TICKETS_ID = (process.env.NOTION_TICKETS_PAGE_ID || "").replace(/-/g, "");
           const DS_ID = (process.env.NOTION_DATA_SOURCE_ID || "").replace(/-/g, "");
 
           const DESTINOS = {
@@ -124,19 +126,25 @@ jobs:
           function inline(rt) {
             let out = "";
             for (const t of rt || []) {
-              let s = (t.plain_text || "").replace(/\n/g, " ");
+              let s = t.plain_text || "";
               if (!s) continue;
-              const href = t.href && /^https?:\/\//.test(t.href) ? t.href : "";
-              const negrito = t.annotations && t.annotations.bold && s.trim();
-              if (negrito) {
-                const ini = s.match(/^\s*/)[0], fim = s.match(/\s*$/)[0];
-                s = ini + "**" + s.trim() + "**" + fim;
-              }
-              if (href && s.trim()) s = "[" + s.trim() + "](" + href + ")";
+              const href = t.href && /^(https?:\/\/|mailto:|tel:)/.test(t.href) ? t.href : "";
+              const negrito = t.annotations && t.annotations.bold;
+              // quebras de linha dentro do mesmo bloco viram linhas separadas
+              s = s.split("\n").map((parte) => {
+                if (!parte.trim()) return parte;
+                const ini = parte.match(/^\s*/)[0], fim = parte.match(/\s*$/)[0];
+                let x = parte.trim();
+                if (negrito) x = "**" + x + "**";
+                if (href) x = "[" + x.replace(/\*\*/g, "") + "](" + href + ")";
+                return ini + x + fim;
+              }).join("\n");
               out += s;
             }
-            return out.replace(/\*\*\*\*/g, "").trim();
+            return out.replace(/\*\*\*\*/g, "").replace(/\n[ \t]+/g, "\n").trim();
           }
+          // Senhas nunca vão para o portal: ficam só no Notion.
+          const semSenhas = (txt) => String(txt || "").replace(/\b(senha|clave|password|contrase[ñn]a)\b\s*:?\s*\S+/gi, "$1: 🔒 ver na página Tickets do Notion");
 
           // Links de vídeo que o portal consegue tocar na própria ficha.
           function videoDe(url) {
@@ -163,7 +171,8 @@ jobs:
             return todos;
           }
 
-          async function lerPagina(pageId) {
+          async function lerPagina(pageId) { return lerBlocos(await filhos(pageId)); }
+          async function lerBlocos(blocosIniciais) {
             const ficha = { secoes: {}, pendentes: 0, fotos: [], arquivos: [] };
             let atual = "descricao";
             const add = (linha) => { (ficha.secoes[atual] = ficha.secoes[atual] || []).push(linha); };
@@ -243,12 +252,59 @@ jobs:
                 if (sub.length) await percorrer(sub, ["toggle", "table", "column_list", "column"].includes(b.type) ? nivel : nivel + 1);
               }
             }
-            await percorrer(await filhos(pageId), 0);
+            await percorrer(blocosIniciais, 0);
             for (const k of Object.keys(ficha.secoes)) {
               const s = ficha.secoes[k].join("\n").replace(/\n{3,}/g, "\n\n").trim();
               if (s) ficha.secoes[k] = s; else delete ficha.secoes[k];
             }
             return ficha;
+          }
+
+          // ---------- página Tickets (links e instruções de reserva) ----------
+          const DEST_TICKETS = [
+            [/^(peru|cusco|machu)/, "cusco-machu-picchu", "Cusco e Machu Picchu", 1], [/^patagonia/, "patagonia", "Patagônia", 2],
+            [/^japao/, "japao", "Japão", 3], [/^(egito|jordania)/, "egito-jordania", "Egito e Jordânia", 4],
+            [/^ushuaia/, "ushuaia", "Ushuaia", 5], [/^mendoza/, "mendoza", "Mendoza", 6], [/^(atacama|uyuni)/, "atacama-uyuni", "Atacama e Uyuni", 7],
+          ];
+          async function lerTickets(pageId) {
+            const itens = {}, intros = {};
+            let atual = null, ordem = 0;
+            const juntar = (sec) => ["descricao", "inclui", "atencao", "gastronomia", "guia", "galeria"].map((k) => sec[k]).filter(Boolean).join("\n\n");
+            for (const b of await filhos(pageId)) {
+              const d = b[b.type] || {}, rt = d.rich_text || [];
+              const titulo = texto(rt);
+              const primeira = norm(titulo.split("\n")[0]);
+              const cab = (b.type === "paragraph" && rt[0] && rt[0].annotations && rt[0].annotations.bold) || /^heading_/.test(b.type);
+              const dest = cab && primeira.length <= 30 ? DEST_TICKETS.find(([re]) => re.test(primeira)) : null;
+              if (dest && b.type !== "toggle" && !(d.is_toggleable)) {
+                atual = dest; ordem = 0;
+                const resto = titulo.split("\n").slice(1).join("\n").trim();
+                intros[atual[1]] = intros[atual[1]] || { linhas: [], fotos: [], arquivos: [] };
+                if (resto) intros[atual[1]].linhas.push(semSenhas(resto));
+                continue;
+              }
+              if (!atual) continue;
+              if (b.type === "toggle" || d.is_toggleable) {
+                if (/desativad/i.test(titulo)) continue;
+                const m = titulo.replace(/\*/g, "").match(/^(.*?)\s*\(([^)]*)\)\s*\.?$/);
+                const nome = (m ? m[1] : titulo).replace(/\s*\.\s*$/, "").trim(), obs = m ? m[2].trim() : "";
+                const conteudo = b.has_children ? await lerPagina(b.id) : { secoes: {}, fotos: [], arquivos: [] };
+                itens["t_" + b.id.replace(/-/g, "")] = { tipo: "item", destino: atual[1], destinoNome: atual[2], destinoOrdem: atual[3], nome, obs, ordem: ++ordem,
+                  texto: semSenhas(juntar(conteudo.secoes)), fotos: conteudo.fotos, arquivos: conteudo.arquivos, editadoEm: b.last_edited_time || "" };
+                continue;
+              }
+              // texto solto entre os itens: vai para a introdução do destino
+              if (b.type === "divider") continue;
+              const tmp = await lerBlocos([b]);
+              const intro = intros[atual[1]] = intros[atual[1]] || { linhas: [], fotos: [], arquivos: [] };
+              const txt = juntar(tmp.secoes); if (txt) intro.linhas.push(semSenhas(txt));
+              intro.fotos.push(...tmp.fotos); intro.arquivos.push(...tmp.arquivos);
+            }
+            for (const [id, x] of Object.entries(intros)) {
+              const dest = DEST_TICKETS.find((t) => t[1] === id);
+              itens["intro_" + id] = { tipo: "intro", destino: id, destinoNome: dest[2], destinoOrdem: dest[3], nome: "Como funciona", obs: "", ordem: 0, texto: x.linhas.join("\n\n"), fotos: x.fotos, arquivos: x.arquivos, editadoEm: "" };
+            }
+            return itens;
           }
 
           // ---------- fotos: reduz e guarda no banco do portal (protegido pelo login) ----------
@@ -344,18 +400,28 @@ jobs:
               }
             }
 
+            // 2b. página Tickets (opcional: se a conexão não foi adicionada, o resto continua)
+            let tickets = null, avisoTickets = "";
+            if (TICKETS_ID) {
+              try { tickets = await lerTickets(TICKETS_ID); }
+              catch (e) { avisoTickets = e instanceof Falha && e.status === 404 ? "a conexão “Portal Araya” ainda não foi adicionada à página Tickets do Notion" : "não foi possível ler a página Tickets (" + String((e && e.message) || e).slice(0, 120) + ")"; }
+            }
+
             // 3. grava (substitui por completo) e remove o que saiu do Notion
-            let antigosD, antigosP;
+            let antigosD, antigosP, antigosT = { forEach() {} };
             try {
               [antigosD, antigosP] = await Promise.all([getDocs(collection(db, "destinos")), getDocs(collection(db, "passeios"))]);
+              try { antigosT = await getDocs(collection(db, "tickets")); }
+              catch (e) { if (tickets) { avisoTickets = "publique as regras novas do Firestore (com a coleção tickets)"; tickets = null; } }
             } catch (e) {
               if (e && e.code === "permission-denied") throw new Falha("O Firebase não deixou o robô mexer nos passeios. Confira se as regras novas do Firestore foram publicadas (com o e-mail do robô).");
               throw e;
             }
             // fotos: só baixa e converte o que é novo ou mudou
             const versaoAntiga = {};
-            [antigosD, antigosP].forEach((snap) => snap.forEach((d) => { const x = d.data ? d.data() : {}; (x && x.fotos || []).forEach((f) => { versaoAntiga[f.id] = f.versao; }); }));
-            const todasFotos = [...Object.values(destinos), ...Object.values(passeios)].flatMap((x) => x.fotos || []);
+            [antigosD, antigosP, antigosT].forEach((snap) => snap.forEach((d) => { const x = d.data ? d.data() : {}; (x && x.fotos || []).forEach((f) => { versaoAntiga[f.id] = f.versao; }); }));
+            const todos = () => [...Object.values(destinos), ...Object.values(passeios), ...Object.values(tickets || {})];
+            const todasFotos = todos().flatMap((x) => x.fotos || []);
             let fotosNovas = 0, fotosErro = 0;
             for (const f of todasFotos) {
               if (versaoAntiga[f.id] === f.versao) continue;
@@ -369,9 +435,11 @@ jobs:
               }
             }
             const idsNovos = new Set(todasFotos.map((f) => f.id));
+            // se a página Tickets não pôde ser lida, mantém as fotos dela como estão
+            if (!tickets) antigosT.forEach((d) => { const x = d.data ? d.data() : {}; (x && x.fotos || []).forEach((f) => idsNovos.add(f.id)); });
             let fotosRemovidas = 0;
             for (const id of Object.keys(versaoAntiga)) if (!idsNovos.has(id)) { try { await deleteDoc(doc(db, "midias", id)); fotosRemovidas++; } catch (_) {} }
-            for (const x of [...Object.values(destinos), ...Object.values(passeios)]) x.fotos = (x.fotos || []).map(({ url, ...resto }) => resto);
+            for (const x of todos()) x.fotos = (x.fotos || []).map(({ url, ...resto }) => resto);
 
             const ops = [];
             for (const [id, d] of Object.entries(destinos)) ops.push(["set", doc(db, "destinos", id), d]);
@@ -379,6 +447,10 @@ jobs:
             let removidos = 0;
             antigosD.forEach((doc) => { if (!destinos[doc.id]) { ops.push(["delete", doc.ref]); removidos++; } });
             antigosP.forEach((doc) => { if (!passeios[doc.id]) { ops.push(["delete", doc.ref]); removidos++; } });
+            if (tickets) {
+              for (const [id, t] of Object.entries(tickets)) ops.push(["set", doc(db, "tickets", id), t]);
+              antigosT.forEach((doc) => { if (!tickets[doc.id]) ops.push(["delete", doc.ref]); });
+            }
             for (let i = 0; i < ops.length; i += 400) {
               const lote = writeBatch(db);
               for (const [tipo, ref, dados] of ops.slice(i, i + 400)) tipo === "set" ? lote.set(ref, dados) : lote.delete(ref);
@@ -387,7 +459,9 @@ jobs:
 
             console.log("Notion: " + paginas.length + " fichas publicadas lidas.");
             console.log("Portal: " + Object.keys(destinos).length + " destinos e " + Object.keys(passeios).length + " passeios gravados; " + removidos + " itens antigos removidos.");
-            const totalVideos = [...Object.values(destinos), ...Object.values(passeios)].reduce((n, x) => n + (x.arquivos || []).filter((a) => a.tipo === "video").length, 0);
+            if (tickets) console.log("Tickets: " + Object.values(tickets).filter((t) => t.tipo === "item").length + " lugares gravados.");
+            else if (avisoTickets) console.log("Tickets: não atualizado — " + avisoTickets + ". O resto do portal foi atualizado normalmente.");
+            const totalVideos = todos().reduce((n, x) => n + (x.arquivos || []).filter((a) => a.tipo === "video").length, 0);
             console.log("Vídeos do Notion: " + totalVideos + " (links renovados).");
             console.log("Fotos: " + todasFotos.length + " no total; " + fotosNovas + " novas ou alteradas" + (fotosRemovidas ? "; " + fotosRemovidas + " removidas" : "") + ".");
             if (fotosErro) console.log("Atenção: " + fotosErro + " foto(s) não puderam ser convertidas (formato não suportado ou arquivo grande demais). Tente salvar como JPG e subir de novo.");
