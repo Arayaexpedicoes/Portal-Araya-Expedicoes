@@ -1,12 +1,12 @@
 # Portal da Equipe Araya · robô que copia as fichas do Notion para o portal.
-# Roda sozinho a cada hora e também pelo botão "Run workflow" (aba Actions).
+# Roda sozinho a cada 20 minutos (renova os links dos vídeos guardados no Notion) e também pelo botão "Run workflow" (aba Actions).
 # As chaves ficam nos segredos do GitHub (NOTION_TOKEN e ROBO_SENHA),
 # nunca neste arquivo. O registro da execução mostra só contagens, sem conteúdo.
 name: Sincronizar fichas do Notion
 
 on:
   schedule:
-    - cron: "17 * * * *"
+    - cron: "*/20 * * * *"
   workflow_dispatch:
 
 permissions:
@@ -19,14 +19,14 @@ concurrency:
 jobs:
   sincronizar:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 40
     steps:
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
 
       - name: Preparar
-        run: npm install --no-save --no-audit --no-fund --loglevel=error firebase@10.14.1
+        run: npm install --no-save --no-audit --no-fund --loglevel=error firebase@10.14.1 sharp@0.33.5 heic-convert@2.1.0
 
       - name: Copiar fichas do Notion para o portal
         env:
@@ -34,6 +34,7 @@ jobs:
           ROBO_SENHA: ${{ secrets.ROBO_SENHA }}
           ROBO_EMAIL: robo.portal@arayaexpedicoes.com
           NOTION_DATABASE_ID: ead044fa4f87493b86621b16719cf5e8
+          NOTION_DATA_SOURCE_ID: e2f3a87a2c084e83906e5393dbbab421
         run: |
           cat > sincronizar.cjs <<'FIM_DO_ROBO'
           // Portal da Equipe Araya · robô Notion → Firestore
@@ -41,7 +42,9 @@ jobs:
           // Não imprime nenhum conteúdo das fichas: só contagens.
           const { initializeApp } = require("firebase/app");
           const { getAuth, signInWithEmailAndPassword } = require("firebase/auth");
-          const { getFirestore, collection, doc, getDocs, writeBatch, terminate } = require("firebase/firestore");
+          const { getFirestore, collection, doc, getDocs, writeBatch, setDoc, deleteDoc, terminate } = require("firebase/firestore");
+          const sharp = require("sharp");
+          const heicConvert = require("heic-convert");
 
           // Configuração pública do portal (a mesma que está no index.html; não é segredo).
           const FIREBASE_CONFIG = {
@@ -52,6 +55,7 @@ jobs:
 
           const NOTION_VERSION = "2022-06-28";
           const DB_ID = (process.env.NOTION_DATABASE_ID || "").replace(/-/g, "");
+          const DS_ID = (process.env.NOTION_DATA_SOURCE_ID || "").replace(/-/g, "");
 
           const DESTINOS = {
             "Cusco e Machu Picchu": ["cusco-machu-picchu", 1],
@@ -66,19 +70,20 @@ jobs:
             "descricao": "descricao", "o que inclui": "inclui", "inclui": "inclui",
             "caracteristicas e atencao": "atencao", "atencao": "atencao",
             "gastronomia": "gastronomia", "guia interno": "guia",
+            "fotos e videos": "galeria", "fotos": "galeria", "videos": "galeria", "galeria": "galeria",
           };
           const norm = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
           const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-          class Falha extends Error {}
+          class Falha extends Error { constructor(m, status) { super(m); this.status = status; } }
 
-          async function notion(path, body) {
+          async function notion(path, body, versao) {
             for (let tentativa = 1; ; tentativa++) {
               const res = await fetch("https://api.notion.com/v1/" + path, {
                 method: body ? "POST" : "GET",
                 headers: {
                   "Authorization": "Bearer " + process.env.NOTION_TOKEN,
-                  "Notion-Version": NOTION_VERSION,
+                  "Notion-Version": versao || NOTION_VERSION,
                   "Content-Type": "application/json",
                 },
                 body: body ? JSON.stringify(body) : undefined,
@@ -92,7 +97,7 @@ jobs:
               let codigo = "";
               try { codigo = (await res.json()).code || ""; } catch (_) {}
               if (res.status === 401) throw new Falha("O Notion recusou a chave (NOTION_TOKEN). Confira se o segredo foi colado inteiro.");
-              if (res.status === 404 || codigo === "object_not_found") throw new Falha("O Notion não encontrou o banco de fichas. Confira se a conexão “Portal Araya” foi adicionada ao banco “Fichas de Passeios · Portal Araya”.");
+              if (res.status === 404 || codigo === "object_not_found") throw new Falha("O Notion não encontrou o banco de fichas. Confira se a conexão “Portal Araya” foi adicionada ao banco “Fichas de Passeios · Portal Araya” (••• → Conexões).", 404);
               throw new Falha("O Notion respondeu com erro " + res.status + (codigo ? " (" + codigo + ")" : "") + ".");
             }
           }
@@ -133,6 +138,20 @@ jobs:
             return out.replace(/\*\*\*\*/g, "").trim();
           }
 
+          // Links de vídeo que o portal consegue tocar na própria ficha.
+          function videoDe(url) {
+            url = String(url || "");
+            let m = url.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+            if (m) return "youtube:" + m[1];
+            m = url.match(/drive\.google\.com\/(?:file\/d\/|open\?(?:.*&)?id=|uc\?(?:.*&)?id=)([A-Za-z0-9_-]{20,})/);
+            if (m) return "drive:" + m[1];
+            m = url.match(/vimeo\.com\/(?:video\/)?(\d{6,})/);
+            if (m) return "vimeo:" + m[1];
+            return null;
+          }
+          const nomeArquivo = (url) => { try { return decodeURIComponent(new URL(url).pathname.split("/").pop() || "arquivo"); } catch (_) { return "arquivo"; } };
+          const urlDoBloco = (d) => (d && (d.type === "external" ? d.external && d.external.url : d.type === "file" ? d.file && d.file.url : d.url)) || "";
+
           async function filhos(id) {
             const todos = [];
             let cursor;
@@ -145,7 +164,7 @@ jobs:
           }
 
           async function lerPagina(pageId) {
-            const ficha = { secoes: {}, midias: 0, extras: [] };
+            const ficha = { secoes: {}, pendentes: 0, fotos: [], arquivos: [] };
             let atual = "descricao";
             const add = (linha) => { (ficha.secoes[atual] = ficha.secoes[atual] || []).push(linha); };
 
@@ -166,7 +185,12 @@ jobs:
                     break;
                   }
                   case "heading_3": add("### " + inline(rt)); break;
-                  case "paragraph": { const s = inline(rt); if (s) add(recuo + s); break; }
+                  case "paragraph": {
+                    const puro = texto(rt), so = (rt || []).length === 1 && rt[0].href ? rt[0].href : puro;
+                    const v = /^https?:\/\/\S+$/.test(so) ? videoDe(so) : null;
+                    if (v) { add("[[video:" + v + "]]"); break; }
+                    const s = inline(rt); if (s) add(recuo + s); break;
+                  }
                   case "bulleted_list_item":
                   case "to_do": add(recuo + "- " + inline(rt)); break;
                   case "numbered_list_item": n++; add(recuo + n + ". " + inline(rt)); break;
@@ -175,13 +199,45 @@ jobs:
                     const icone = d.icon && d.icon.emoji;
                     const s = inline(rt);
                     const m = s.match(/(\d+)\s*foto/);
-                    if (icone === "📷" || /fotos e v[ií]deos entram no portal/i.test(s)) { ficha.midias += m ? Number(m[1]) : 0; break; }
+                    if (icone === "📷" || /fotos e v[ií]deos entram no portal/i.test(s)) { ficha.pendentes += m ? Number(m[1]) : 0; break; }
                     if (s) add("> " + s);
                     break;
                   }
                   case "toggle": add(recuo + "**" + inline(rt).replace(/\*\*/g, "") + "**"); break;
                   case "table_row": add(recuo + "- " + (d.cells || []).map(inline).filter(Boolean).join(" · ")); break;
-                  case "image": case "video": case "file": case "pdf": case "embed": ficha.midias++; break;
+                  case "image": {
+                    const url = urlDoBloco(d), legenda = texto(d.caption);
+                    const v = d.type === "external" ? videoDe(url) : null;
+                    if (v) { add("[[video:" + v + (legenda ? "|" + legenda.replace(/[\]|]/g, " ") : "") + "]]"); break; }
+                    if (!url) break;
+                    const id = b.id.replace(/-/g, "");
+                    ficha.fotos.push({ id, versao: (b.last_edited_time || "") + (d.type === "external" ? "|" + url : ""), legenda, url });
+                    add("[[foto:" + id + "]]");
+                    break;
+                  }
+                  case "video": case "embed": case "bookmark": case "link_preview": {
+                    const url = urlDoBloco(d), legenda = texto(d.caption);
+                    const v = videoDe(url);
+                    if (v) add("[[video:" + v + (legenda ? "|" + legenda.replace(/[\]|]/g, " ") : "") + "]]");
+                    else if (b.type === "video" && d.type === "file" && url) {
+                      // vídeo guardado no próprio Notion: o link é temporário e o robô renova a cada rodada
+                      const id = b.id.replace(/-/g, "");
+                      ficha.arquivos.push({ id, tipo: "video", url, expira: (d.file && d.file.expiry_time) || "", nome: nomeArquivo(url), legenda });
+                      add("[[nvideo:" + id + "]]");
+                    }
+                    else if (/^https?:\/\//.test(url)) add(recuo + "[" + (legenda || url) + "](" + url + ")");
+                    break;
+                  }
+                  case "file": case "pdf": {
+                    const url = urlDoBloco(d);
+                    if (!url) break;
+                    if (d.type === "file") {
+                      const id = b.id.replace(/-/g, "");
+                      ficha.arquivos.push({ id, tipo: "arquivo", url, expira: (d.file && d.file.expiry_time) || "", nome: d.name || nomeArquivo(url), legenda: texto(d.caption) });
+                      add("[[arquivo:" + id + "]]");
+                    } else add(recuo + "[" + (texto(d.caption) || d.name || url) + "](" + url + ")");
+                    break;
+                  }
                   default: break;
                 }
                 if (sub.length) await percorrer(sub, ["toggle", "table", "column_list", "column"].includes(b.type) ? nivel : nivel + 1);
@@ -193,6 +249,25 @@ jobs:
               if (s) ficha.secoes[k] = s; else delete ficha.secoes[k];
             }
             return ficha;
+          }
+
+          // ---------- fotos: reduz e guarda no banco do portal (protegido pelo login) ----------
+          async function prepararFoto(url) {
+            const res = await fetch(url);
+            if (!res.ok) throw new Error("download " + res.status);
+            let buf = Buffer.from(await res.arrayBuffer());
+            try { await sharp(buf, { failOn: "none" }).resize(8).toBuffer(); }
+            catch (_) {
+              // fotos do iPhone (HEIC): converte para JPG antes
+              buf = Buffer.from(await heicConvert({ buffer: buf, format: "JPEG", quality: 0.9 }));
+            }
+            for (const [lado, q] of [[1600, 74], [1400, 68], [1200, 62], [1000, 58], [800, 52]]) {
+              const out = await sharp(buf, { failOn: "none" }).rotate()
+                .resize({ width: lado, height: lado, fit: "inside", withoutEnlargement: true })
+                .webp({ quality: q }).toBuffer({ resolveWithObject: true });
+              if (out.data.length <= 650000) return { dados: "data:image/webp;base64," + out.data.toString("base64"), w: out.info.width, h: out.info.height };
+            }
+            throw new Error("grande demais");
           }
 
           // ---------- principal ----------
@@ -216,11 +291,15 @@ jobs:
             const paginas = [];
             let cursor;
             do {
-              const r = await notion("databases/" + DB_ID + "/query", {
-                filter: { property: "Status", status: { equals: "Publicado" } },
-                page_size: 100,
-                ...(cursor ? { start_cursor: cursor } : {}),
-              });
+              const consulta = { filter: { property: "Status", status: { equals: "Publicado" } }, page_size: 100, ...(cursor ? { start_cursor: cursor } : {}) };
+              let r;
+              try {
+                r = await notion("databases/" + DB_ID + "/query", consulta);
+              } catch (e) {
+                // Bancos novos do Notion também respondem pelo endereço de "fonte de dados".
+                if (!(e instanceof Falha) || e.status !== 404 || !DS_ID) throw e;
+                r = await notion("data_sources/" + DS_ID + "/query", consulta, "2025-09-03");
+              }
               paginas.push(...r.results.filter((p) => !p.archived && !p.in_trash));
               cursor = r.has_more ? r.next_cursor : null;
             } while (cursor);
@@ -249,7 +328,9 @@ jobs:
                 revisadoEm: prop(P["Revisado em"]) || "",
                 editadoEm: pg.last_edited_time || "",
                 secoes: conteudo.secoes,
-                midias: conteudo.midias,
+                pendentes: conteudo.pendentes,
+                fotos: conteudo.fotos,
+                arquivos: conteudo.arquivos,
                 notion: pg.url || "",
                 fonte: "notion",
               };
@@ -259,7 +340,7 @@ jobs:
               } else {
                 const ordem = typeof prop(P["Ordem"]) === "number" ? prop(P["Ordem"]) : 999;
                 passeios[pg.id.replace(/-/g, "")] = { ...comum, destino: destId, ordem, conteudo: tudo };
-                if (!destinos[destId]) destinos[destId] = { id: destId, nome: nomeDestino, ordem: destOrdem, resumo: "", secoes: {}, midias: 0, notion: "", fonte: "notion" };
+                if (!destinos[destId]) destinos[destId] = { id: destId, nome: nomeDestino, ordem: destOrdem, resumo: "", secoes: {}, fotos: [], arquivos: [], pendentes: 0, notion: "", fonte: "notion" };
               }
             }
 
@@ -271,6 +352,27 @@ jobs:
               if (e && e.code === "permission-denied") throw new Falha("O Firebase não deixou o robô mexer nos passeios. Confira se as regras novas do Firestore foram publicadas (com o e-mail do robô).");
               throw e;
             }
+            // fotos: só baixa e converte o que é novo ou mudou
+            const versaoAntiga = {};
+            [antigosD, antigosP].forEach((snap) => snap.forEach((d) => { const x = d.data ? d.data() : {}; (x && x.fotos || []).forEach((f) => { versaoAntiga[f.id] = f.versao; }); }));
+            const todasFotos = [...Object.values(destinos), ...Object.values(passeios)].flatMap((x) => x.fotos || []);
+            let fotosNovas = 0, fotosErro = 0;
+            for (const f of todasFotos) {
+              if (versaoAntiga[f.id] === f.versao) continue;
+              try {
+                const img = await prepararFoto(f.url);
+                await setDoc(doc(db, "midias", f.id), { dados: img.dados, w: img.w, h: img.h, legenda: f.legenda || "" });
+                fotosNovas++;
+              } catch (e) {
+                if (e && e.code === "permission-denied") throw new Falha("O Firebase não deixou o robô gravar as fotos. Publique as regras novas do Firestore (com a coleção midias).");
+                fotosErro++; f.versao = "erro";
+              }
+            }
+            const idsNovos = new Set(todasFotos.map((f) => f.id));
+            let fotosRemovidas = 0;
+            for (const id of Object.keys(versaoAntiga)) if (!idsNovos.has(id)) { try { await deleteDoc(doc(db, "midias", id)); fotosRemovidas++; } catch (_) {} }
+            for (const x of [...Object.values(destinos), ...Object.values(passeios)]) x.fotos = (x.fotos || []).map(({ url, ...resto }) => resto);
+
             const ops = [];
             for (const [id, d] of Object.entries(destinos)) ops.push(["set", doc(db, "destinos", id), d]);
             for (const [id, p] of Object.entries(passeios)) ops.push(["set", doc(db, "passeios", id), p]);
@@ -285,6 +387,10 @@ jobs:
 
             console.log("Notion: " + paginas.length + " fichas publicadas lidas.");
             console.log("Portal: " + Object.keys(destinos).length + " destinos e " + Object.keys(passeios).length + " passeios gravados; " + removidos + " itens antigos removidos.");
+            const totalVideos = [...Object.values(destinos), ...Object.values(passeios)].reduce((n, x) => n + (x.arquivos || []).filter((a) => a.tipo === "video").length, 0);
+            console.log("Vídeos do Notion: " + totalVideos + " (links renovados).");
+            console.log("Fotos: " + todasFotos.length + " no total; " + fotosNovas + " novas ou alteradas" + (fotosRemovidas ? "; " + fotosRemovidas + " removidas" : "") + ".");
+            if (fotosErro) console.log("Atenção: " + fotosErro + " foto(s) não puderam ser convertidas (formato não suportado ou arquivo grande demais). Tente salvar como JPG e subir de novo.");
             if (semDestino) console.log("Atenção: " + semDestino + " ficha(s) publicada(s) sem Destino preenchido ficaram de fora.");
             await terminate(db);
           }
