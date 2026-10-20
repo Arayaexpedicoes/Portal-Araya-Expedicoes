@@ -1,0 +1,926 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Portal da Equipe Araya</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif:wght@500;600;700&family=Montserrat:wght@400;500;600;700&display=swap">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 36 36'%3E%3Ccircle cx='18' cy='18' r='18' fill='%23183229'/%3E%3Cpath d='M7 25 L14.5 13 L19 19.5 L22.5 15 L29 25 Z' fill='%23eef4f0'/%3E%3C/svg%3E">
+<style>
+/* Layout: faixa escura da marca no topo (título + abas), conteúdo claro em coluna única de até 1120px; cada destino carrega a cor do logo dele */
+:root{
+  --bg:#eef1ee; --surface:#ffffff; --surface-2:#e6ebe7; --line:#d5ddd8;
+  --fg:#16251f; --muted:#5b6a63; --accent:#2b5f80; --accent-ink:#ffffff; --accent-soft:#dbe7ef;
+  --band:#183229; --band-2:#21423a; --band-fg:#eef4f0; --band-muted:#a7bcb2;
+  --ok:#25744b; --ok-soft:#d9eee1; --warn:#94650a; --warn-soft:#f5ead0; --bad:#ab3a2c; --bad-soft:#f5dcd8; --info:#2b5f80; --info-soft:#dbe7ef;
+  --d-cusco:#3d7a55; --d-patagonia:#2f6790; --d-egito:#b8956a; --d-japao:#b35a3b; --d-mendoza:#7c2f42; --d-atacama:#c0763a; --d-outro:#7a8a83;
+  --display:"Noto Serif", Georgia, "Times New Roman", serif;
+  --body:"Montserrat", "Gotham", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --r:12px; --shadow:0 1px 2px rgb(22 37 31 / .06), 0 4px 14px rgb(22 37 31 / .05);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1612; --surface:#15201b; --surface-2:#1c2a24; --line:#293a33;
+  --fg:#e5eee9; --muted:#97a9a0; --accent:#80b3d6; --accent-ink:#0a2232; --accent-soft:#1a3342;
+  --band:#0a130f; --band-2:#13231d; --band-fg:#e9f1ec; --band-muted:#8fa69b;
+  --ok:#62c792; --ok-soft:#163427; --warn:#e2b04b; --warn-soft:#382d13; --bad:#ef8476; --bad-soft:#3d1d19; --info:#80b3d6; --info-soft:#1a3342;
+  --d-cusco:#6fb489; --d-patagonia:#6fa6d0; --d-egito:#d9bb90; --d-japao:#e08a69; --d-mendoza:#d07b8f; --d-atacama:#e2a16a; --d-outro:#9aaba3;
+  --shadow:0 1px 2px rgb(0 0 0 / .3);
+  color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#0e1612; --surface:#15201b; --surface-2:#1c2a24; --line:#293a33;
+  --fg:#e5eee9; --muted:#97a9a0; --accent:#80b3d6; --accent-ink:#0a2232; --accent-soft:#1a3342;
+  --band:#0a130f; --band-2:#13231d; --band-fg:#e9f1ec; --band-muted:#8fa69b;
+  --ok:#62c792; --ok-soft:#163427; --warn:#e2b04b; --warn-soft:#382d13; --bad:#ef8476; --bad-soft:#3d1d19; --info:#80b3d6; --info-soft:#1a3342;
+  --d-cusco:#6fb489; --d-patagonia:#6fa6d0; --d-egito:#d9bb90; --d-japao:#e08a69; --d-mendoza:#d07b8f; --d-atacama:#e2a16a; --d-outro:#9aaba3;
+  --shadow:0 1px 2px rgb(0 0 0 / .3);
+  color-scheme:dark;}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:14.5px;line-height:1.55;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--band)}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--accent)}
+h1,h2,h3{font-family:var(--display);font-weight:600;text-wrap:balance;margin:0;letter-spacing:-.005em;line-height:1.25}
+h1{font-size:1.3rem} h2{font-size:1.45rem} h3{font-size:1.08rem}
+.wrap{max-width:1120px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+/* faixa da marca */
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--band);color:var(--band-fg);overflow:hidden}
+header.top .ridge{position:absolute;right:0;bottom:0;width:min(560px,70%);height:100%;pointer-events:none;opacity:.9}
+header.top .wrap{position:relative}
+.brand{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-block:16px 10px}
+.brand .mark{display:flex;align-items:center;gap:12px;min-width:0}
+.brand .mark svg{flex:none}
+.brand .eyebrow{font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;color:var(--band-muted);font-weight:600}
+.who{display:flex;align-items:center;gap:8px;font-size:.84rem;color:var(--band-muted);min-width:0;background:rgb(255 255 255 / .06);border-radius:99px;padding:4px 12px 4px 4px}
+.who:empty{display:none}
+.who img{width:28px;height:28px;border-radius:50%}
+.who span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--band-fg)}
+nav.tabs{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;padding-bottom:10px}
+nav.tabs::-webkit-scrollbar{display:none}
+nav.tabs button{background:none;border:0;border-radius:99px;padding:7px 14px;color:var(--band-muted);font-weight:600;font-size:.86rem;white-space:nowrap;cursor:pointer;transition:background .15s,color .15s}
+nav.tabs button[aria-current="true"]{color:var(--band);background:var(--band-fg)}
+nav.tabs button:hover:not([aria-current="true"]){color:var(--band-fg);background:rgb(255 255 255 / .08)}
+main{padding-block:26px 64px;display:grid;gap:22px}
+.banner{background:var(--info-soft);color:var(--fg);border-radius:var(--r);padding:11px 16px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.section-head > div{min-width:0}
+.section-head p{margin:5px 0 0;color:var(--muted);max-width:65ch}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+.tile{background:var(--surface);border-radius:var(--r);padding:16px 18px;display:grid;gap:4px;align-content:start;box-shadow:var(--shadow)}
+.tile .k{font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:600}
+.tile .v{font-family:var(--display);font-size:1.85rem;font-weight:600;font-variant-numeric:tabular-nums lining-nums;line-height:1.15}
+.tile .d{font-size:.82rem;color:var(--muted)}
+.tile.feature{background:var(--band-2);color:var(--band-fg)}
+.tile.feature .k,.tile.feature .d{color:var(--band-muted)}
+.panel{background:var(--surface);border-radius:var(--r);padding:18px;display:grid;gap:14px;min-width:0;box-shadow:var(--shadow)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+.tablewrap{overflow-x:auto;min-width:0}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:.9rem}
+th{font-size:.68rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:600;text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:10px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+tbody tr:hover td{background:color-mix(in srgb, var(--surface-2) 45%, transparent)}
+tr:last-child td{border-bottom:0}
+td.n,th.n{text-align:right;white-space:nowrap}
+tfoot td{font-weight:700;border-top:1px solid var(--line)}
+.muted{color:var(--muted)}
+.small{font-size:.82rem}
+.dest{display:inline-flex;align-items:center;gap:6px;font-size:.8rem;color:var(--muted)}
+.dest::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--dc,var(--d-outro));flex:none}
+.bar{height:6px;border-radius:99px;background:var(--surface-2);overflow:hidden;min-width:60px}
+.bar > i{display:block;height:100%;border-radius:inherit;background:var(--accent)}
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:.74rem;font-weight:600;padding:2px 9px;border-radius:99px;white-space:nowrap}
+.pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.info{background:var(--info-soft);color:var(--info)}
+.pill.neutral{background:var(--surface-2);color:var(--muted)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:99px;padding:7px 15px;font-weight:600;cursor:pointer;font-size:.86rem;white-space:nowrap;transition:background .15s}
+.btn:hover{background:var(--surface-2)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.danger{color:var(--bad);border-color:var(--bad)}
+.btn.ghost{border-color:transparent;background:none}
+.btn.ghost:hover{background:var(--surface-2)}
+.btn.sm{padding:4px 11px;font-size:.8rem}
+.btn:disabled{opacity:.5;cursor:default}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.field{display:grid;gap:4px;min-width:0}
+.field label{font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+input[type=text],input[type=number],input[type=date],input[type=search],select,textarea{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 11px;min-width:0;width:100%}
+.section-head select,.section-head input[type=search]{background:var(--surface);box-shadow:var(--shadow);border-color:transparent}
+input.cell{width:84px;text-align:right;padding:5px 8px}
+.formgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.empty{border:1px dashed var(--line);border-radius:var(--r);padding:28px 18px;text-align:center;color:var(--muted);display:grid;gap:6px;justify-items:center}
+.empty strong{color:var(--fg);font-family:var(--display);font-weight:600;font-size:1.02rem}
+.member{display:grid;grid-template-columns:auto 1fr;gap:12px 14px;align-items:start;padding:16px 0;border-bottom:1px solid var(--line)}
+.member:last-child{border-bottom:0}
+.member img{width:42px;height:42px;border-radius:50%}
+.member .body{display:grid;gap:10px;min-width:0}
+.toggles{display:flex;flex-wrap:wrap;gap:8px}
+.toggle{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:99px;padding:4px 12px 4px 7px;font-size:.84rem;cursor:pointer;user-select:none;background:var(--surface)}
+.toggle input{accent-color:var(--accent);width:16px;height:16px;margin:0}
+.toggle:has(input:checked){background:var(--accent-soft);border-color:var(--accent)}
+.overlay{position:fixed;inset:0;background:rgb(8 18 14 / .5);z-index:20;display:grid;place-items:center;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.dialog{background:var(--surface);border-radius:16px;max-width:640px;width:100%;max-height:100%;overflow:auto;padding:22px;display:grid;gap:16px;box-shadow:0 20px 50px rgb(0 0 0 / .25)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));background:var(--band);color:var(--band-fg);padding:10px 18px;border-radius:99px;font-weight:600;font-size:.88rem;z-index:30;max-width:calc(100% - 32px)}
+/* Passeios */
+.tour{display:grid;grid-template-columns:minmax(220px,300px) 1fr;gap:16px;align-items:start}
+@media (max-width:760px){.tour{grid-template-columns:1fr}}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:6px 14px 6px 10px;font-weight:600;font-size:.86rem;cursor:pointer}
+.chip::before{content:"";width:10px;height:10px;border-radius:50%;background:var(--dc,var(--d-outro))}
+.chip[aria-pressed="true"]{background:var(--dc,var(--accent));border-color:var(--dc,var(--accent));color:#fff}
+.chip[aria-pressed="true"]::before{background:#fff}
+.tourlist{display:grid;gap:2px;max-height:70vh;overflow:auto;padding:4px}
+.tourlist button{text-align:left;border:0;background:none;padding:8px 10px;border-radius:8px;cursor:pointer;line-height:1.35}
+.tourlist button:hover{background:var(--surface-2)}
+.tourlist button[aria-current="true"]{background:color-mix(in srgb, var(--dc,var(--accent)) 16%, transparent);font-weight:600}
+.tourlist .grp{font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:600;padding:10px 10px 2px}
+.tourhead{display:grid;gap:4px}
+.tourhead .dest{font-weight:600;letter-spacing:.08em;text-transform:uppercase;font-size:.7rem;color:var(--dc,var(--muted))}
+.prose{max-width:70ch;min-width:0;overflow-wrap:anywhere}
+.prose h4{font-family:var(--display);font-weight:600;font-size:1.02rem;margin:20px 0 4px}
+.prose h5{font-size:.9rem;margin:14px 0 2px}
+.prose p{margin:0 0 8px}
+.prose ul,.prose ol{margin:0 0 10px;padding-left:20px}
+.prose li{margin:2px 0}
+.prose li.sub{margin-left:18px;list-style:circle}
+.prose > :first-child{margin-top:0}
+.notice{font-size:.82rem;color:var(--muted);background:var(--surface-2);border-radius:10px;padding:8px 12px}
+.center{min-height:52vh;display:grid;place-items:center;text-align:center}
+.center .box{max-width:460px;display:grid;gap:10px;justify-items:center;background:var(--surface);border-radius:18px;padding:30px 26px;box-shadow:var(--shadow)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+.auth{min-height:calc(100vh - 140px);display:grid;place-items:center;padding-block:24px}
+.auth form{width:100%;max-width:400px;background:var(--surface);border-radius:18px;padding:28px 26px;box-shadow:var(--shadow);display:grid;gap:14px}
+.auth h2{font-size:1.5rem}
+.auth p{margin:0;color:var(--muted)}
+.auth .btn.primary{padding:10px 16px;font-size:.95rem}
+.auth .links{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:.85rem}
+.linkbtn{background:none;border:0;padding:0;color:var(--accent);font-weight:600;cursor:pointer;font-size:inherit}
+.linkbtn:hover{text-decoration:underline}
+.msg{font-size:.86rem;border-radius:10px;padding:9px 12px}
+.msg.err{background:var(--bad-soft);color:var(--bad)}
+.msg.ok{background:var(--ok-soft);color:var(--ok)}
+input[type=email],input[type=password]{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:9px 11px;min-width:0;width:100%}
+.who .linkbtn{color:var(--band-fg);opacity:.8;font-size:.8rem;margin-left:4px}
+
+html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header class="top">
+  <svg class="ridge" viewBox="0 0 560 120" preserveAspectRatio="xMaxYMax slice" aria-hidden="true">
+    <path d="M0 120 L70 78 L110 96 L170 44 L215 82 L262 58 L320 100 L372 30 L420 74 L470 52 L520 88 L560 66 L560 120 Z" fill="var(--band-2)"/>
+    <path d="M150 120 L230 90 L290 108 L360 70 L430 104 L500 84 L560 100 L560 120 Z" fill="var(--band)" opacity=".55"/>
+    <path d="M372 30 L384 46 L376 44 L366 50 L360 42 Z" fill="var(--band-fg)" opacity=".18"/>
+  </svg>
+  <div class="wrap">
+    <div class="brand">
+      <div class="mark">
+        <svg width="36" height="36" viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="17" fill="none" stroke="var(--band-fg)" stroke-opacity=".35"/><path d="M7 25 L14.5 13 L19 19.5 L22.5 15 L29 25 Z" fill="var(--band-fg)"/></svg>
+        <div><div class="eyebrow">Araya Expedições</div><h1>Portal da Equipe</h1></div>
+      </div>
+      <div class="who" id="who"></div>
+    </div>
+    <nav class="tabs" id="tabs" aria-label="Seções"></nav>
+  </div>
+</header>
+<div class="wrap"><main id="main"><div class="center"><div class="box"><h2>Carregando o portal…</h2></div></div></main></div>
+<div id="layer"></div>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script>
+(() => {
+"use strict";
+// ================= CONFIGURAÇÃO =================
+// Cole aqui a configuração do app da Web do seu projeto no Firebase
+// (Configurações do projeto → Geral → Seus apps → firebaseConfig).
+// Esses dados são públicos por natureza: quem protege as informações são as regras do banco.
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyAUk1EYAL2QPk9IjnoE0Qq0LWbjtkdDx0o",
+  authDomain: "portal-araya-expedicoes.firebaseapp.com",
+  projectId: "portal-araya-expedicoes",
+  storageBucket: "portal-araya-expedicoes.firebasestorage.app",
+  messagingSenderId: "141327927174",
+  appId: "1:141327927174:web:c26edbf91a8e14bbd38e07"
+};
+// =================================================
+
+const $ = (s, r = document) => r.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const money = (n) => BRL.format(Number(n) || 0);
+const pctFmt = (n) => (Number(n) || 0).toLocaleString("pt-BR", { maximumFractionDigits: 2 }) + "%";
+const ymOf = (d) => (d || "").slice(0, 7);
+const ymNow = () => { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"); };
+const addM = (ym, n) => { let [y, m] = ym.split("-").map(Number); m += n; y += Math.floor((m - 1) / 12); m = ((m - 1) % 12 + 12) % 12 + 1; return y + "-" + String(m).padStart(2, "0"); };
+const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+const MESES_L = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+const ymLabel = (ym) => { if (!ym) return "—"; const [y, m] = ym.split("-"); return MESES[+m - 1] + "/" + y; };
+const ymLong = (ym) => { const [y, m] = ym.split("-"); return MESES_L[+m - 1] + " de " + y; };
+const dLabel = (d) => d ? d.slice(8, 10) + "/" + d.slice(5, 7) + "/" + d.slice(0, 4) : "—";
+const round2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
+const DESTINOS = ["Cusco e Machu Picchu", "Patagônia", "Egito e Jordânia", "Japão", "Ushuaia", "Mendoza", "Atacama e Uyuni", "Outro"];
+const DCOR = { "Cusco e Machu Picchu": "--d-cusco", "cusco-machu-picchu": "--d-cusco", "Patagônia": "--d-patagonia", "patagonia": "--d-patagonia", "Ushuaia": "--d-patagonia", "ushuaia": "--d-patagonia", "Egito e Jordânia": "--d-egito", "egito-jordania": "--d-egito", "Japão": "--d-japao", "japao": "--d-japao", "Mendoza": "--d-mendoza", "mendoza": "--d-mendoza", "Atacama e Uyuni": "--d-atacama" };
+const dc = (k) => `--dc:var(${DCOR[k] || "--d-outro"})`;
+const destTag = (n) => n ? `<span class="dest" style="${dc(n)}">${esc(n)}</span>` : "";
+const ABAS = [["inicio", "Início"], ["comissoes", "Comissões"], ["vendas", "Minhas vendas"], ["passeios", "Passeios"], ["equipe", "Resultados da equipe"]];
+const ABAS_PADRAO = { inicio: true, comissoes: true, vendas: true, passeios: true, equipe: false };
+const emailOk = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+
+// Regra de comissão: valor × percentual; paga no mês seguinte ao mês de embarque.
+function enrich(v) {
+  const pct = Number(v.pct) || 0, valor = Number(v.valor) || 0;
+  return { ...v, valor, pct, comissao: round2(valor * pct / 100), mesPagamento: v.embarque ? addM(ymOf(v.embarque), 1) : "" };
+}
+function statusOf(v, hoje = ymNow()) {
+  if (v.status === "cancelada") return "cancelada";
+  if (v.pagaEm) return "paga";
+  if (!v.mesPagamento) return "sem-data";
+  return hoje >= v.mesPagamento ? "a-pagar" : "prevista";
+}
+const STATUS_PILL = { "paga": ["ok", "Paga"], "a-pagar": ["warn", "A pagar"], "prevista": ["info", "Prevista"], "cancelada": ["bad", "Cancelada"], "sem-data": ["neutral", "Sem data de embarque"] };
+const pill = (st) => { const [c, t] = STATUS_PILL[st] || ["neutral", st]; return `<span class="pill ${c}">${t}</span>`; };
+
+// ---------- estado ----------
+const S = {
+  auth: null, db: null, session: null, resumoAtual: "", email: "", isAdmin: false, ready: false, authMode: "entrar", authMsg: null, recovery: false,
+  members: {}, vendas: {}, notas: {}, atend: {}, destinos: [], passeios: [], equipeRes: null,
+  tab: null, previewUid: null,
+  filtros: { vend: "", mes: "", busca: "", comMes: ymNow(), painelMes: ymNow(), destino: null, passeio: null, tourBusca: "", minhasMes: "" },
+  pendingRender: false
+};
+let toastTimer;
+function toast(msg) {
+  const el = document.createElement("div"); el.className = "toast"; el.textContent = msg;
+  document.querySelectorAll(".toast").forEach(t => t.remove());
+  document.body.appendChild(el); clearTimeout(toastTimer); toastTimer = setTimeout(() => el.remove(), 2800);
+}
+function errMsg(e) {
+  const m = (e && (e.message || e.code)) || "";
+  if (e && e.code === "permission-denied") return "Você não tem permissão para fazer isso.";
+  if (e && e.code === "unavailable") return "Sem conexão. Confira a internet e tente de novo.";
+  if (/row-level security|permission denied/i.test(m)) return "Você não tem permissão para fazer isso.";
+  if (/duplicate key/i.test(m)) return "Esse registro já existe.";
+  if (/Failed to fetch|NetworkError/i.test(m)) return "Sem conexão. Confira a internet e tente de novo.";
+  return "Não foi possível salvar agora. Tente de novo em instantes.";
+}
+const label = (uid) => (S.members[uid] && S.members[uid].apelido) || uid || "—";
+
+// ---------- dados ----------
+const col = (n) => S.db.collection(n);
+const docsOf = (snap) => snap.docs.map(d => ({ id: d.id, ...d.data() }));
+function setMembers(rows) { S.members = Object.fromEntries(rows.map(r => [r.id, { apelido: r.apelido || "", pct: r.pct == null ? null : Number(r.pct), abas: r.abas || {}, ativo: r.ativo !== false, uid: r.uid || null }])); }
+function setVendas(rows) { S.vendas = Object.fromEntries(rows.map(r => [r.id, { cliente: r.cliente || "", vendedor: r.vendedor, destino: r.destino || "", valor: Number(r.valor) || 0, pct: Number(r.pct) || 0, fechamento: r.fechamento || "", embarque: r.embarque || "", status: r.status || "ativa", pagaEm: r.pagaEm || null, origem: r.origem || "manual" }])); }
+function setAtend(rows) { S.atend = {}; for (const r of rows) (S.atend[r.mes] ||= { porPessoa: {} }).porPessoa[r.email] = r.n; }
+function computeEquipe() {
+  const hoje = ymNow(); const meses = [hoje, addM(hoje, -1), addM(hoje, -2)];
+  const ativas = allVendas().filter(v => v.status !== "cancelada");
+  return { meses, pessoas: activeMembers().map(u => ({ uid: u, apelido: S.members[u].apelido || "", meses: Object.fromEntries(meses.map(m => { const vs = ativas.filter(v => v.vendedor === u && ymOf(v.fechamento) === m); return [m, { q: vs.length, v: round2(vs.reduce((s, v) => s + v.valor, 0)) }]; })) })) };
+}
+async function syncResumo() {
+  const r = computeEquipe(); const j = JSON.stringify(r);
+  if (j === S.resumoAtual) return;
+  await col("resumo").doc("equipe").set({ ...r, geradoEm: new Date().toISOString() });
+  S.resumoAtual = j;
+}
+async function loadAll() {
+  const me = S.email;
+  if (S.isAdmin) {
+    const [eq, vs, ns, at, ds, ps, rs] = await Promise.all([col("equipe").get(), col("vendas").get(), col("vendasNotas").get(), col("atendimentos").get(), col("destinos").get(), col("passeios").get(), col("resumo").doc("equipe").get()]);
+    setMembers(docsOf(eq)); setVendas(docsOf(vs)); setAtend(docsOf(at));
+    S.notas = Object.fromEntries(docsOf(ns).map(r => [r.id, r.obs || ""]));
+    S.destinos = docsOf(ds); S.passeios = docsOf(ps);
+    if (rs.exists) { const d = rs.data(); S.resumoAtual = JSON.stringify({ meses: d.meses, pessoas: d.pessoas }); }
+    try { await syncResumo(); } catch (_) { /* tenta de novo no próximo carregamento */ }
+    return;
+  }
+  let meSnap = null;
+  try { meSnap = await col("equipe").doc(me).get(); } catch (e) { if (e && e.code === "permission-denied") { S.members = {}; return; } throw e; }
+  setMembers(meSnap.exists ? [{ id: me, ...meSnap.data() }] : []);
+  if (!meSnap.exists || meSnap.data().ativo === false) return;
+  const [vs, at, ds, ps] = await Promise.all([col("vendas").where("vendedor", "==", me).get(), col("atendimentos").where("email", "==", me).get(), col("destinos").get(), col("passeios").get()]);
+  setVendas(docsOf(vs)); setAtend(docsOf(at)); S.destinos = docsOf(ds); S.passeios = docsOf(ps);
+  S.equipeRes = null;
+  if ((meSnap.data().abas || {}).equipe) {
+    try { const r = await col("resumo").doc("equipe").get(); if (r.exists) S.equipeRes = r.data().pessoas || []; } catch (_) {}
+  }
+}
+async function reload(msg) {
+  try { await loadAll(); } catch (e) { toast(errMsg(e)); }
+  if (msg) toast(msg);
+  scheduleRender();
+}
+
+// ---------- render ----------
+function scheduleRender() {
+  const a = document.activeElement;
+  if (a && $("#main").contains(a) && /^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName) && a.type !== "checkbox" && a.type !== "search" && a.type !== "file") { S.pendingRender = true; return; }
+  render();
+}
+document.addEventListener("focusout", () => { if (S.pendingRender) { S.pendingRender = false; setTimeout(render, 0); } });
+function setMain(html) { $("#main").innerHTML = html; }
+function centerMsg(t, p, extra = "") { $("#tabs").innerHTML = ""; setMain(`<div class="center"><div class="box"><h2>${esc(t)}</h2><p class="muted">${p}</p>${extra}</div></div>`); }
+
+function ownerTabs() { return [["painel", "Visão geral"], ["vendas", "Vendas"], ["comissoes", "Comissões"], ["atendimentos", "Atendimentos"], ["acessos", "Equipe e acessos"], ["passeios", "Passeios"]]; }
+function memberTabs(data) { const ab = (data && data.abas) || {}; return ABAS.filter(([k]) => ab[k]); }
+
+function render() {
+  renderWho();
+  if (!S.auth) return;
+  if (!S.session) return renderAuth(S.authMode);
+  if (!S.ready) return centerMsg("Carregando o portal…", "Conferindo seu acesso.");
+  const viewingAs = S.isAdmin && S.previewUid ? S.previewUid : null;
+  if (S.isAdmin && !viewingAs) return renderOwner();
+  if (!viewingAs) {
+    const me = S.members[S.email];
+    if (!me || me.ativo === false) return centerMsg("Seu acesso não está liberado", "Este e-mail não tem acesso ao portal no momento. Fale com a Letícia.", `<button class="btn" data-act="sair">Sair</button>`);
+  }
+  renderMember(payloadFor(viewingAs || S.email), viewingAs);
+}
+
+function renderWho() {
+  if (!S.session) { $("#who").innerHTML = ""; return; }
+  $("#who").innerHTML = `<span>${esc(S.email)}${S.isAdmin ? " · administradora" : ""}</span><button class="linkbtn" data-act="sair" type="button">Sair</button>`;
+}
+function renderTabs(list) {
+  if (!list.find(t => t[0] === S.tab)) S.tab = list.length ? list[0][0] : null;
+  $("#tabs").innerHTML = list.map(([k, t]) => `<button type="button" data-tab="${k}" aria-current="${k === S.tab}">${t}</button>`).join("");
+}
+$("#tabs").addEventListener("click", (e) => { const b = e.target.closest("[data-tab]"); if (!b) return; S.tab = b.dataset.tab; try { localStorage.setItem("araya-tab-" + (S.isAdmin ? (S.previewUid ? "p" : "o") : "m"), S.tab); } catch (_) {} render(); window.scrollTo({ top: 0 }); });
+
+// ---------- login ----------
+function renderAuth(mode) {
+  $("#tabs").innerHTML = "";
+  const m = S.authMsg; const msg = m ? `<div class="msg ${m.ok ? "ok" : "err"}">${esc(m.t)}</div>` : "";
+  const T = {
+    "entrar": ["Entrar no portal", "Use o e-mail cadastrado pela Araya.", true, "Entrar"],
+    "link": ["Criar ou trocar a senha", "Primeiro acesso ou esqueceu a senha? Digite seu e-mail e enviamos um link para você criar a senha.", false, "Enviar link"]
+  }[mode] || ["Entrar no portal", "", true, "Entrar"];
+  setMain(`<div class="auth"><form id="auth-form" data-mode="${mode}" novalidate>
+    <h2>${T[0]}</h2><p>${T[1]}</p>${msg}
+    <div class="field"><label for="a-email">E-mail</label><input type="email" id="a-email" autocomplete="email" required></div>
+    ${T[2] ? `<div class="field"><label for="a-senha">Senha</label><input type="password" id="a-senha" autocomplete="current-password" required></div>` : ""}
+    <button class="btn primary" type="submit">${T[3]}</button>
+    <div class="links">${mode === "entrar" ? `<button type="button" class="linkbtn" data-auth="link">Primeiro acesso ou esqueci a senha</button>` : `<button type="button" class="linkbtn" data-auth="entrar">Voltar para entrar</button>`}</div>
+  </form></div>`);
+}
+const AUTH_ERR = (e) => {
+  const c = (e && e.code) || "";
+  if (/invalid-credential|wrong-password|user-not-found|invalid-login-credentials/.test(c)) return "E-mail ou senha incorretos.";
+  if (/too-many-requests/.test(c)) return "Muitas tentativas seguidas. Espere alguns minutos e tente de novo.";
+  if (/user-disabled/.test(c)) return "Este login foi desativado. Fale com a Letícia.";
+  if (/invalid-email/.test(c)) return "Digite um e-mail válido.";
+  if (/network-request-failed/.test(c)) return "Sem conexão. Confira a internet e tente de novo.";
+  return "Não deu certo agora. Tente de novo em instantes.";
+};
+const portalUrl = () => location.origin + location.pathname;
+async function sendLink(email) {
+  try { await S.auth.sendPasswordResetEmail(email, { url: portalUrl() }); }
+  catch (e) {
+    if (e && /continue-uri|unauthorized-domain/.test(e.code || "")) await S.auth.sendPasswordResetEmail(email);
+    else throw e;
+  }
+}
+$("#main").addEventListener("submit", async (e) => {
+  if (e.target.id !== "auth-form") return;
+  e.preventDefault();
+  const mode = e.target.dataset.mode;
+  const email = $("#a-email").value.trim().toLowerCase();
+  const senha = $("#a-senha") ? $("#a-senha").value : "";
+  const btn = e.target.querySelector("[type=submit]");
+  const fail = (t) => { S.authMsg = { t }; renderAuth(mode); $("#a-email").value = email; };
+  if (!emailOk(email)) return fail("Digite um e-mail válido.");
+  if (mode === "entrar" && !senha) return fail("Digite sua senha.");
+  btn.disabled = true;
+  try {
+    if (mode === "entrar") { await S.auth.signInWithEmailAndPassword(email, senha); S.authMsg = null; }
+    else {
+      await sendLink(email);
+      S.authMode = "entrar"; S.authMsg = { ok: true, t: "Se este e-mail estiver cadastrado, você vai receber um link para criar a senha. Confira também a caixa de spam." }; render();
+    }
+  } catch (err) { btn.disabled = false; fail(AUTH_ERR(err)); }
+});
+document.addEventListener("click", async (e) => {
+  const a = e.target.closest("[data-auth]"); if (a) { S.authMode = a.dataset.auth; S.authMsg = null; render(); return; }
+  const s = e.target.closest('[data-act="sair"]'); if (s) { await S.auth.signOut(); S.previewUid = null; S.tab = null; S.authMode = "entrar"; S.authMsg = null; }
+});
+
+// ---------- visão da equipe ----------
+function renderMember(data, viewingAs) {
+  const tabs = memberTabs(data);
+  renderTabs(tabs);
+  let html = "";
+  if (viewingAs) html += `<div class="banner"><span>Você está vendo o portal como <strong>${esc(label(viewingAs))}</strong>. É exatamente o que essa pessoa vê.</span><button class="btn sm" data-act="sair-preview">Voltar para a administração</button></div>`;
+  if (!tabs.length) { setMain(html + `<div class="empty"><strong>Nenhuma seção liberada</strong><span>A Letícia ainda não liberou seções para este acesso.</span></div>`); return; }
+  const vendas = data.vendas || []; const hoje = ymNow();
+  if (S.tab === "inicio") html += memberInicio(data, vendas, hoje, viewingAs);
+  else if (S.tab === "comissoes") html += memberComissoes(data, vendas, hoje);
+  else if (S.tab === "vendas") html += memberVendas(vendas);
+  else if (S.tab === "passeios") html += passeiosView();
+  else if (S.tab === "equipe") html += memberEquipe(data, hoje);
+  setMain(html);
+}
+
+function memberInicio(data, vendas, hoje, viewingAs) {
+  const ativas = vendas.filter(v => v.status !== "cancelada");
+  const doMes = ativas.filter(v => ymOf(v.fechamento) === hoje);
+  const atend = data.atendimentos ? data.atendimentos[hoje] : null;
+  const conv = atend ? doMes.length / atend * 100 : null;
+  const receberMes = ativas.filter(v => v.mesPagamento === hoje).reduce((s, v) => s + v.comissao, 0);
+  const prox = ativas.filter(v => v.mesPagamento === addM(hoje, 1)).reduce((s, v) => s + v.comissao, 0);
+  const nome = data.apelido || "";
+  const meses = Array.from({ length: 6 }, (_, i) => addM(hoje, i));
+  const linhas = meses.map(m => { const vs = ativas.filter(v => v.mesPagamento === m); return [m, vs.length, vs.reduce((s, v) => s + v.comissao, 0)]; });
+  const maxL = Math.max(0, ...linhas.map(l => l[2]));
+  const ult = [...vendas].sort((a, b) => (b.fechamento || "").localeCompare(a.fechamento || "")).slice(0, 5);
+  return `
+  <div class="section-head"><div><h2>Olá${nome ? ", " + esc(nome.split(" ")[0]) : ""}</h2><p>Seus números de ${ymLong(hoje)}. Vendas contam pela data de fechamento.</p></div></div>
+  <div class="tiles">
+    <div class="tile"><span class="k">Atendimentos no mês</span><span class="v">${atend ?? "—"}</span><span class="d">${atend == null ? "Ainda não lançados" : "Lançados pela Letícia"}</span></div>
+    <div class="tile"><span class="k">Vendas fechadas</span><span class="v">${doMes.length}</span><span class="d">${money(doMes.reduce((s, v) => s + v.valor, 0))} em vendas</span></div>
+    <div class="tile"><span class="k">Conversão</span><span class="v">${conv == null ? "—" : conv.toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + "%"}</span><span class="d">Vendas ÷ atendimentos do mês</span></div>
+    <div class="tile feature"><span class="k">Comissão em ${MESES[+hoje.slice(5) - 1]}</span><span class="v">${money(receberMes)}</span><span class="d">Próximo mês: ${money(prox)}</span></div>
+  </div>
+  <div class="grid2">
+    <section class="panel"><h3>Próximos pagamentos de comissão</h3>
+      <div class="tablewrap"><table><thead><tr><th>Mês de pagamento</th><th class="n">Vendas</th><th class="n">Comissão</th><th style="width:28%"></th></tr></thead>
+      <tbody>${linhas.map(([m, q, t]) => `<tr><td>${ymLabel(m)}${m === hoje ? ' <span class="pill warn">este mês</span>' : ""}</td><td class="n">${q}</td><td class="n">${money(t)}</td><td><div class="bar"><i style="width:${maxL ? Math.round(t / maxL * 100) : 0}%"></i></div></td></tr>`).join("")}</tbody></table></div>
+      <p class="muted small" style="margin:0">A comissão é paga no mês seguinte ao embarque do cliente. Quem embarca em julho gera comissão paga em agosto.</p>
+    </section>
+    <section class="panel"><h3>Últimas vendas</h3>
+      ${ult.length ? `<div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Fechada em</th><th class="n">Valor</th></tr></thead><tbody>${ult.map(v => `<tr><td>${esc(v.cliente)}<div>${destTag(v.destino)}</div></td><td>${dLabel(v.fechamento)}</td><td class="n">${money(v.valor)}</td></tr>`).join("")}</tbody></table></div>` : `<div class="empty"><strong>Nenhuma venda registrada ainda</strong><span>Suas vendas aparecem aqui assim que forem lançadas.</span></div>`}
+    </section>
+  </div>`;
+}
+
+function memberComissoes(data, vendas, hoje) {
+  const ativas = vendas.filter(v => v.status !== "cancelada" && v.mesPagamento);
+  const meses = [...new Set(ativas.map(v => v.mesPagamento))].sort().reverse();
+  const soma = (st) => ativas.filter(v => statusOf(v, hoje) === st).reduce((s, v) => s + v.comissao, 0);
+  return `
+  <div class="section-head"><div><h2>Minhas comissões</h2><p>Seu percentual atual é <strong>${pctFmt(data.pct)}</strong> sobre o valor da venda. Cada venda guarda o percentual do dia em que foi lançada.</p></div></div>
+  <div class="tiles">
+    <div class="tile feature"><span class="k">A receber</span><span class="v">${money(soma("a-pagar"))}</span><span class="d">Clientes que já embarcaram</span></div>
+    <div class="tile"><span class="k">Previsto</span><span class="v">${money(soma("prevista"))}</span><span class="d">Clientes com viagem futura</span></div>
+    <div class="tile"><span class="k">Já recebido</span><span class="v">${money(soma("paga"))}</span><span class="d">Nos últimos 24 meses</span></div>
+  </div>
+  ${meses.length ? meses.map(m => {
+    const vs = ativas.filter(v => v.mesPagamento === m);
+    return `<section class="panel"><div class="section-head"><h3>Pagamento em ${ymLong(m)}</h3><strong>${money(vs.reduce((s, v) => s + v.comissao, 0))}</strong></div>
+    <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Embarque</th><th class="n">Venda</th><th class="n">%</th><th class="n">Comissão</th><th>Situação</th></tr></thead>
+    <tbody>${vs.map(v => `<tr><td>${esc(v.cliente)}<div>${destTag(v.destino)}</div></td><td>${dLabel(v.embarque)}</td><td class="n">${money(v.valor)}</td><td class="n">${pctFmt(v.pct)}</td><td class="n">${money(v.comissao)}</td><td>${pill(statusOf(v, hoje))}</td></tr>`).join("")}</tbody></table></div></section>`;
+  }).join("") : `<div class="empty"><strong>Nenhuma comissão por enquanto</strong><span>Quando uma venda sua for lançada, a comissão aparece aqui no mês em que será paga.</span></div>`}`;
+}
+
+function memberVendas(vendas) {
+  const meses = [...new Set(vendas.map(v => ymOf(v.fechamento)).filter(Boolean))].sort().reverse();
+  const f = S.filtros.minhasMes;
+  const lista = vendas.filter(v => !f || ymOf(v.fechamento) === f).sort((a, b) => (b.fechamento || "").localeCompare(a.fechamento || ""));
+  const ok = lista.filter(v => v.status !== "cancelada");
+  return `
+  <div class="section-head"><div><h2>Minhas vendas</h2><p>Vendas lançadas no seu nome nos últimos 24 meses.</p></div>
+    <div class="field"><label for="f-minhas-mes">Mês de fechamento</label><select id="f-minhas-mes" data-filter="minhasMes"><option value="">Todos</option>${meses.map(m => `<option value="${m}" ${m === f ? "selected" : ""}>${ymLabel(m)}</option>`).join("")}</select></div></div>
+  <section class="panel">${lista.length ? `<div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Destino</th><th>Fechada em</th><th>Embarque</th><th class="n">Valor</th><th>Situação</th></tr></thead>
+  <tbody>${lista.map(v => `<tr><td>${esc(v.cliente)}</td><td>${destTag(v.destino)}</td><td>${dLabel(v.fechamento)}</td><td>${dLabel(v.embarque)}</td><td class="n">${money(v.valor)}</td><td>${v.status === "cancelada" ? pill("cancelada") : '<span class="pill ok">Confirmada</span>'}</td></tr>`).join("")}</tbody>
+  <tfoot><tr><td colspan="4">${ok.length} vendas confirmadas</td><td class="n">${money(ok.reduce((s, v) => s + v.valor, 0))}</td><td></td></tr></tfoot></table></div>` : `<div class="empty"><strong>Nenhuma venda neste período</strong></div>`}</section>`;
+}
+
+function memberEquipe(data, hoje) {
+  const eq = data.equipe || [];
+  const meses = [hoje, addM(hoje, -1), addM(hoje, -2)];
+  return `<div class="section-head"><div><h2>Resultados da equipe</h2><p>Vendas fechadas por pessoa nos últimos três meses.</p></div></div>
+  <section class="panel">${eq.length ? `<div class="tablewrap"><table><thead><tr><th>Pessoa</th>${meses.map(m => `<th class="n">${ymLabel(m)}</th>`).join("")}</tr></thead>
+  <tbody>${eq.map(e => `<tr><td>${esc(e.apelido || e.uid)}</td>${meses.map(m => { const x = (e.meses || {})[m] || { q: 0, v: 0 }; return `<td class="n">${x.q} <span class="muted small">· ${money(x.v)}</span></td>`; }).join("")}</tr>`).join("")}</tbody></table></div>` : `<div class="empty"><strong>Sem dados da equipe</strong></div>`}</section>`;
+}
+
+// ---------- passeios ----------
+function mdInline(s) {
+  s = esc(s);
+  s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, (m, t, u) => `<a href="${u}" target="_blank" rel="noopener">${t}</a>`);
+  s = s.replace(/\*\*([^*]+?)\*\*/g, "<strong>$1</strong>").replace(/\*\*/g, "");
+  return s;
+}
+function md(src) {
+  let out = "", list = null;
+  const close = () => { if (list) { out += `</${list}>`; list = null; } };
+  for (const raw of String(src || "").split("\n")) {
+    const t = raw.trim(); let m;
+    if (!t) { close(); continue; }
+    if ((m = t.match(/^(#{3,6})\s+(.*)$/))) { close(); const lv = m[1].length === 3 ? "h4" : "h5"; out += `<${lv}>${mdInline(m[2])}</${lv}>`; continue; }
+    if ((m = t.match(/^[-•]\s+(.*)$/))) { if (list !== "ul") { close(); out += "<ul>"; list = "ul"; } out += `<li${/^\s{2,}/.test(raw) ? ' class="sub"' : ""}>${mdInline(m[1])}</li>`; continue; }
+    if ((m = t.match(/^(\d+)[.)]\s+(.*)$/))) { if (list !== "ol") { close(); out += "<ol>"; list = "ol"; } out += `<li>${mdInline(m[2])}</li>`; continue; }
+    close(); out += `<p>${mdInline(t)}</p>`;
+  }
+  close(); return out;
+}
+function passeiosView() {
+  const ds = [...S.destinos].sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
+  const imp = S.isAdmin && !S.previewUid ? `<label class="btn sm" for="imp-passeios">${ds.length ? "Atualizar passeios por arquivo" : "Importar arquivo de passeios"}<input type="file" id="imp-passeios" accept=".json,application/json" hidden></label>` : "";
+  if (!ds.length) return `<div class="section-head"><div><h2>Passeios</h2></div>${imp}</div><div class="empty"><strong>Os passeios ainda não foram carregados</strong><span>${S.isAdmin ? "Use “Importar arquivo de passeios” e escolha o arquivo passeios-araya.json." : "As informações vêm da página Destinos do Notion."}</span></div>`;
+  if (!S.filtros.destino || !ds.find(d => d.id === S.filtros.destino)) S.filtros.destino = ds[0].id;
+  const dest = ds.find(d => d.id === S.filtros.destino);
+  const q = S.filtros.tourBusca.trim().toLowerCase();
+  let itens = S.passeios.filter(p => p.destino === dest.id).sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
+  if (q) itens = itens.filter(p => (p.nome + " " + p.conteudo).toLowerCase().includes(q));
+  const sel = S.filtros.passeio && (S.filtros.passeio === "__geral" || itens.find(p => p.id === S.filtros.passeio)) ? S.filtros.passeio : "__geral";
+  const item = sel === "__geral" ? null : itens.find(p => p.id === sel);
+  const body = item ? (item.conteudo ? md(item.conteudo) : `<p class="muted">Sem detalhes escritos no Notion para este item.</p>`) : md(dest.resumo);
+  const midias = item ? item.midias : dest.midias;
+  const link = (item || dest).notion;
+  return `
+  <div class="section-head"><div><h2>Passeios</h2><p>Informações de cada destino, direto da página Destinos do Notion.</p></div>
+    ${imp}<div class="field" style="min-width:min(260px,100%)"><label for="f-tour">Buscar neste destino</label><input type="search" id="f-tour" placeholder="Ex.: almoço, altitude, ingresso" value="${esc(S.filtros.tourBusca)}"></div></div>
+  <div class="chips" role="group" aria-label="Destinos">${ds.map(d => `<button type="button" class="chip" style="${dc(d.id)}" data-dest="${esc(d.id)}" aria-pressed="${d.id === dest.id}">${esc(d.nome)}</button>`).join("")}</div>
+  <div class="tour" style="${dc(dest.id)}">
+    <section class="panel" style="padding:8px"><div class="tourlist">
+      <button type="button" data-tourid="__geral" aria-current="${sel === "__geral"}">Visão geral do destino</button>
+      <div class="grp">${dest.id === "mendoza" ? "Roteiros" : "Passeios e dias"} (${itens.length})</div>
+      ${itens.map(p => `<button type="button" data-tourid="${esc(p.id)}" aria-current="${p.id === sel}">${esc(p.nome)}</button>`).join("") || `<div class="muted small" style="padding:8px 10px">Nada encontrado para “${esc(q)}”.</div>`}
+    </div></section>
+    <section class="panel">
+      <div class="section-head"><div class="tourhead"><span class="dest">${esc(dest.nome)}</span><h3>${esc(item ? item.nome : dest.nome)}</h3></div>${link ? `<a class="btn sm" href="${esc(link)}" target="_blank" rel="noopener">Abrir no Notion</a>` : ""}</div>
+      ${midias ? `<div class="notice">Este trecho tem ${midias} ${midias === 1 ? "foto ou vídeo" : "fotos e vídeos"} no Notion que não aparecem aqui.</div>` : ""}
+      <div class="prose">${body}</div>
+    </section>
+  </div>`;
+}
+
+// ---------- administração ----------
+const activeMembers = () => Object.entries(S.members).filter(([, m]) => m.ativo !== false).map(([u]) => u).sort((a, b) => label(a).localeCompare(label(b), "pt-BR"));
+const allVendas = () => Object.entries(S.vendas).map(([id, v]) => enrich({ id, ...v, obs: S.notas[id] || "" }));
+
+function renderOwner() {
+  renderTabs(ownerTabs());
+  let html = "";
+  if (S.tab === "painel") html = ownerPainel();
+  else if (S.tab === "vendas") html = ownerVendas();
+  else if (S.tab === "comissoes") html = ownerComissoes();
+  else if (S.tab === "atendimentos") html = ownerAtendimentos();
+  else if (S.tab === "acessos") html = ownerAcessos();
+  else if (S.tab === "passeios") html = passeiosView();
+  setMain(html);
+}
+
+function monthOptions(sel, back = 12, fwd = 2, withAll = false) {
+  const hoje = ymNow();
+  const set = new Set(allVendas().flatMap(v => [ymOf(v.fechamento), v.mesPagamento]).filter(Boolean));
+  for (let i = -back; i <= fwd; i++) set.add(addM(hoje, i));
+  return (withAll ? `<option value="">Todos</option>` : "") + [...set].sort().reverse().map(m => `<option value="${m}" ${m === sel ? "selected" : ""}>${ymLabel(m)}</option>`).join("");
+}
+
+function ownerPainel() {
+  const M = S.filtros.painelMes; const hoje = ymNow();
+  const ativas = allVendas().filter(v => v.status !== "cancelada");
+  const mem = activeMembers();
+  const ids = [...new Set([...mem, ...ativas.map(v => v.vendedor)])].filter(Boolean);
+  const rows = ids.map(u => {
+    const fech = ativas.filter(v => v.vendedor === u && ymOf(v.fechamento) === M);
+    const at = S.atend[M] && S.atend[M].porPessoa ? S.atend[M].porPessoa[u] : undefined;
+    const com = ativas.filter(v => v.vendedor === u && v.mesPagamento === M);
+    const prev = ativas.filter(v => v.vendedor === u && v.mesPagamento > M);
+    return { u, q: fech.length, val: fech.reduce((s, v) => s + v.valor, 0), at: at ?? null, com: com.reduce((s, v) => s + v.comissao, 0), comPend: com.filter(v => !v.pagaEm).length, prev: prev.reduce((s, v) => s + v.comissao, 0) };
+  });
+  const tot = rows.reduce((a, r) => ({ q: a.q + r.q, val: a.val + r.val, at: a.at + (r.at || 0), com: a.com + r.com, prev: a.prev + r.prev }), { q: 0, val: 0, at: 0, com: 0, prev: 0 });
+  const pend = mem.filter(u => !Number(S.members[u].pct));
+  const semNome = mem.filter(u => !S.members[u].apelido);
+  const maxV = Math.max(0, ...rows.map(r => r.val));
+  return `
+  <div class="section-head"><div><h2>Visão geral</h2><p>Resultado da equipe no mês escolhido. Vendas pela data de fechamento; comissões pelo mês de pagamento.</p></div>
+    <div class="field"><label for="f-painel-mes">Mês</label><select id="f-painel-mes" data-filter="painelMes">${monthOptions(M)}</select></div></div>
+  ${!mem.length ? `<div class="banner"><span>Ninguém da equipe tem acesso ainda. Comece por <strong>Equipe e acessos</strong>.</span><button class="btn sm primary" data-tab-go="acessos">Cadastrar a equipe</button></div>` : ""}
+  ${pend.length ? `<div class="banner"><span>Falta definir o percentual de comissão de ${pend.map(u => `<strong>${esc(label(u))}</strong>`).join(", ")}.</span><button class="btn sm" data-tab-go="acessos">Definir agora</button></div>` : ""}
+  ${semNome.length ? `<div class="banner"><span>${semNome.length === 1 ? "Uma pessoa está" : semNome.length + " pessoas estão"} sem “Nome no portal”.</span><button class="btn sm" data-tab-go="acessos">Preencher</button></div>` : ""}
+  <div class="tiles">
+    <div class="tile"><span class="k">Vendas fechadas</span><span class="v">${tot.q}</span><span class="d">${money(tot.val)}</span></div>
+    <div class="tile"><span class="k">Atendimentos</span><span class="v">${tot.at || "—"}</span><span class="d">${tot.at ? "Conversão de " + (tot.q / tot.at * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + "%" : "Ainda não lançados"}</span></div>
+    <div class="tile feature"><span class="k">Comissões de ${MESES[+M.slice(5) - 1]}</span><span class="v">${money(tot.com)}</span><span class="d">${M <= hoje ? "Embarques do mês anterior" : "Prevista"}</span></div>
+    <div class="tile"><span class="k">Comissões futuras</span><span class="v">${money(tot.prev)}</span><span class="d">Após ${ymLabel(M)}</span></div>
+  </div>
+  <section class="panel"><h3>Por pessoa</h3>
+    ${rows.length ? `<div class="tablewrap"><table><thead><tr><th>Pessoa</th><th class="n">Atendimentos</th><th class="n">Vendas</th><th class="n">Valor vendido</th><th style="width:16%"></th><th class="n">Conversão</th><th class="n">Comissão no mês</th><th class="n">Futuras</th></tr></thead>
+    <tbody>${rows.map(r => `<tr><td>${esc(label(r.u))}${S.members[r.u] && S.members[r.u].ativo !== false ? "" : ' <span class="pill neutral">sem acesso</span>'}</td><td class="n">${r.at ?? "—"}</td><td class="n">${r.q}</td><td class="n">${money(r.val)}</td><td><div class="bar"><i style="width:${maxV ? Math.round(r.val / maxV * 100) : 0}%"></i></div></td><td class="n">${r.at ? (r.q / r.at * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + "%" : "—"}</td><td class="n">${money(r.com)}${r.comPend && M <= hoje ? ` <span class="pill warn">${r.comPend} a pagar</span>` : ""}</td><td class="n">${money(r.prev)}</td></tr>`).join("")}</tbody></table></div>` : `<div class="empty"><strong>Sem dados neste mês</strong></div>`}
+  </section>`;
+}
+
+function ownerVendas() {
+  const f = S.filtros; const mem = activeMembers();
+  let vs = allVendas();
+  if (f.vend) vs = vs.filter(v => v.vendedor === f.vend);
+  if (f.mes) vs = vs.filter(v => ymOf(v.fechamento) === f.mes);
+  if (f.busca.trim()) { const q = f.busca.trim().toLowerCase(); vs = vs.filter(v => ((v.cliente || "") + " " + (v.destino || "") + " " + (v.obs || "")).toLowerCase().includes(q)); }
+  vs.sort((a, b) => (b.fechamento || "").localeCompare(a.fechamento || ""));
+  const ok = vs.filter(v => v.status !== "cancelada");
+  const vendOpts = [...new Set([...mem, ...Object.values(S.vendas).map(v => v.vendedor)])];
+  return `
+  <div class="section-head"><div><h2>Vendas</h2><p>Por enquanto lançadas aqui. Quando o CRM e o Helena estiverem conectados, elas entram sozinhas.</p></div>
+    <button class="btn primary" data-act="nova-venda" ${mem.length ? "" : "disabled"}>Nova venda</button></div>
+  ${mem.length ? "" : `<div class="notice">Cadastre a equipe primeiro. Cada venda precisa de um vendedor.</div>`}
+  <div class="formgrid">
+    <div class="field"><label for="f-vend">Vendedor</label><select id="f-vend" data-filter="vend"><option value="">Todos</option>${vendOpts.map(u => `<option value="${esc(u)}" ${u === f.vend ? "selected" : ""}>${esc(label(u))}</option>`).join("")}</select></div>
+    <div class="field"><label for="f-mes">Mês de fechamento</label><select id="f-mes" data-filter="mes">${monthOptions(f.mes, 12, 0, true)}</select></div>
+    <div class="field"><label for="f-busca">Buscar</label><input type="search" id="f-busca" placeholder="Cliente, destino ou observação" value="${esc(f.busca)}"></div>
+  </div>
+  <section class="panel">${vs.length ? `<div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Vendedor</th><th>Fechada em</th><th>Embarque</th><th class="n">Valor</th><th class="n">Comissão</th><th>Situação</th><th></th></tr></thead>
+  <tbody>${vs.map(v => `<tr><td>${esc(v.cliente)}<div>${destTag(v.destino)}</div></td><td>${esc(label(v.vendedor))}</td><td>${dLabel(v.fechamento)}</td><td>${dLabel(v.embarque)}</td><td class="n">${money(v.valor)}</td><td class="n">${money(v.comissao)}<div class="muted small">${pctFmt(v.pct)} · paga em ${ymLabel(v.mesPagamento)}</div></td><td>${pill(statusOf(v))}</td><td><button class="btn sm ghost" data-act="editar-venda" data-id="${esc(v.id)}">Editar</button></td></tr>`).join("")}</tbody>
+  <tfoot><tr><td colspan="4">${ok.length} confirmadas</td><td class="n">${money(ok.reduce((s, v) => s + v.valor, 0))}</td><td class="n">${money(ok.reduce((s, v) => s + v.comissao, 0))}</td><td colspan="2"></td></tr></tfoot></table></div>`
+    : `<div class="empty"><strong>Nenhuma venda ${f.vend || f.mes || f.busca ? "com esses filtros" : "lançada ainda"}</strong><span>Use “Nova venda” para lançar a primeira.</span></div>`}</section>`;
+}
+
+function ownerComissoes() {
+  const M = S.filtros.comMes; const hoje = ymNow();
+  const vs = allVendas().filter(v => v.status !== "cancelada");
+  const doMes = vs.filter(v => v.mesPagamento === M);
+  const pessoas = [...new Set(doMes.map(v => v.vendedor))].sort((a, b) => label(a).localeCompare(label(b), "pt-BR"));
+  const futuros = Array.from({ length: 6 }, (_, i) => addM(hoje, i + 1));
+  const ids = [...new Set(vs.map(v => v.vendedor))];
+  return `
+  <div class="section-head"><div><h2>Comissões</h2><p>Cada comissão é paga no mês seguinte ao embarque. Marque como paga quando fizer o pagamento: a pessoa vê a mudança no próximo acesso.</p></div>
+    <div class="field"><label for="f-com-mes">Mês de pagamento</label><select id="f-com-mes" data-filter="comMes">${monthOptions(M, 12, 6)}</select></div></div>
+  ${pessoas.length ? pessoas.map(u => {
+    const lista = doMes.filter(v => v.vendedor === u);
+    const total = lista.reduce((s, v) => s + v.comissao, 0); const aberto = lista.filter(v => !v.pagaEm);
+    return `<section class="panel"><div class="section-head"><div><h3>${esc(label(u))}</h3><span class="muted small">${lista.length} ${lista.length === 1 ? "venda" : "vendas"} · ${money(total)}</span></div>
+      ${aberto.length && M <= hoje ? `<button class="btn sm primary" data-act="pagar-todas" data-uid="${esc(u)}">Marcar ${aberto.length === 1 ? "como paga" : "as " + aberto.length + " como pagas"}</button>` : ""}</div>
+      <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Embarque</th><th class="n">Venda</th><th class="n">%</th><th class="n">Comissão</th><th>Situação</th><th></th></tr></thead>
+      <tbody>${lista.map(v => { const st = statusOf(v); return `<tr><td>${esc(v.cliente)}<div>${destTag(v.destino)}</div></td><td>${dLabel(v.embarque)}</td><td class="n">${money(v.valor)}</td><td class="n">${pctFmt(v.pct)}</td><td class="n">${money(v.comissao)}</td><td>${pill(st)}</td><td>${st === "paga" ? `<button class="btn sm ghost" data-act="despagar" data-id="${esc(v.id)}">Desfazer</button>` : st === "a-pagar" ? `<button class="btn sm" data-act="pagar" data-id="${esc(v.id)}">Marcar paga</button>` : ""}</td></tr>`; }).join("")}</tbody></table></div></section>`;
+  }).join("") : `<div class="empty"><strong>Nenhuma comissão com pagamento em ${ymLong(M)}</strong><span>Comissões de ${ymLong(M)} vêm de clientes que embarcaram em ${ymLong(addM(M, -1))}.</span></div>`}
+  <section class="panel"><h3>Previsão dos próximos meses</h3>
+    ${ids.length ? `<div class="tablewrap"><table><thead><tr><th>Pessoa</th>${futuros.map(m => `<th class="n">${ymLabel(m)}</th>`).join("")}</tr></thead>
+    <tbody>${ids.map(u => `<tr><td>${esc(label(u))}</td>${futuros.map(m => `<td class="n">${money(vs.filter(v => v.vendedor === u && v.mesPagamento === m).reduce((s, v) => s + v.comissao, 0))}</td>`).join("")}</tr>`).join("")}</tbody></table></div>` : `<div class="empty"><strong>Sem previsões ainda</strong></div>`}
+  </section>`;
+}
+
+function ownerAtendimentos() {
+  const mem = activeMembers(); const hoje = ymNow();
+  const meses = Array.from({ length: 12 }, (_, i) => addM(hoje, -i));
+  return `
+  <div class="section-head"><div><h2>Atendimentos</h2><p>Número de atendimentos de cada pessoa por mês. Enquanto o Helena não estiver conectado, preencha aqui. Salva ao sair do campo.</p></div></div>
+  <section class="panel">${mem.length ? `<div class="tablewrap"><table><thead><tr><th>Mês</th>${mem.map(u => `<th class="n">${esc(label(u))}</th>`).join("")}<th class="n">Total</th></tr></thead>
+  <tbody>${meses.map(m => { const pp = (S.atend[m] && S.atend[m].porPessoa) || {}; return `<tr><td>${ymLabel(m)}</td>${mem.map(u => `<td class="n"><input class="cell" type="number" min="0" step="1" inputmode="numeric" id="at-${m}-${esc(u)}" data-atend="${m}" data-uid="${esc(u)}" value="${pp[u] ?? ""}" aria-label="Atendimentos de ${esc(label(u))} em ${ymLabel(m)}"></td>`).join("")}<td class="n">${mem.reduce((s, u) => s + (Number(pp[u]) || 0), 0) || "—"}</td></tr>`; }).join("")}</tbody></table></div>`
+    : `<div class="empty"><strong>Cadastre a equipe primeiro</strong><span>Cada coluna é uma pessoa da equipe.</span></div>`}</section>`;
+}
+
+function ownerAcessos() {
+  const ids = Object.keys(S.members).sort((a, b) => label(a).localeCompare(label(b), "pt-BR"));
+  const portal = location.origin + location.pathname;
+  return `
+  <div class="section-head"><div><h2>Equipe e acessos</h2><p>Cadastre o e-mail de cada pessoa e escolha o que ela vê. Comissões e vendas de uma pessoa nunca aparecem para outra.</p></div></div>
+  <section class="panel"><h3>Cadastrar pessoa</h3>
+    <form id="add-form" class="formgrid" novalidate>
+      <div class="field"><label for="n-email">E-mail</label><input type="email" id="n-email" placeholder="nome@email.com" required></div>
+      <div class="field"><label for="n-apelido">Nome no portal</label><input type="text" id="n-apelido" placeholder="Ex.: Júlia"></div>
+      <div class="field"><label for="n-pct">Comissão (%)</label><input type="number" id="n-pct" min="0" max="100" step="0.1" placeholder="Ex.: 3"></div>
+      <div class="field" style="align-self:end"><button class="btn primary" type="submit">Cadastrar</button></div>
+    </form>
+    <p class="small muted" id="add-erro" style="margin:0"></p>
+    <div class="notice">Ao cadastrar, a pessoa recebe um e-mail do Google para criar a senha. Depois ela entra em <strong>${esc(portal)}</strong> com esse e-mail e a senha criada.</div>
+  </section>
+  <section class="panel"><h3>Com acesso (${ids.length})</h3>
+    ${ids.length ? ids.map(u => { const m = S.members[u]; const ab = m.abas || {}; return `
+    <div class="member" style="grid-template-columns:1fr"><div class="body">
+      <div class="row" style="justify-content:space-between"><div style="min-width:0"><strong>${esc(m.apelido || u)}</strong> ${m.ativo === false ? '<span class="pill bad">acesso suspenso</span>' : '<span class="pill ok">ativo</span>'}<div class="muted small" style="overflow-wrap:anywhere">${esc(u)}</div></div>
+        <div class="row"><button class="btn sm" data-act="ver-como" data-uid="${esc(u)}">Ver como essa pessoa</button><button class="btn sm" data-act="reenviar" data-uid="${esc(u)}">Reenviar link de senha</button>${m.ativo === false ? `<button class="btn sm" data-act="reativar" data-uid="${esc(u)}">Reativar</button>` : `<button class="btn sm danger" data-act="suspender" data-uid="${esc(u)}">Suspender acesso</button>`}</div></div>
+      <div class="formgrid">
+        <div class="field"><label for="ap-${esc(u)}">Nome no portal</label><input type="text" id="ap-${esc(u)}" data-cfg="apelido" data-uid="${esc(u)}" value="${esc(m.apelido || "")}" placeholder="Ex.: Júlia"></div>
+        <div class="field"><label for="pc-${esc(u)}">Comissão (% sobre a venda)</label><input type="number" min="0" max="100" step="0.1" id="pc-${esc(u)}" data-cfg="pct" data-uid="${esc(u)}" value="${m.pct ?? ""}" placeholder="Ex.: 3"></div>
+      </div>
+      <div><div class="field"><label>O que essa pessoa vê</label></div><div class="toggles">${ABAS.map(([k, t]) => `<label class="toggle"><input type="checkbox" data-aba="${k}" data-uid="${esc(u)}" ${ab[k] ? "checked" : ""}>${t}</label>`).join("")}</div></div>
+      <p class="muted small" style="margin:0">Mudar o percentual vale para as próximas vendas. As vendas já lançadas mantêm o percentual delas.</p>
+    </div></div>`; }).join("") : `<div class="empty"><strong>Ninguém cadastrado ainda</strong><span>Use o formulário acima para cadastrar a primeira pessoa.</span></div>`}
+  </section>`;
+}
+
+// ---------- formulário de venda ----------
+function openVenda(id) {
+  const v = id ? { id, ...S.vendas[id], obs: S.notas[id] || "" } : null;
+  const mem = activeMembers();
+  const vend = v ? v.vendedor : (mem[0] || "");
+  const pct = v ? v.pct : ((S.members[vend] && S.members[vend].pct) ?? "");
+  const vendOpts = [...new Set([...mem, ...(v ? [v.vendedor] : [])])];
+  $("#layer").innerHTML = `<div class="overlay" data-close><form class="dialog" id="venda-form" novalidate>
+    <div class="section-head"><h2>${v ? "Editar venda" : "Nova venda"}</h2><button type="button" class="btn sm ghost" data-close-btn>Fechar</button></div>
+    <div class="formgrid">
+      <div class="field" style="grid-column:1/-1"><label for="v-cliente">Cliente</label><input type="text" id="v-cliente" value="${esc(v ? v.cliente : "")}" placeholder="Nome do cliente ou do grupo"></div>
+      <div class="field"><label for="v-vend">Vendedor</label><select id="v-vend">${vendOpts.map(u => `<option value="${esc(u)}" ${u === vend ? "selected" : ""}>${esc(label(u))}</option>`).join("")}</select></div>
+      <div class="field"><label for="v-dest">Destino</label><select id="v-dest">${DESTINOS.map(d => `<option ${v && v.destino === d ? "selected" : ""}>${d}</option>`).join("")}</select></div>
+      <div class="field"><label for="v-valor">Valor da venda (R$)</label><input type="number" min="0" step="0.01" id="v-valor" value="${v ? v.valor : ""}" placeholder="Ex.: 12500"></div>
+      <div class="field"><label for="v-pct">Comissão (%)</label><input type="number" min="0" max="100" step="0.1" id="v-pct" value="${pct ?? ""}" placeholder="Percentual"></div>
+      <div class="field"><label for="v-fech">Data de fechamento</label><input type="date" id="v-fech" value="${esc(v ? v.fechamento : new Date().toISOString().slice(0, 10))}"></div>
+      <div class="field"><label for="v-emb">Data de embarque</label><input type="date" id="v-emb" value="${esc(v ? v.embarque : "")}"></div>
+      <div class="field" style="grid-column:1/-1"><label for="v-obs">Observação (só a administração vê)</label><input type="text" id="v-obs" value="${esc(v ? v.obs : "")}" placeholder="Opcional"></div>
+    </div>
+    <div class="notice" id="v-preview"></div>
+    ${v ? `<label class="toggle" style="justify-self:start"><input type="checkbox" id="v-cancel" ${v.status === "cancelada" ? "checked" : ""}>Venda cancelada (não gera comissão)</label>` : ""}
+    <p class="small" id="v-erro" style="color:var(--bad);margin:0" hidden></p>
+    <div class="row" style="justify-content:space-between">
+      <div>${v ? `<button type="button" class="btn danger" data-act="excluir-venda" data-id="${esc(v.id)}">Excluir venda</button>` : ""}</div>
+      <div class="row"><button type="button" class="btn" data-close-btn>Cancelar</button><button type="submit" class="btn primary">${v ? "Salvar alterações" : "Lançar venda"}</button></div>
+    </div>
+  </form></div>`;
+  const form = $("#venda-form");
+  const upd = () => {
+    const valor = Number($("#v-valor").value) || 0, p = Number($("#v-pct").value) || 0, emb = $("#v-emb").value;
+    $("#v-preview").textContent = emb ? `Comissão de ${money(valor * p / 100)}, paga em ${ymLong(addM(ymOf(emb), 1))}.` : "Informe a data de embarque para calcular quando a comissão será paga.";
+  };
+  form.addEventListener("input", upd);
+  $("#v-vend").addEventListener("change", () => { if (!v) { const m = S.members[$("#v-vend").value]; $("#v-pct").value = m && m.pct != null ? m.pct : ""; upd(); } });
+  upd();
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const erro = $("#v-erro");
+    const row = {
+      cliente: $("#v-cliente").value.trim(), vendedor: $("#v-vend").value, destino: $("#v-dest").value,
+      valor: round2($("#v-valor").value), pct: Number($("#v-pct").value) || 0,
+      fechamento: $("#v-fech").value, embarque: $("#v-emb").value,
+      status: v && $("#v-cancel") && $("#v-cancel").checked ? "cancelada" : "ativa",
+      pagaEm: v ? (v.pagaEm || null) : null, origem: v ? (v.origem || "manual") : "manual",
+      atualizadoEm: new Date().toISOString()
+    };
+    const obs = $("#v-obs").value.trim();
+    const faltam = [];
+    if (!row.cliente) faltam.push("cliente"); if (!row.vendedor) faltam.push("vendedor"); if (!(row.valor > 0)) faltam.push("valor");
+    if (!row.fechamento) faltam.push("data de fechamento"); if (!row.embarque) faltam.push("data de embarque");
+    if (faltam.length) { erro.hidden = false; erro.textContent = "Preencha: " + faltam.join(", ") + "."; return; }
+    if (row.embarque < row.fechamento) { erro.hidden = false; erro.textContent = "A data de embarque está antes da data de fechamento. Confira as datas."; return; }
+    const btn = form.querySelector("[type=submit]"); btn.disabled = true;
+    try {
+      const ref = v ? col("vendas").doc(v.id) : col("vendas").doc();
+      await ref.set(row);
+      if (obs) await col("vendasNotas").doc(ref.id).set({ obs });
+      else if (v && v.obs) await col("vendasNotas").doc(ref.id).delete();
+      closeLayer(); await reload(v ? "Venda atualizada" : "Venda lançada");
+    } catch (err) { btn.disabled = false; erro.hidden = false; erro.textContent = errMsg(err); }
+  });
+}
+function closeLayer() { $("#layer").innerHTML = ""; }
+$("#layer").addEventListener("click", async (e) => {
+  if (e.target.matches("[data-close]") || e.target.closest("[data-close-btn]")) return closeLayer();
+  const del = e.target.closest('[data-act="excluir-venda"]');
+  if (del) {
+    if (del.dataset.confirm !== "1") { del.dataset.confirm = "1"; del.textContent = "Confirmar exclusão"; return; }
+    try { await col("vendas").doc(del.dataset.id).delete(); await col("vendasNotas").doc(del.dataset.id).delete(); } catch (err) { return toast(errMsg(err)); }
+    closeLayer(); await reload("Venda excluída");
+  }
+});
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && $("#layer").innerHTML) closeLayer(); });
+
+// ---------- ações ----------
+async function run(p, okMsg) { await p; await reload(okMsg); }
+$("#main").addEventListener("click", async (e) => {
+  const go = e.target.closest("[data-tab-go]"); if (go) { S.tab = go.dataset.tabGo; render(); return; }
+  const dest = e.target.closest("[data-dest]"); if (dest) { S.filtros.destino = dest.dataset.dest; S.filtros.passeio = "__geral"; render(); return; }
+  const tour = e.target.closest("[data-tourid]"); if (tour) { S.filtros.passeio = tour.dataset.tourid; render(); return; }
+  const b = e.target.closest("[data-act]"); if (!b || b.dataset.act === "sair") return;
+  const act = b.dataset.act, uid = b.dataset.uid, id = b.dataset.id;
+  try {
+    if (act === "nova-venda") openVenda(null);
+    else if (act === "editar-venda") openVenda(id);
+    else if (act === "pagar") await run(col("vendas").doc(id).update({ pagaEm: ymNow() }), "Comissão marcada como paga");
+    else if (act === "despagar") await run(col("vendas").doc(id).update({ pagaEm: null }), "Pagamento desfeito");
+    else if (act === "pagar-todas") {
+      b.disabled = true;
+      const lista = allVendas().filter(v => v.vendedor === uid && v.mesPagamento === S.filtros.comMes && v.status !== "cancelada" && !v.pagaEm).map(v => v.id);
+      const batch = S.db.batch(); lista.forEach(i => batch.update(col("vendas").doc(i), { pagaEm: ymNow() }));
+      await run(batch.commit(), "Comissões marcadas como pagas");
+    }
+    else if (act === "suspender") {
+      if (b.dataset.confirm !== "1") { b.dataset.confirm = "1"; b.textContent = "Confirmar suspensão"; return; }
+      await run(col("equipe").doc(uid).update({ ativo: false }), "Acesso suspenso");
+    }
+    else if (act === "reativar") await run(col("equipe").doc(uid).update({ ativo: true }), "Acesso reativado");
+    else if (act === "reenviar") { b.disabled = true; await sendLink(uid); toast("Link de senha enviado para " + uid); b.disabled = false; }
+    else if (act === "ver-como") { S.previewUid = uid; S.tab = "inicio"; render(); window.scrollTo({ top: 0 }); }
+    else if (act === "sair-preview") { S.previewUid = null; S.tab = "acessos"; render(); }
+  } catch (err) { toast(errMsg(err)); b.disabled = false; }
+});
+$("#main").addEventListener("submit", async (e) => {
+  if (e.target.id !== "add-form") return;
+  e.preventDefault();
+  const email = $("#n-email").value.trim().toLowerCase(), apelido = $("#n-apelido").value.trim(), p = $("#n-pct").value;
+  const erro = $("#add-erro");
+  if (!emailOk(email)) { erro.textContent = "Digite um e-mail válido."; erro.style.color = "var(--bad)"; return; }
+  if (S.members[email]) { erro.textContent = "Esse e-mail já está cadastrado."; erro.style.color = "var(--bad)"; return; }
+  const btn = e.target.querySelector("[type=submit]"); btn.disabled = true;
+  erro.style.color = "var(--muted)"; erro.textContent = "Criando o login…";
+  try {
+    const sec = firebase.apps.find(a => a.name === "cadastro") || firebase.initializeApp(FIREBASE_CONFIG, "cadastro");
+    const bytes = crypto.getRandomValues(new Uint8Array(24));
+    const tmp = Array.from(bytes, x => x.toString(16).padStart(2, "0")).join("") + "Aa1!";
+    const cred = await sec.auth().createUserWithEmailAndPassword(email, tmp);
+    const uid = cred.user.uid; await sec.auth().signOut();
+    await col("equipe").doc(email).set({ apelido, pct: p === "" ? null : Math.max(0, Math.min(100, Number(p))), abas: { ...ABAS_PADRAO }, ativo: true, uid, criadoEm: new Date().toISOString() });
+    let aviso = "Pessoa cadastrada. Ela recebeu um e-mail para criar a senha.";
+    try { await sendLink(email); } catch (_) { aviso = "Pessoa cadastrada, mas o e-mail de senha não saiu. Use “Reenviar link de senha”."; }
+    await reload(aviso);
+  } catch (err) {
+    btn.disabled = false; erro.style.color = "var(--bad)";
+    erro.textContent = err && err.code === "auth/email-already-in-use"
+      ? "Esse e-mail já tem um login no Firebase. Se for de um cadastro antigo, apague esse usuário em Authentication → Users no Firebase e cadastre de novo."
+      : (err && err.code && err.code.startsWith("auth/") ? AUTH_ERR(err) : errMsg(err));
+  }
+});
+$("#main").addEventListener("change", async (e) => {
+  const t = e.target;
+  if (t.dataset.filter) { S.filtros[t.dataset.filter] = t.value; render(); return; }
+  try {
+    if (t.dataset.aba) {
+      const uid = t.dataset.uid; const ab = { ...((S.members[uid] || {}).abas || {}) }; ab[t.dataset.aba] = t.checked;
+      await run(col("equipe").doc(uid).update({ abas: ab }));
+    } else if (t.dataset.cfg) {
+      const uid = t.dataset.uid; let val = t.value;
+      val = t.dataset.cfg === "pct" ? (val === "" ? null : Math.max(0, Math.min(100, Number(val)))) : val.trim();
+      if ((S.members[uid] || {})[t.dataset.cfg] === val) return;
+      await run(col("equipe").doc(uid).update({ [t.dataset.cfg]: val }), "Salvo");
+    } else if (t.dataset.atend) {
+      const mes = t.dataset.atend, email = t.dataset.uid; const n = t.value === "" ? null : Math.max(0, Math.round(Number(t.value)));
+      const atual = S.atend[mes] && S.atend[mes].porPessoa ? S.atend[mes].porPessoa[email] : undefined;
+      if ((atual ?? null) === n) return;
+      const ref = col("atendimentos").doc(mes + "__" + email);
+      if (n == null) await run(ref.delete()); else await run(ref.set({ mes, email, n }));
+    } else if (t.id === "imp-passeios" && t.files && t.files[0]) {
+      await importarPasseios(t.files[0]);
+    }
+  } catch (err) { toast(errMsg(err)); if (t.type === "checkbox") t.checked = !t.checked; }
+});
+let buscaTimer;
+$("#main").addEventListener("input", (e) => {
+  const t = e.target;
+  const key = t.id === "f-busca" ? "busca" : t.id === "f-tour" ? "tourBusca" : null;
+  if (!key) return;
+  S.filtros[key] = t.value; clearTimeout(buscaTimer);
+  buscaTimer = setTimeout(() => { const pos = t.selectionStart; render(); const n = $("#" + t.id); if (n) { n.focus(); n.setSelectionRange(pos, pos); } }, 250);
+});
+
+// ---------- importação dos passeios ----------
+async function importarPasseios(file) {
+  let data;
+  try { data = JSON.parse(await file.text()); } catch (_) { toast("Esse arquivo não é o de passeios. Use o passeios-araya.json."); return; }
+  const ds = Array.isArray(data.destinos) ? data.destinos : [], ps = Array.isArray(data.passeios) ? data.passeios : [];
+  if (!ds.length || !ps.length) { toast("Esse arquivo não é o de passeios. Use o passeios-araya.json."); return; }
+  toast("Importando " + ps.length + " passeios…");
+  const writes = [...ds.map(d => ["destinos", d]), ...ps.map(p => ["passeios", p])];
+  for (let i = 0; i < writes.length; i += 400) {
+    const batch = S.db.batch();
+    writes.slice(i, i + 400).forEach(([c, d]) => { const { id, ...rest } = d; batch.set(col(c).doc(String(id)), rest); });
+    await batch.commit();
+  }
+  await reload(ds.length + " destinos e " + ps.length + " passeios importados");
+}
+
+// ---------- painel de uma pessoa ----------
+function payloadFor(uid) {
+  const cfg = S.members[uid] || {}; const hoje = ymNow(); const corte = addM(hoje, -24);
+  const vendas = allVendas().filter(v => v.vendedor === uid && (ymOf(v.fechamento) >= corte || v.mesPagamento >= corte))
+    .sort((a, b) => (b.fechamento || "").localeCompare(a.fechamento || ""));
+  const atendimentos = {};
+  for (let i = 0; i < 12; i++) { const m = addM(hoje, -i); const n = S.atend[m] && S.atend[m].porPessoa ? S.atend[m].porPessoa[uid] : null; if (n != null) atendimentos[m] = n; }
+  const abas = { ...ABAS_PADRAO, ...(cfg.abas || {}) };
+  let equipe = null;
+  if (abas.equipe) {
+    equipe = S.isAdmin ? computeEquipe().pessoas : S.equipeRes;
+  }
+  return { apelido: cfg.apelido || "", pct: cfg.pct ?? 0, abas, vendas, atendimentos, equipe };
+}
+
+// ---------- início ----------
+async function start(user) {
+  S.session = user; S.ready = false;
+  if (!user) { render(); return; }
+  S.email = (user.email || "").toLowerCase();
+  render();
+  try {
+    try { await col("config").doc("admin").get(); S.isAdmin = true; } catch (_) { S.isAdmin = false; }
+    await loadAll();
+    try { S.tab = localStorage.getItem("araya-tab-" + (S.isAdmin ? "o" : "m")); } catch (_) {}
+    S.ready = true; render();
+  } catch (e) { centerMsg("O portal não carregou", "Recarregue a página. Se continuar, avise a Letícia.", `<button class="btn" data-act="sair">Sair</button>`); }
+}
+function boot() {
+  if (!window.firebase || Object.values(FIREBASE_CONFIG).some(v => String(v).startsWith("COLE_AQUI"))) {
+    return centerMsg("Portal em configuração", "Falta ligar o portal ao banco de dados. Assim que a configuração for concluída, esta página passa a mostrar o login.");
+  }
+  firebase.initializeApp(FIREBASE_CONFIG);
+  S.auth = firebase.auth(); S.db = firebase.firestore();
+  S.auth.languageCode = "pt-BR";
+  S.auth.onAuthStateChanged((user) => {
+    if (!user) { S.session = null; S.isAdmin = false; S.ready = false; render(); return; }
+    if (S.session && S.session.uid === user.uid && S.ready) return;
+    start(user);
+  });
+  window.addEventListener("focus", () => { if (S.ready && !S.isAdmin) reload(); });
+}
+boot();
+})();
+
+</script>
+</body>
+</html>
