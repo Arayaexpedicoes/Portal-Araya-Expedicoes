@@ -157,11 +157,53 @@ input.cell{width:84px;text-align:right;padding:5px 8px}
 .prose li{margin:2px 0}
 .prose li.sub{margin-left:18px;list-style:circle}
 .prose > :first-child{margin-top:0}
+.tourlist .tcat{display:block;font-size:.7rem;color:var(--muted);font-weight:500;letter-spacing:.02em}
+.prose blockquote{margin:6px 0 10px;padding:9px 13px;border-left:3px solid var(--dc,var(--accent));background:color-mix(in srgb, var(--dc,var(--accent)) 8%, transparent);border-radius:0 8px 8px 0}
+/* Fotos e vídeos */
+.galeria{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;margin:6px 0 12px}
+.galeria.uma{grid-template-columns:1fr}
+.galeria button{border:0;padding:0;background:var(--surface-2);border-radius:10px;overflow:hidden;cursor:zoom-in;display:grid;aspect-ratio:4/3;position:relative}
+.galeria.uma button{aspect-ratio:auto;max-height:460px}
+.galeria img{width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity .25s}
+.galeria img.ok{opacity:1}
+.galeria figcaption{position:absolute;left:0;right:0;bottom:0;padding:16px 10px 7px;font-size:.76rem;color:#fff;text-align:left;background:linear-gradient(transparent,rgb(0 0 0 / .6))}
+.video{position:relative;aspect-ratio:16/9;border-radius:10px;overflow:hidden;background:#000;margin:6px 0 4px}
+.video iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.video-leg{font-size:.8rem;color:var(--muted);margin:0 0 12px}
+.lightbox{background:rgb(10 9 6 / .88);cursor:zoom-out}
+.lightbox figure{margin:0;display:grid;gap:10px;justify-items:center;max-width:min(1400px,100%);max-height:100%}
+.lightbox img{max-width:100%;max-height:calc(100vh - 110px);border-radius:8px;object-fit:contain;cursor:default}
+.lightbox figcaption{color:#f3ede0;font-size:.88rem;text-align:center}
+.lightbox .btn{background:rgb(255 255 255 / .12);color:#fff;border-color:transparent}
+/* Ficha do passeio */
+.ficha{display:grid;gap:20px;min-width:0}
+.ficha-head{display:grid;gap:10px}
+.ficha-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap}
+.ficha-meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.cat{display:inline-flex;align-items:center;font-size:.68rem;font-weight:700;letter-spacing:.11em;text-transform:uppercase;padding:4px 11px;border-radius:99px;background:var(--dc,var(--accent));color:var(--surface)}
+.etq{font-size:.74rem;font-weight:600;padding:3px 10px;border-radius:99px;background:color-mix(in srgb, var(--dc,var(--accent)) 12%, transparent);color:var(--fg)}
+.ficha h3{font-size:clamp(1.4rem,3.2vw,1.8rem);line-height:1.2}
+.ficha .ficha-sub{margin:0;color:var(--muted);font-family:var(--display);font-size:1.03rem;max-width:62ch}
+.fatos{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:1px;margin:0;background:var(--line);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.fatos div{background:color-mix(in srgb, var(--dc,var(--accent)) 5%, var(--surface));padding:12px 14px;display:grid;gap:3px;align-content:start}
+.fatos dt{font-size:.66rem;text-transform:uppercase;letter-spacing:.11em;color:var(--muted);font-weight:600}
+.fatos dd{margin:0;font-weight:600;font-size:.93rem;overflow-wrap:anywhere}
+.fsec{display:grid;gap:8px;min-width:0}
+.fh{font-family:var(--body);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--dc,var(--muted));font-weight:700;margin:0;display:flex;align-items:center;gap:10px}
+.fh::after{content:"";flex:1;height:1px;background:var(--line)}
+.fcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.fcard{border-radius:var(--r);padding:15px 17px;display:grid;gap:8px;align-content:start;min-width:0}
+.fcard .fh::after{display:none}
+.fcard.inclui{background:var(--ok-soft)} .fcard.inclui .fh{color:var(--ok)}
+.fcard.atencao{background:var(--warn-soft)} .fcard.atencao .fh{color:var(--warn)}
+.fsec.guia{background:var(--surface-2);border-radius:var(--r);padding:15px 17px}
+.guia-tag{justify-self:start;font-size:.7rem;font-weight:700;color:var(--bad);background:var(--bad-soft);padding:3px 10px;border-radius:99px}
+.rev{font-size:.8rem;color:var(--muted);border-top:1px solid var(--line);padding-top:12px;margin:0}
 .notice{font-size:.82rem;color:var(--muted);background:var(--surface-2);border-radius:10px;padding:8px 12px}
 .center{min-height:52vh;display:grid;place-items:center;text-align:center}
 .center .box{max-width:460px;display:grid;gap:10px;justify-items:center;background:var(--surface);border-radius:18px;padding:30px 26px;box-shadow:var(--shadow)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
-
+ 
 .auth{min-height:calc(100vh - 140px);display:grid;place-items:center;padding-block:24px}
 .auth form{width:100%;max-width:400px;background:var(--surface);border-radius:18px;padding:28px 26px;box-shadow:var(--shadow);display:grid;gap:14px}
 .auth h2{font-size:1.5rem}
@@ -175,7 +217,7 @@ input.cell{width:84px;text-align:right;padding:5px 8px}
 .msg.ok{background:var(--ok-soft);color:var(--ok)}
 input[type=email],input[type=password]{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:9px 11px;min-width:0;width:100%}
 .who .linkbtn{color:var(--band-fg);opacity:.8;font-size:.8rem;margin-left:4px}
-
+ 
 html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 body{margin:0}
 [hidden]{display:none!important}
@@ -222,7 +264,7 @@ const FIREBASE_CONFIG = {
   appId: "1:141327927174:web:c26edbf91a8e14bbd38e07"
 };
 // =================================================
-
+ 
 const $ = (s, r = document) => r.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -244,7 +286,7 @@ const destTag = (n) => n ? `<span class="dest" style="${dc(n)}">${esc(n)}</span>
 const ABAS = [["inicio", "Início"], ["comissoes", "Comissões"], ["vendas", "Minhas vendas"], ["passeios", "Passeios"], ["equipe", "Resultados da equipe"]];
 const ABAS_PADRAO = { inicio: true, comissoes: true, vendas: true, passeios: true, equipe: false };
 const emailOk = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
-
+ 
 // Regra de comissão: valor × percentual; paga no mês seguinte ao mês de embarque.
 function enrich(v) {
   const pct = Number(v.pct) || 0, valor = Number(v.valor) || 0;
@@ -258,7 +300,7 @@ function statusOf(v, hoje = ymNow()) {
 }
 const STATUS_PILL = { "paga": ["ok", "Paga"], "a-pagar": ["warn", "A pagar"], "prevista": ["info", "Prevista"], "cancelada": ["bad", "Cancelada"], "sem-data": ["neutral", "Sem data de embarque"] };
 const pill = (st) => { const [c, t] = STATUS_PILL[st] || ["neutral", st]; return `<span class="pill ${c}">${t}</span>`; };
-
+ 
 // ---------- estado ----------
 const S = {
   auth: null, db: null, session: null, resumoAtual: "", email: "", isAdmin: false, ready: false, authMode: "entrar", authMsg: null, recovery: false,
@@ -283,7 +325,7 @@ function errMsg(e) {
   return "Não foi possível salvar agora. Tente de novo em instantes.";
 }
 const label = (uid) => (S.members[uid] && S.members[uid].apelido) || uid || "—";
-
+ 
 // ---------- dados ----------
 const col = (n) => S.db.collection(n);
 const docsOf = (snap) => snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -328,7 +370,7 @@ async function reload(msg) {
   if (msg) toast(msg);
   scheduleRender();
 }
-
+ 
 // ---------- render ----------
 function scheduleRender() {
   const a = document.activeElement;
@@ -336,12 +378,12 @@ function scheduleRender() {
   render();
 }
 document.addEventListener("focusout", () => { if (S.pendingRender) { S.pendingRender = false; setTimeout(render, 0); } });
-function setMain(html) { $("#main").innerHTML = html; }
+function setMain(html) { $("#main").innerHTML = html; if (html.includes("data-midia")) carregarFotos(); }
 function centerMsg(t, p, extra = "") { $("#tabs").innerHTML = ""; setMain(`<div class="center"><div class="box"><h2>${esc(t)}</h2><p class="muted">${p}</p>${extra}</div></div>`); }
-
+ 
 function ownerTabs() { return [["painel", "Visão geral"], ["vendas", "Vendas"], ["comissoes", "Comissões"], ["atendimentos", "Atendimentos"], ["acessos", "Equipe e acessos"], ["passeios", "Passeios"]]; }
 function memberTabs(data) { const ab = (data && data.abas) || {}; return ABAS.filter(([k]) => ab[k]); }
-
+ 
 function render() {
   renderWho();
   if (!S.auth) return;
@@ -355,7 +397,7 @@ function render() {
   }
   renderMember(payloadFor(viewingAs || S.email), viewingAs);
 }
-
+ 
 function renderWho() {
   if (!S.session) { $("#who").innerHTML = ""; return; }
   $("#who").innerHTML = `<span>${esc(S.email)}${S.isAdmin ? " · administradora" : ""}</span><button class="linkbtn" data-act="sair" type="button">Sair</button>`;
@@ -365,7 +407,7 @@ function renderTabs(list) {
   $("#tabs").innerHTML = list.map(([k, t]) => `<button type="button" data-tab="${k}" aria-current="${k === S.tab}">${t}</button>`).join("");
 }
 $("#tabs").addEventListener("click", (e) => { const b = e.target.closest("[data-tab]"); if (!b) return; S.tab = b.dataset.tab; try { localStorage.setItem("araya-tab-" + (S.isAdmin ? (S.previewUid ? "p" : "o") : "m"), S.tab); } catch (_) {} render(); window.scrollTo({ top: 0 }); });
-
+ 
 // ---------- login ----------
 function renderAuth(mode) {
   $("#tabs").innerHTML = "";
@@ -423,7 +465,7 @@ document.addEventListener("click", async (e) => {
   const a = e.target.closest("[data-auth]"); if (a) { S.authMode = a.dataset.auth; S.authMsg = null; render(); return; }
   const s = e.target.closest('[data-act="sair"]'); if (s) { await S.auth.signOut(); S.previewUid = null; S.tab = null; S.authMode = "entrar"; S.authMsg = null; }
 });
-
+ 
 // ---------- visão da equipe ----------
 function renderMember(data, viewingAs) {
   const tabs = memberTabs(data);
@@ -439,7 +481,7 @@ function renderMember(data, viewingAs) {
   else if (S.tab === "equipe") html += memberEquipe(data, hoje);
   setMain(html);
 }
-
+ 
 function memberInicio(data, vendas, hoje, viewingAs) {
   const ativas = vendas.filter(v => v.status !== "cancelada");
   const doMes = ativas.filter(v => ymOf(v.fechamento) === hoje);
@@ -471,7 +513,7 @@ function memberInicio(data, vendas, hoje, viewingAs) {
     </section>
   </div>`;
 }
-
+ 
 function memberComissoes(data, vendas, hoje) {
   const ativas = vendas.filter(v => v.status !== "cancelada" && v.mesPagamento);
   const meses = [...new Set(ativas.map(v => v.mesPagamento))].sort().reverse();
@@ -490,7 +532,7 @@ function memberComissoes(data, vendas, hoje) {
     <tbody>${vs.map(v => `<tr><td>${esc(v.cliente)}<div>${destTag(v.destino)}</div></td><td>${dLabel(v.embarque)}</td><td class="n">${money(v.valor)}</td><td class="n">${pctFmt(v.pct)}</td><td class="n">${money(v.comissao)}</td><td>${pill(statusOf(v, hoje))}</td></tr>`).join("")}</tbody></table></div></section>`;
   }).join("") : `<div class="empty"><strong>Nenhuma comissão por enquanto</strong><span>Quando uma venda sua for lançada, a comissão aparece aqui no mês em que será paga.</span></div>`}`;
 }
-
+ 
 function memberVendas(vendas) {
   const meses = [...new Set(vendas.map(v => ymOf(v.fechamento)).filter(Boolean))].sort().reverse();
   const f = S.filtros.minhasMes;
@@ -503,7 +545,7 @@ function memberVendas(vendas) {
   <tbody>${lista.map(v => `<tr><td>${esc(v.cliente)}</td><td>${destTag(v.destino)}</td><td>${dLabel(v.fechamento)}</td><td>${dLabel(v.embarque)}</td><td class="n">${money(v.valor)}</td><td>${v.status === "cancelada" ? pill("cancelada") : '<span class="pill ok">Confirmada</span>'}</td></tr>`).join("")}</tbody>
   <tfoot><tr><td colspan="4">${ok.length} vendas confirmadas</td><td class="n">${money(ok.reduce((s, v) => s + v.valor, 0))}</td><td></td></tr></tfoot></table></div>` : `<div class="empty"><strong>Nenhuma venda neste período</strong></div>`}</section>`;
 }
-
+ 
 function memberEquipe(data, hoje) {
   const eq = data.equipe || [];
   const meses = [hoje, addM(hoje, -1), addM(hoje, -2)];
@@ -511,7 +553,7 @@ function memberEquipe(data, hoje) {
   <section class="panel">${eq.length ? `<div class="tablewrap"><table><thead><tr><th>Pessoa</th>${meses.map(m => `<th class="n">${ymLabel(m)}</th>`).join("")}</tr></thead>
   <tbody>${eq.map(e => `<tr><td>${esc(e.apelido || e.uid)}</td>${meses.map(m => { const x = (e.meses || {})[m] || { q: 0, v: 0 }; return `<td class="n">${x.q} <span class="muted small">· ${money(x.v)}</span></td>`; }).join("")}</tr>`).join("")}</tbody></table></div>` : `<div class="empty"><strong>Sem dados da equipe</strong></div>`}</section>`;
 }
-
+ 
 // ---------- passeios ----------
 function mdInline(s) {
   s = esc(s);
@@ -519,55 +561,109 @@ function mdInline(s) {
   s = s.replace(/\*\*([^*]+?)\*\*/g, "<strong>$1</strong>").replace(/\*\*/g, "");
   return s;
 }
-function md(src) {
-  let out = "", list = null;
+const VIDEO_URL = { youtube: (id) => `https://www.youtube-nocookie.com/embed/${id}?rel=0`, drive: (id) => `https://drive.google.com/file/d/${id}/preview`, vimeo: (id) => `https://player.vimeo.com/video/${id}` };
+function md(src, fotos = {}) {
+  let out = "", list = null, gal = [];
+  const fechaGal = () => { if (gal.length) { out += `<div class="galeria${gal.length === 1 ? " uma" : ""}">${gal.map(id => { const f = fotos[id] || {}; return `<button type="button" data-foto="${esc(id)}" aria-label="Ampliar foto${f.legenda ? ": " + esc(f.legenda) : ""}"><img data-midia="${esc(id)}" alt="${esc(f.legenda || "")}">${f.legenda ? `<figcaption>${esc(f.legenda)}</figcaption>` : ""}</button>`; }).join("")}</div>`; gal = []; } };
   const close = () => { if (list) { out += `</${list}>`; list = null; } };
   for (const raw of String(src || "").split("\n")) {
     const t = raw.trim(); let m;
+    if ((m = t.match(/^\[\[foto:([A-Za-z0-9_-]+)\]\]$/))) { close(); gal.push(m[1]); continue; }
+    fechaGal();
+    if ((m = t.match(/^\[\[video:(youtube|drive|vimeo):([A-Za-z0-9_-]+)(?:\|([^\]]*))?\]\]$/))) {
+      close(); out += `<div class="video"><iframe src="${VIDEO_URL[m[1]](m[2])}" title="${esc(m[3] || "Vídeo")}" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>${m[3] ? `<p class="video-leg">${esc(m[3])}</p>` : ""}`; continue;
+    }
     if (!t) { close(); continue; }
-    if ((m = t.match(/^(#{3,6})\s+(.*)$/))) { close(); const lv = m[1].length === 3 ? "h4" : "h5"; out += `<${lv}>${mdInline(m[2])}</${lv}>`; continue; }
+    if ((m = t.match(/^(#{2,6})\s+(.*)$/))) { close(); const lv = m[1].length <= 3 ? "h4" : "h5"; out += `<${lv}>${mdInline(m[2])}</${lv}>`; continue; }
+    if ((m = t.match(/^>\s?(.*)$/))) { close(); out += `<blockquote>${mdInline(m[1])}</blockquote>`; continue; }
     if ((m = t.match(/^[-•]\s+(.*)$/))) { if (list !== "ul") { close(); out += "<ul>"; list = "ul"; } out += `<li${/^\s{2,}/.test(raw) ? ' class="sub"' : ""}>${mdInline(m[1])}</li>`; continue; }
     if ((m = t.match(/^(\d+)[.)]\s+(.*)$/))) { if (list !== "ol") { close(); out += "<ol>"; list = "ol"; } out += `<li>${mdInline(m[2])}</li>`; continue; }
     close(); out += `<p>${mdInline(t)}</p>`;
   }
-  close(); return out;
+  close(); fechaGal(); return out;
+}
+// Fotos ficam no banco do portal; carregam só quando a ficha é aberta.
+const FOTO_CACHE = new Map();
+async function carregarFotos() {
+  for (const img of document.querySelectorAll("img[data-midia]:not([src])")) {
+    const id = img.dataset.midia;
+    try {
+      if (!FOTO_CACHE.has(id)) { const d = await col("midias").doc(id).get(); FOTO_CACHE.set(id, d.exists ? d.data() : null); }
+      const f = FOTO_CACHE.get(id);
+      if (f && f.dados) { img.onload = () => img.classList.add("ok"); img.src = f.dados; if (f.w && f.h) { img.width = f.w; img.height = f.h; } }
+      else img.closest("button")?.remove();
+    } catch (_) { img.closest("button")?.remove(); }
+  }
+}
+function abrirFoto(id) {
+  const f = FOTO_CACHE.get(id); if (!f || !f.dados) return;
+  $("#layer").innerHTML = `<div class="overlay lightbox" data-close><figure><img src="${f.dados}" alt="${esc(f.legenda || "")}">${f.legenda ? `<figcaption>${esc(f.legenda)}</figcaption>` : ""}<button type="button" class="btn sm" data-close-btn>Fechar</button></figure></div>`;
+}
+const dataBR = (v) => { const m = String(v || "").match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? `${m[3]}/${m[2]}/${m[1]}` : ""; };
+const ESFORCO = { "Leve": "ok", "Médio": "info", "Alto": "warn", "Muito alto": "bad" };
+function fichaHtml(f, dest, isDest) {
+  const sec = f.secoes || {};
+  const temSec = Object.keys(sec).some(k => sec[k]);
+  const titulo = isDest ? dest.nome : f.nome;
+  const cat = isDest ? "Visão geral do destino" : (f.categoria || "");
+  const etq = Array.isArray(f.etiquetas) ? f.etiquetas : [];
+  const fatos = [["Duração", f.duracao], ["Altitude", f.altitude], ["Grupo", f.grupo], ["Esforço", f.esforco], ["Preço", f.preco]].filter(x => x[1]);
+  const link = S.isAdmin && !S.previewUid && f.notion ? `<a class="btn sm" href="${esc(f.notion)}" target="_blank" rel="noopener">Editar no Notion</a>` : "";
+  const fmap = Object.fromEntries((f.fotos || []).map(x => [x.id, x]));
+  const bloco = (k, rot, cls) => sec[k] ? `<section class="${cls}"><h4 class="fh">${rot}</h4><div class="prose">${md(sec[k], fmap)}</div></section>` : "";
+  let corpo;
+  if (temSec) {
+    corpo = bloco("descricao", isDest ? "Sobre o destino" : "Descrição", "fsec")
+      + (sec.inclui || sec.atencao ? `<div class="fcards">${bloco("inclui", "O que inclui", "fcard inclui")}${bloco("atencao", "Características e atenção", "fcard atencao")}</div>` : "")
+      + bloco("gastronomia", "Gastronomia", "fsec")
+      + (sec.guia ? `<section class="fsec guia"><span class="guia-tag">Uso interno · não enviar ao cliente</span><h4 class="fh">Guia interno</h4><div class="prose">${md(sec.guia, fmap)}</div></section>` : "");
+  } else {
+    const txt = isDest ? f.resumo : f.conteudo;
+    corpo = txt ? `<div class="prose">${md(txt)}</div>` : `<p class="muted">Ainda não há texto nesta ficha.</p>`;
+  }
+  const rev = [f.revisadoEm ? `Revisado${f.revisadoPor ? " por " + esc(f.revisadoPor) : ""} em ${dataBR(f.revisadoEm)}` : "", f.editadoEm ? `Atualizado no Notion em ${dataBR(f.editadoEm)}` : ""].filter(Boolean).join(" · ");
+  return `<article class="ficha">
+    <header class="ficha-head">
+      <div class="ficha-top"><div class="ficha-meta">${cat ? `<span class="cat">${esc(cat)}</span>` : ""}${etq.map(e => `<span class="etq">${esc(e)}</span>`).join("")}</div>${link}</div>
+      <h3>${esc(titulo)}</h3>
+      ${f.subtitulo ? `<p class="ficha-sub">${esc(f.subtitulo)}</p>` : ""}
+    </header>
+    ${fatos.length ? `<dl class="fatos">${fatos.map(([k, v]) => `<div><dt>${k}</dt><dd>${k === "Esforço" && ESFORCO[v] ? `<span class="pill ${ESFORCO[v]}">${esc(v)}</span>` : esc(v)}</dd></div>`).join("")}</dl>` : ""}
+    ${S.isAdmin && !S.previewUid && f.pendentes ? `<div class="notice">Só você vê este aviso: na página Destinos antiga este trecho tinha ${f.pendentes} ${f.pendentes === 1 ? "foto ou vídeo" : "fotos e vídeos"}. Copie para esta ficha no Notion e depois apague o aviso 📷 da ficha.</div>` : ""}
+    ${S.isAdmin && !S.previewUid && f.videosNotion ? `<div class="notice">Só você vê este aviso: ${f.videosNotion === 1 ? "um vídeo desta ficha está guardado" : f.videosNotion + " vídeos desta ficha estão guardados"} direto no Notion e não toca no portal. Suba no Google Drive e cole o link na ficha.</div>` : ""}
+    ${corpo}
+    ${rev ? `<p class="rev">${rev}</p>` : ""}
+  </article>`;
 }
 function passeiosView() {
   const ds = [...S.destinos].sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
-  const imp = S.isAdmin && !S.previewUid ? `<label class="btn sm" for="imp-passeios">${ds.length ? "Atualizar passeios por arquivo" : "Importar arquivo de passeios"}<input type="file" id="imp-passeios" accept=".json,application/json" hidden></label>` : "";
-  if (!ds.length) return `<div class="section-head"><div><h2>Passeios</h2></div>${imp}</div><div class="empty"><strong>Os passeios ainda não foram carregados</strong><span>${S.isAdmin ? "Use “Importar arquivo de passeios” e escolha o arquivo passeios-araya.json." : "As informações vêm da página Destinos do Notion."}</span></div>`;
+  if (!ds.length) return `<div class="section-head"><div><h2>Passeios</h2></div></div><div class="empty"><strong>As fichas ainda não chegaram</strong><span>${S.isAdmin ? "Elas vêm do banco “Fichas de Passeios · Portal Araya” no Notion. Assim que o robô rodar pela primeira vez, aparecem aqui." : "As fichas dos passeios aparecem aqui assim que forem publicadas."}</span></div>`;
   if (!S.filtros.destino || !ds.find(d => d.id === S.filtros.destino)) S.filtros.destino = ds[0].id;
   const dest = ds.find(d => d.id === S.filtros.destino);
   const q = S.filtros.tourBusca.trim().toLowerCase();
-  let itens = S.passeios.filter(p => p.destino === dest.id).sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
-  if (q) itens = itens.filter(p => (p.nome + " " + p.conteudo).toLowerCase().includes(q));
+  let itens = S.passeios.filter(p => p.destino === dest.id).sort((a, b) => (a.ordem || 0) - (b.ordem || 0) || String(a.nome).localeCompare(String(b.nome), "pt-BR"));
+  if (q) itens = itens.filter(p => [p.nome, p.subtitulo, p.categoria, (p.etiquetas || []).join(" "), p.conteudo].join(" ").toLowerCase().includes(q));
   const sel = S.filtros.passeio && (S.filtros.passeio === "__geral" || itens.find(p => p.id === S.filtros.passeio)) ? S.filtros.passeio : "__geral";
   const item = sel === "__geral" ? null : itens.find(p => p.id === sel);
-  const body = item ? (item.conteudo ? md(item.conteudo) : `<p class="muted">Sem detalhes escritos no Notion para este item.</p>`) : md(dest.resumo);
-  const midias = item ? item.midias : dest.midias;
-  const link = (item || dest).notion;
+  const catCurta = (c) => c && c !== "Passeio do roteiro" ? `<span class="tcat">${esc(c === "Passeio opcional" ? "Opcional" : c)}</span>` : "";
   return `
-  <div class="section-head"><div><h2>Passeios</h2><p>Informações de cada destino, direto da página Destinos do Notion.</p></div>
-    ${imp}<div class="field" style="min-width:min(260px,100%)"><label for="f-tour">Buscar neste destino</label><input type="search" id="f-tour" placeholder="Ex.: almoço, altitude, ingresso" value="${esc(S.filtros.tourBusca)}"></div></div>
+  <div class="section-head"><div><h2>Passeios</h2><p>Fichas de cada destino, atualizadas a partir do Notion.</p></div>
+    <div class="field" style="min-width:min(260px,100%)"><label for="f-tour">Buscar neste destino</label><input type="search" id="f-tour" placeholder="Ex.: almoço, altitude, ingresso" value="${esc(S.filtros.tourBusca)}"></div></div>
   <div class="chips" role="group" aria-label="Destinos">${ds.map(d => `<button type="button" class="chip" style="${dc(d.id)}" data-dest="${esc(d.id)}" aria-pressed="${d.id === dest.id}">${esc(d.nome)}</button>`).join("")}</div>
   <div class="tour" style="${dc(dest.id)}">
     <section class="panel" style="padding:8px"><div class="tourlist">
       <button type="button" data-tourid="__geral" aria-current="${sel === "__geral"}">Visão geral do destino</button>
       <div class="grp">${dest.id === "mendoza" ? "Roteiros" : "Passeios e dias"} (${itens.length})</div>
-      ${itens.map(p => `<button type="button" data-tourid="${esc(p.id)}" aria-current="${p.id === sel}">${esc(p.nome)}</button>`).join("") || `<div class="muted small" style="padding:8px 10px">Nada encontrado para “${esc(q)}”.</div>`}
+      ${itens.map(p => `<button type="button" data-tourid="${esc(p.id)}" aria-current="${p.id === sel}">${esc(p.nome)}${catCurta(p.categoria)}</button>`).join("") || `<div class="muted small" style="padding:8px 10px">Nada encontrado para “${esc(q)}”.</div>`}
     </div></section>
-    <section class="panel">
-      <div class="section-head"><div class="tourhead"><span class="dest">${esc(dest.nome)}</span><h3>${esc(item ? item.nome : dest.nome)}</h3></div>${link ? `<a class="btn sm" href="${esc(link)}" target="_blank" rel="noopener">Abrir no Notion</a>` : ""}</div>
-      ${midias ? `<div class="notice">Este trecho tem ${midias} ${midias === 1 ? "foto ou vídeo" : "fotos e vídeos"} no Notion que não aparecem aqui.</div>` : ""}
-      <div class="prose">${body}</div>
-    </section>
+    <section class="panel">${fichaHtml(item || dest, dest, !item)}</section>
   </div>`;
 }
-
+ 
 // ---------- administração ----------
 const activeMembers = () => Object.entries(S.members).filter(([, m]) => m.ativo !== false).map(([u]) => u).sort((a, b) => label(a).localeCompare(label(b), "pt-BR"));
 const allVendas = () => Object.entries(S.vendas).map(([id, v]) => enrich({ id, ...v, obs: S.notas[id] || "" }));
-
+ 
 function renderOwner() {
   renderTabs(ownerTabs());
   let html = "";
@@ -579,14 +675,14 @@ function renderOwner() {
   else if (S.tab === "passeios") html = passeiosView();
   setMain(html);
 }
-
+ 
 function monthOptions(sel, back = 12, fwd = 2, withAll = false) {
   const hoje = ymNow();
   const set = new Set(allVendas().flatMap(v => [ymOf(v.fechamento), v.mesPagamento]).filter(Boolean));
   for (let i = -back; i <= fwd; i++) set.add(addM(hoje, i));
   return (withAll ? `<option value="">Todos</option>` : "") + [...set].sort().reverse().map(m => `<option value="${m}" ${m === sel ? "selected" : ""}>${ymLabel(m)}</option>`).join("");
 }
-
+ 
 function ownerPainel() {
   const M = S.filtros.painelMes; const hoje = ymNow();
   const ativas = allVendas().filter(v => v.status !== "cancelada");
@@ -620,7 +716,7 @@ function ownerPainel() {
     <tbody>${rows.map(r => `<tr><td>${esc(label(r.u))}${S.members[r.u] && S.members[r.u].ativo !== false ? "" : ' <span class="pill neutral">sem acesso</span>'}</td><td class="n">${r.at ?? "—"}</td><td class="n">${r.q}</td><td class="n">${money(r.val)}</td><td><div class="bar"><i style="width:${maxV ? Math.round(r.val / maxV * 100) : 0}%"></i></div></td><td class="n">${r.at ? (r.q / r.at * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + "%" : "—"}</td><td class="n">${money(r.com)}${r.comPend && M <= hoje ? ` <span class="pill warn">${r.comPend} a pagar</span>` : ""}</td><td class="n">${money(r.prev)}</td></tr>`).join("")}</tbody></table></div>` : `<div class="empty"><strong>Sem dados neste mês</strong></div>`}
   </section>`;
 }
-
+ 
 function ownerVendas() {
   const f = S.filtros; const mem = activeMembers();
   let vs = allVendas();
@@ -644,7 +740,7 @@ function ownerVendas() {
   <tfoot><tr><td colspan="4">${ok.length} confirmadas</td><td class="n">${money(ok.reduce((s, v) => s + v.valor, 0))}</td><td class="n">${money(ok.reduce((s, v) => s + v.comissao, 0))}</td><td colspan="2"></td></tr></tfoot></table></div>`
     : `<div class="empty"><strong>Nenhuma venda ${f.vend || f.mes || f.busca ? "com esses filtros" : "lançada ainda"}</strong><span>Use “Nova venda” para lançar a primeira.</span></div>`}</section>`;
 }
-
+ 
 function ownerComissoes() {
   const M = S.filtros.comMes; const hoje = ymNow();
   const vs = allVendas().filter(v => v.status !== "cancelada");
@@ -668,7 +764,7 @@ function ownerComissoes() {
     <tbody>${ids.map(u => `<tr><td>${esc(label(u))}</td>${futuros.map(m => `<td class="n">${money(vs.filter(v => v.vendedor === u && v.mesPagamento === m).reduce((s, v) => s + v.comissao, 0))}</td>`).join("")}</tr>`).join("")}</tbody></table></div>` : `<div class="empty"><strong>Sem previsões ainda</strong></div>`}
   </section>`;
 }
-
+ 
 function ownerAtendimentos() {
   const mem = activeMembers(); const hoje = ymNow();
   const meses = Array.from({ length: 12 }, (_, i) => addM(hoje, -i));
@@ -678,7 +774,7 @@ function ownerAtendimentos() {
   <tbody>${meses.map(m => { const pp = (S.atend[m] && S.atend[m].porPessoa) || {}; return `<tr><td>${ymLabel(m)}</td>${mem.map(u => `<td class="n"><input class="cell" type="number" min="0" step="1" inputmode="numeric" id="at-${m}-${esc(u)}" data-atend="${m}" data-uid="${esc(u)}" value="${pp[u] ?? ""}" aria-label="Atendimentos de ${esc(label(u))} em ${ymLabel(m)}"></td>`).join("")}<td class="n">${mem.reduce((s, u) => s + (Number(pp[u]) || 0), 0) || "—"}</td></tr>`; }).join("")}</tbody></table></div>`
     : `<div class="empty"><strong>Cadastre a equipe primeiro</strong><span>Cada coluna é uma pessoa da equipe.</span></div>`}</section>`;
 }
-
+ 
 function ownerAcessos() {
   const ids = Object.keys(S.members).sort((a, b) => label(a).localeCompare(label(b), "pt-BR"));
   const portal = location.origin + location.pathname;
@@ -708,7 +804,7 @@ function ownerAcessos() {
     </div></div>`; }).join("") : `<div class="empty"><strong>Ninguém cadastrado ainda</strong><span>Use o formulário acima para cadastrar a primeira pessoa.</span></div>`}
   </section>`;
 }
-
+ 
 // ---------- formulário de venda ----------
 function openVenda(id) {
   const v = id ? { id, ...S.vendas[id], obs: S.notas[id] || "" } : null;
@@ -782,13 +878,14 @@ $("#layer").addEventListener("click", async (e) => {
   }
 });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && $("#layer").innerHTML) closeLayer(); });
-
+ 
 // ---------- ações ----------
 async function run(p, okMsg) { await p; await reload(okMsg); }
 $("#main").addEventListener("click", async (e) => {
   const go = e.target.closest("[data-tab-go]"); if (go) { S.tab = go.dataset.tabGo; render(); return; }
   const dest = e.target.closest("[data-dest]"); if (dest) { S.filtros.destino = dest.dataset.dest; S.filtros.passeio = "__geral"; render(); return; }
   const tour = e.target.closest("[data-tourid]"); if (tour) { S.filtros.passeio = tour.dataset.tourid; render(); return; }
+  const foto = e.target.closest("[data-foto]"); if (foto) { abrirFoto(foto.dataset.foto); return; }
   const b = e.target.closest("[data-act]"); if (!b || b.dataset.act === "sair") return;
   const act = b.dataset.act, uid = b.dataset.uid, id = b.dataset.id;
   try {
@@ -869,7 +966,7 @@ $("#main").addEventListener("input", (e) => {
   S.filtros[key] = t.value; clearTimeout(buscaTimer);
   buscaTimer = setTimeout(() => { const pos = t.selectionStart; render(); const n = $("#" + t.id); if (n) { n.focus(); n.setSelectionRange(pos, pos); } }, 250);
 });
-
+ 
 // ---------- importação dos passeios ----------
 async function importarPasseios(file) {
   let data;
@@ -885,7 +982,7 @@ async function importarPasseios(file) {
   }
   await reload(ds.length + " destinos e " + ps.length + " passeios importados");
 }
-
+ 
 // ---------- painel de uma pessoa ----------
 function payloadFor(uid) {
   const cfg = S.members[uid] || {}; const hoje = ymNow(); const corte = addM(hoje, -24);
@@ -900,7 +997,7 @@ function payloadFor(uid) {
   }
   return { apelido: cfg.apelido || "", pct: cfg.pct ?? 0, abas, vendas, atendimentos, equipe };
 }
-
+ 
 // ---------- início ----------
 async function start(user) {
   S.session = user; S.ready = false;
@@ -930,6 +1027,11 @@ function boot() {
 }
 boot();
 })();
+ 
+</script>
+</body>
+</html>
+ 
 
 </script>
 </body>
