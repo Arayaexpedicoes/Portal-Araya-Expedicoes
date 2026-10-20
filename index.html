@@ -185,6 +185,14 @@ input.cell{width:84px;text-align:right;padding:5px 8px}
 .lightbox img{max-width:100%;max-height:calc(100vh - 110px);border-radius:8px;object-fit:contain;cursor:default}
 .lightbox figcaption{color:#f3ede0;font-size:.88rem;text-align:center}
 .lightbox .btn{background:rgb(255 255 255 / .12);color:#fff;border-color:transparent}
+/* Tickets */
+.acoes{display:flex;flex-wrap:wrap;gap:8px}
+.ficha-head > .cat{justify-self:start}
+.acoes .btn{text-decoration:none;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.btn.consultar{background:var(--dc,var(--accent));border-color:var(--dc,var(--accent));color:var(--surface);padding:9px 18px;font-size:.92rem}
+.btn.consultar:hover{filter:brightness(1.08);background:var(--dc,var(--accent))}
+.tk-obs{justify-self:start;font-size:.74rem;font-weight:600;padding:3px 10px;border-radius:99px;background:var(--warn-soft);color:var(--warn)}
+.tk-aviso{font-size:.8rem;color:var(--muted)}
 /* Ficha do passeio */
 .ficha{display:grid;gap:20px;min-width:0}
 .ficha-head{display:grid;gap:10px}
@@ -293,8 +301,8 @@ const DESTINOS = ["Cusco e Machu Picchu", "Patagônia", "Egito e Jordânia", "Ja
 const DCOR = { "Cusco e Machu Picchu": "--d-cusco", "cusco-machu-picchu": "--d-cusco", "Patagônia": "--d-patagonia", "patagonia": "--d-patagonia", "Ushuaia": "--d-patagonia", "ushuaia": "--d-patagonia", "Egito e Jordânia": "--d-egito", "egito-jordania": "--d-egito", "Japão": "--d-japao", "japao": "--d-japao", "Mendoza": "--d-mendoza", "mendoza": "--d-mendoza", "Atacama e Uyuni": "--d-atacama" };
 const dc = (k) => `--dc:var(${DCOR[k] || "--d-outro"})`;
 const destTag = (n) => n ? `<span class="dest" style="${dc(n)}">${esc(n)}</span>` : "";
-const ABAS = [["inicio", "Início"], ["comissoes", "Comissões"], ["vendas", "Minhas vendas"], ["passeios", "Passeios"], ["equipe", "Resultados da equipe"]];
-const ABAS_PADRAO = { inicio: true, comissoes: true, vendas: true, passeios: true, equipe: false };
+const ABAS = [["inicio", "Início"], ["comissoes", "Comissões"], ["vendas", "Minhas vendas"], ["passeios", "Passeios"], ["tickets", "Tickets"], ["equipe", "Resultados da equipe"]];
+const ABAS_PADRAO = { inicio: true, comissoes: true, vendas: true, passeios: true, tickets: true, equipe: false };
 const emailOk = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
 
 // Regra de comissão: valor × percentual; paga no mês seguinte ao mês de embarque.
@@ -314,9 +322,9 @@ const pill = (st) => { const [c, t] = STATUS_PILL[st] || ["neutral", st]; return
 // ---------- estado ----------
 const S = {
   auth: null, db: null, session: null, resumoAtual: "", email: "", isAdmin: false, ready: false, authMode: "entrar", authMsg: null, recovery: false,
-  members: {}, vendas: {}, notas: {}, atend: {}, destinos: [], passeios: [], equipeRes: null,
+  members: {}, vendas: {}, notas: {}, atend: {}, destinos: [], passeios: [], tickets: [], equipeRes: null,
   tab: null, previewUid: null,
-  filtros: { vend: "", mes: "", busca: "", comMes: ymNow(), painelMes: ymNow(), destino: null, passeio: null, tourBusca: "", minhasMes: "" },
+  filtros: { vend: "", mes: "", busca: "", comMes: ymNow(), painelMes: ymNow(), destino: null, passeio: null, tourBusca: "", minhasMes: "", tkDest: null, tkItem: null, tkBusca: "" },
   pendingRender: false
 };
 let toastTimer;
@@ -360,6 +368,7 @@ async function loadAll() {
     setMembers(docsOf(eq)); setVendas(docsOf(vs)); setAtend(docsOf(at));
     S.notas = Object.fromEntries(docsOf(ns).map(r => [r.id, r.obs || ""]));
     S.destinos = docsOf(ds); S.passeios = docsOf(ps);
+    await carregarTickets();
     if (rs.exists) { const d = rs.data(); S.resumoAtual = JSON.stringify({ meses: d.meses, pessoas: d.pessoas }); }
     try { await syncResumo(); } catch (_) { /* tenta de novo no próximo carregamento */ }
     return;
@@ -370,11 +379,13 @@ async function loadAll() {
   if (!meSnap.exists || meSnap.data().ativo === false) return;
   const [vs, at, ds, ps] = await Promise.all([col("vendas").where("vendedor", "==", me).get(), col("atendimentos").where("email", "==", me).get(), col("destinos").get(), col("passeios").get()]);
   setVendas(docsOf(vs)); setAtend(docsOf(at)); S.destinos = docsOf(ds); S.passeios = docsOf(ps);
+  await carregarTickets();
   S.equipeRes = null;
   if ((meSnap.data().abas || {}).equipe) {
     try { const r = await col("resumo").doc("equipe").get(); if (r.exists) S.equipeRes = r.data().pessoas || []; } catch (_) {}
   }
 }
+async function carregarTickets() { try { S.tickets = docsOf(await col("tickets").get()); } catch (_) { S.tickets = []; } }
 async function reload(msg) {
   try { await loadAll(); } catch (e) { toast(errMsg(e)); }
   if (msg) toast(msg);
@@ -391,8 +402,8 @@ document.addEventListener("focusout", () => { if (S.pendingRender) { S.pendingRe
 function setMain(html) { $("#main").innerHTML = html; if (html.includes("data-midia")) carregarFotos(); }
 function centerMsg(t, p, extra = "") { $("#tabs").innerHTML = ""; setMain(`<div class="center"><div class="box"><h2>${esc(t)}</h2><p class="muted">${p}</p>${extra}</div></div>`); }
 
-function ownerTabs() { return [["painel", "Visão geral"], ["vendas", "Vendas"], ["comissoes", "Comissões"], ["atendimentos", "Atendimentos"], ["acessos", "Equipe e acessos"], ["passeios", "Passeios"]]; }
-function memberTabs(data) { const ab = (data && data.abas) || {}; return ABAS.filter(([k]) => ab[k]); }
+function ownerTabs() { return [["painel", "Visão geral"], ["vendas", "Vendas"], ["comissoes", "Comissões"], ["atendimentos", "Atendimentos"], ["acessos", "Equipe e acessos"], ["passeios", "Passeios"], ["tickets", "Tickets"]]; }
+function memberTabs(data) { const ab = { ...ABAS_PADRAO, ...((data && data.abas) || {}) }; return ABAS.filter(([k]) => ab[k]); }
 
 function render() {
   renderWho();
@@ -488,6 +499,7 @@ function renderMember(data, viewingAs) {
   else if (S.tab === "comissoes") html += memberComissoes(data, vendas, hoje);
   else if (S.tab === "vendas") html += memberVendas(vendas);
   else if (S.tab === "passeios") html += passeiosView();
+  else if (S.tab === "tickets") html += ticketsView();
   else if (S.tab === "equipe") html += memberEquipe(data, hoje);
   setMain(html);
 }
@@ -567,9 +579,17 @@ function memberEquipe(data, hoje) {
 // ---------- passeios ----------
 function mdInline(s) {
   s = esc(s);
-  s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, (m, t, u) => `<a href="${u}" target="_blank" rel="noopener">${t}</a>`);
+  s = s.replace(/\[([^\]]+)\]\(((?:https?:\/\/|mailto:|tel:)[^)\s]+)\)/g, (m, t, u) => `<a href="${u}"${/^https?:/.test(u) ? ' target="_blank" rel="noopener"' : ""}>${t}</a>`);
   s = s.replace(/\*\*([^*]+?)\*\*/g, "<strong>$1</strong>").replace(/\*\*/g, "");
-  return s;
+  return autoLinks(s);
+}
+// Transforma endereços, e-mails e telefones soltos no texto em links (telefone abre o WhatsApp)
+function foraDeLinks(html, fn) { return html.split(/(<a\b[^>]*>[\s\S]*?<\/a>)/g).map((p, i) => i % 2 ? p : fn(p)).join(""); }
+function autoLinks(html) {
+  html = foraDeLinks(html, (t) => t.replace(/\bhttps?:\/\/[^\s<]*[^\s<.,;:)]/g, (u) => `<a href="${u}" target="_blank" rel="noopener">${u}</a>`));
+  html = foraDeLinks(html, (t) => t.replace(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g, (e) => `<a href="mailto:${e}">${e}</a>`));
+  html = foraDeLinks(html, (t) => t.replace(/\+\s?\d[\d\s()\-\u202a\u202c]{8,}\d/g, (tel) => { const n = tel.replace(/\D/g, ""); return n.length >= 10 && n.length <= 15 ? `<a href="https://wa.me/${n}" target="_blank" rel="noopener" title="Abrir no WhatsApp">${tel}</a>` : tel; }));
+  return html;
 }
 const VIDEO_URL = { youtube: (id) => `https://www.youtube-nocookie.com/embed/${id}?rel=0`, drive: (id) => `https://drive.google.com/file/d/${id}/preview`, vimeo: (id) => `https://player.vimeo.com/video/${id}` };
 function videoNotionHtml(a) {
@@ -697,6 +717,57 @@ function passeiosView() {
   </div>`;
 }
 
+// ---------- tickets (consultar disponibilidade e reservar) ----------
+function acoesDoTexto(txt) {
+  const vistos = new Set(), sites = [], emails = [], zaps = [];
+  const addSite = (u) => { u = u.replace(/[.,;:)]+$/, ""); if (!vistos.has(u)) { vistos.add(u); sites.push(u); } };
+  String(txt || "").replace(/\[[^\]]*\]\((https?:\/\/[^)\s]+)\)/g, (m, u) => addSite(u)).replace(/(^|[^(])\b(https?:\/\/[^\s)\]]+)/g, (m, a, u) => addSite(u));
+  for (const m of String(txt || "").matchAll(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g)) if (!vistos.has(m[0]) && !/araya/i.test(m[0])) { vistos.add(m[0]); emails.push(m[0]); }
+  for (const m of String(txt || "").matchAll(/\+\s?\d[\d\s()\-\u202a\u202c]{8,}\d/g)) { const n = m[0].replace(/\D/g, ""); if (n.length >= 10 && n.length <= 15 && !vistos.has(n)) { vistos.add(n); zaps.push([n, "+" + m[0].replace(/[^\d\s]/g, "").trim()]); } }
+  return { sites: sites.filter(u => !/wa\.me|notion\.(so|com)/.test(u)), emails, zaps };
+}
+const hostDe = (u) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch (_) { return u; } };
+function ticketsView() {
+  const itens = S.tickets || [];
+  const dests = [...new Map(itens.map(t => [t.destino, { id: t.destino, nome: t.destinoNome || t.destino, ordem: t.destinoOrdem || 99 }])).values()].sort((a, b) => a.ordem - b.ordem);
+  const head = `<div class="section-head"><div><h2>Tickets</h2><p>Escolha o lugar para consultar disponibilidade e ver como reservar.</p></div>`;
+  if (!dests.length) return head + `</div><div class="empty"><strong>Os tickets ainda não chegaram</strong><span>${S.isAdmin ? "Eles vêm da página Tickets do Notion. Adicione a conexão “Portal Araya” nessa página e rode o robô." : "As informações de reserva aparecem aqui assim que forem publicadas."}</span></div>`;
+  if (!S.filtros.tkDest || !dests.find(d => d.id === S.filtros.tkDest)) S.filtros.tkDest = dests[0].id;
+  const dest = dests.find(d => d.id === S.filtros.tkDest);
+  const q = S.filtros.tkBusca.trim().toLowerCase();
+  const intro = itens.find(t => t.tipo === "intro" && t.destino === dest.id && (t.texto || (t.fotos || []).length || (t.arquivos || []).length));
+  let lista = itens.filter(t => t.tipo === "item" && t.destino === dest.id).sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
+  if (q) lista = lista.filter(t => [t.nome, t.obs, t.texto].join(" ").toLowerCase().includes(q));
+  let sel = S.filtros.tkItem && (S.filtros.tkItem === "__intro" ? intro : lista.find(t => t.id === S.filtros.tkItem)) ? S.filtros.tkItem : (lista[0] ? lista[0].id : intro ? "__intro" : null);
+  const item = sel === "__intro" ? intro : lista.find(t => t.id === sel);
+  let painel = `<div class="empty"><strong>Nada encontrado</strong><span>Tente outra palavra na busca.</span></div>`;
+  if (item) {
+    const fmap = Object.fromEntries((item.fotos || []).map(x => [x.id, x])), amap = Object.fromEntries((item.arquivos || []).map(x => [x.id, x]));
+    const ac = acoesDoTexto(item.texto);
+    const botoes = [
+      ...ac.sites.map((u, i) => `<a class="btn ${i === 0 ? "consultar" : "sm"}" href="${esc(u)}" target="_blank" rel="noopener">${i === 0 ? "Consultar disponibilidade" + (ac.sites.length > 1 ? " · " + esc(hostDe(u)) : "") + " ↗" : "↗ " + esc(hostDe(u))}</a>`),
+      ...ac.emails.map(e => `<a class="btn sm" href="mailto:${esc(e)}">✉ ${esc(e)}</a>`),
+      ...ac.zaps.map(([n, t]) => `<a class="btn sm" href="https://wa.me/${n}" target="_blank" rel="noopener">WhatsApp ${esc(t)}</a>`)
+    ];
+    painel = `<article class="ficha">
+      <header class="ficha-head"><span class="cat">${esc(dest.nome)}</span><h3>${esc(item.tipo === "intro" ? "Como funciona em " + dest.nome : item.nome)}</h3>${item.obs ? `<span class="tk-obs">${esc(item.obs)}</span>` : ""}</header>
+      ${botoes.length ? `<div class="acoes">${botoes.join("")}</div>` : item.tipo === "item" ? `<p class="tk-aviso">Este lugar não tem link de reserva: a reserva é feita pelos contatos abaixo.</p>` : ""}
+      <div class="prose">${md(item.texto, fmap, amap)}</div>
+      ${item.tipo === "item" ? `<p class="rev">Logins e senhas ficam só na página Tickets do Notion.</p>` : ""}
+    </article>`;
+  }
+  return head + `<div class="field" style="min-width:min(260px,100%)"><label for="f-tk">Buscar neste destino</label><input type="search" id="f-tk" placeholder="Ex.: trem, almoço, ingresso" value="${esc(S.filtros.tkBusca)}"></div></div>
+  <div class="chips" role="group" aria-label="Destinos">${dests.map(d => `<button type="button" class="chip" style="${dc(d.id)}" data-tkdest="${esc(d.id)}" aria-pressed="${d.id === dest.id}">${esc(d.nome)}</button>`).join("")}</div>
+  <div class="tour" style="${dc(dest.id)}">
+    <section class="panel" style="padding:8px"><div class="tourlist">
+      ${intro ? `<button type="button" data-tkid="__intro" aria-current="${sel === "__intro"}">Como funciona em ${esc(dest.nome)}</button>` : ""}
+      <div class="grp">Lugares (${lista.length})</div>
+      ${lista.map(t => `<button type="button" data-tkid="${esc(t.id)}" aria-current="${t.id === sel}">${esc(t.nome)}${t.obs ? `<span class="tcat">${esc(t.obs)}</span>` : ""}</button>`).join("") || `<div class="muted small" style="padding:8px 10px">Nada encontrado para “${esc(q)}”.</div>`}
+    </div></section>
+    <section class="panel">${painel}</section>
+  </div>`;
+}
+
 // ---------- administração ----------
 const activeMembers = () => Object.entries(S.members).filter(([, m]) => m.ativo !== false).map(([u]) => u).sort((a, b) => label(a).localeCompare(label(b), "pt-BR"));
 const allVendas = () => Object.entries(S.vendas).map(([id, v]) => enrich({ id, ...v, obs: S.notas[id] || "" }));
@@ -710,6 +781,7 @@ function renderOwner() {
   else if (S.tab === "atendimentos") html = ownerAtendimentos();
   else if (S.tab === "acessos") html = ownerAcessos();
   else if (S.tab === "passeios") html = passeiosView();
+  else if (S.tab === "tickets") html = ticketsView();
   setMain(html);
 }
 
@@ -828,7 +900,7 @@ function ownerAcessos() {
     <div class="notice">Ao cadastrar, a pessoa recebe um e-mail do Google para criar a senha. Depois ela entra em <strong>${esc(portal)}</strong> com esse e-mail e a senha criada.</div>
   </section>
   <section class="panel"><h3>Com acesso (${ids.length})</h3>
-    ${ids.length ? ids.map(u => { const m = S.members[u]; const ab = m.abas || {}; return `
+    ${ids.length ? ids.map(u => { const m = S.members[u]; const ab = { ...ABAS_PADRAO, ...(m.abas || {}) }; return `
     <div class="member" style="grid-template-columns:1fr"><div class="body">
       <div class="row" style="justify-content:space-between"><div style="min-width:0"><strong>${esc(m.apelido || u)}</strong> ${m.ativo === false ? '<span class="pill bad">acesso suspenso</span>' : '<span class="pill ok">ativo</span>'}<div class="muted small" style="overflow-wrap:anywhere">${esc(u)}</div></div>
         <div class="row"><button class="btn sm" data-act="ver-como" data-uid="${esc(u)}">Ver como essa pessoa</button><button class="btn sm" data-act="reenviar" data-uid="${esc(u)}">Reenviar link de senha</button>${m.ativo === false ? `<button class="btn sm" data-act="reativar" data-uid="${esc(u)}">Reativar</button>` : `<button class="btn sm danger" data-act="suspender" data-uid="${esc(u)}">Suspender acesso</button>`}</div></div>
@@ -922,6 +994,8 @@ $("#main").addEventListener("click", async (e) => {
   const go = e.target.closest("[data-tab-go]"); if (go) { S.tab = go.dataset.tabGo; render(); return; }
   const dest = e.target.closest("[data-dest]"); if (dest) { S.filtros.destino = dest.dataset.dest; S.filtros.passeio = "__geral"; render(); return; }
   const tour = e.target.closest("[data-tourid]"); if (tour) { S.filtros.passeio = tour.dataset.tourid; render(); return; }
+  const tkd = e.target.closest("[data-tkdest]"); if (tkd) { S.filtros.tkDest = tkd.dataset.tkdest; S.filtros.tkItem = null; render(); return; }
+  const tki = e.target.closest("[data-tkid]"); if (tki) { S.filtros.tkItem = tki.dataset.tkid; render(); if (innerWidth < 760) { const p = document.querySelectorAll(".tour .panel")[1]; if (p) p.scrollIntoView({ behavior: "smooth", block: "start" }); } return; }
   const foto = e.target.closest("[data-foto]"); if (foto) { abrirFoto(foto.dataset.foto); return; }
   const b = e.target.closest("[data-act]"); if (!b || b.dataset.act === "sair") return;
   const act = b.dataset.act, uid = b.dataset.uid, id = b.dataset.id;
@@ -977,7 +1051,7 @@ $("#main").addEventListener("change", async (e) => {
   if (t.dataset.filter) { S.filtros[t.dataset.filter] = t.value; render(); return; }
   try {
     if (t.dataset.aba) {
-      const uid = t.dataset.uid; const ab = { ...((S.members[uid] || {}).abas || {}) }; ab[t.dataset.aba] = t.checked;
+      const uid = t.dataset.uid; const ab = { ...ABAS_PADRAO, ...((S.members[uid] || {}).abas || {}) }; ab[t.dataset.aba] = t.checked;
       await run(col("equipe").doc(uid).update({ abas: ab }));
     } else if (t.dataset.cfg) {
       const uid = t.dataset.uid; let val = t.value;
@@ -998,7 +1072,7 @@ $("#main").addEventListener("change", async (e) => {
 let buscaTimer;
 $("#main").addEventListener("input", (e) => {
   const t = e.target;
-  const key = t.id === "f-busca" ? "busca" : t.id === "f-tour" ? "tourBusca" : null;
+  const key = t.id === "f-busca" ? "busca" : t.id === "f-tour" ? "tourBusca" : t.id === "f-tk" ? "tkBusca" : null;
   if (!key) return;
   S.filtros[key] = t.value; clearTimeout(buscaTimer);
   buscaTimer = setTimeout(() => { const pos = t.selectionStart; render(); const n = $("#" + t.id); if (n) { n.focus(); n.setSelectionRange(pos, pos); } }, 250);
