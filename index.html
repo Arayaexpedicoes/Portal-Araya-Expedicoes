@@ -185,6 +185,23 @@ input.cell{width:84px;text-align:right;padding:5px 8px}
 .lightbox img{max-width:100%;max-height:calc(100vh - 110px);border-radius:8px;object-fit:contain;cursor:default}
 .lightbox figcaption{color:#f3ede0;font-size:.88rem;text-align:center}
 .lightbox .btn{background:rgb(255 255 255 / .12);color:#fff;border-color:transparent}
+/* Comercial */
+.banner.warn-b{background:var(--warn-soft)}
+.grid2 > .panel{align-content:start}
+.delta{font-size:.8rem;color:var(--muted)}
+.meta-bar{height:8px;border-radius:99px;background:var(--surface-2);overflow:hidden}
+.meta-bar > i{display:block;height:100%;border-radius:inherit;background:var(--accent)}
+.colunas{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:6px;align-items:end;height:200px;padding-top:18px}
+.colunas .c{display:grid;grid-template-rows:1fr auto;height:100%;gap:6px;min-width:0;cursor:default}
+.colunas .c .b{align-self:end;border-radius:4px 4px 0 0;background:color-mix(in srgb, var(--accent) 35%, var(--surface-2));position:relative;min-height:2px}
+.colunas .c.sel .b{background:var(--accent)}
+.colunas .c .b span{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);font-size:.7rem;font-weight:600;white-space:nowrap;padding-bottom:3px;color:var(--fg)}
+.colunas .c .m{font-size:.68rem;color:var(--muted);text-align:center;white-space:nowrap;overflow:hidden}
+.colunas .c:hover .b{filter:brightness(.92)}
+@media (max-width:620px){.colunas .c:not(.sel) .b span{display:none}.colunas .c .m{font-size:.6rem}}
+.cfg-trevor{display:grid;gap:12px}
+.cot-linha{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.cot-linha input{width:120px}
 /* Tickets */
 .acoes{display:flex;flex-wrap:wrap;gap:8px}
 .ficha-head > .cat{justify-self:start}
@@ -323,8 +340,9 @@ const pill = (st) => { const [c, t] = STATUS_PILL[st] || ["neutral", st]; return
 const S = {
   auth: null, db: null, session: null, resumoAtual: "", email: "", isAdmin: false, ready: false, authMode: "entrar", authMsg: null, recovery: false,
   members: {}, vendas: {}, notas: {}, atend: {}, destinos: [], passeios: [], tickets: [], equipeRes: null,
+  comercial: { planilha: "", cotacoes: {}, metas: {}, ultimaImportacao: "", ultimoResultado: null }, importando: false, vendasEquipe: null, bonus: {},
   tab: null, previewUid: null,
-  filtros: { vend: "", mes: "", busca: "", comMes: ymNow(), painelMes: ymNow(), destino: null, passeio: null, tourBusca: "", minhasMes: "", tkDest: null, tkItem: null, tkBusca: "" },
+  filtros: { vend: "", mes: "", busca: "", comMes: ymNow(), painelMes: ymNow(), destino: null, passeio: null, tourBusca: "", minhasMes: "", tkDest: null, tkItem: null, tkBusca: "", comMesC: ymNow() },
   pendingRender: false
 };
 let toastTimer;
@@ -343,12 +361,18 @@ function errMsg(e) {
   return "Não foi possível salvar agora. Tente de novo em instantes.";
 }
 const label = (uid) => (S.members[uid] && S.members[uid].apelido) || uid || "—";
+const vendLabel = (v) => v.vendedor ? ((S.members[v.vendedor] && S.members[v.vendedor].apelido) || v.vendedorNome || v.vendedor) : v.casa ? "Venda da casa" : (v.vendedorNome ? v.vendedorNome + (S.isAdmin ? " (sem cadastro)" : "") : "—");
+// Bônus mensal individual por faixa de valor vendido no mês (pela data de fechamento)
+const FAIXAS_BONUS = [{ acima: 500000, bonus: 1500, rotulo: "acima de R$ 500.000" }, { acima: 300000, bonus: 1000, rotulo: "de R$ 300.001 a R$ 500.000" }, { acima: 200000, bonus: 800, rotulo: "de R$ 200.001 a R$ 300.000" }, { min: 100000, bonus: 600, rotulo: "de R$ 100.000 a R$ 200.000" }];
+function bonusDe(valor) { const f = FAIXAS_BONUS.find(f => f.min != null ? valor >= f.min : valor > f.acima); return f ? f.bonus : 0; }
+function proximaFaixa(valor) { const atual = bonusDe(valor); const a = [[100000, 600], [200000, 800], [300000, 1000], [500000, 1500]].find(([, b]) => b > atual); return a ? { falta: Math.max(0, round2(a[0] - valor)), bonus: a[1] } : null; }
+const vendidoNoMes = (lista, uid, ym) => lista.filter(v => v.vendedor === uid && v.status !== "cancelada" && ymOf(v.fechamento) === ym).reduce((s, v) => s + (Number(v.valor) || 0), 0);
 
 // ---------- dados ----------
 const col = (n) => S.db.collection(n);
 const docsOf = (snap) => snap.docs.map(d => ({ id: d.id, ...d.data() }));
-function setMembers(rows) { S.members = Object.fromEntries(rows.map(r => [r.id, { apelido: r.apelido || "", pct: r.pct == null ? null : Number(r.pct), abas: r.abas || {}, ativo: r.ativo !== false, uid: r.uid || null }])); }
-function setVendas(rows) { S.vendas = Object.fromEntries(rows.map(r => [r.id, { cliente: r.cliente || "", vendedor: r.vendedor, destino: r.destino || "", valor: Number(r.valor) || 0, pct: Number(r.pct) || 0, fechamento: r.fechamento || "", embarque: r.embarque || "", status: r.status || "ativa", pagaEm: r.pagaEm || null, origem: r.origem || "manual" }])); }
+function setMembers(rows) { S.members = Object.fromEntries(rows.map(r => [r.id, { apelido: r.apelido || "", nomeCrm: r.nomeCrm || "", supervisor: r.supervisor === true, bonus: r.bonus !== false, pct: r.pct == null ? null : Number(r.pct), abas: r.abas || {}, ativo: r.ativo !== false, uid: r.uid || null }])); }
+function setVendas(rows) { S.vendas = Object.fromEntries(rows.map(r => [r.id, { ...r, cliente: r.cliente || "", vendedor: r.vendedor, destino: r.destino || "", valor: Number(r.valor) || 0, pct: Number(r.pct) || 0, fechamento: r.fechamento || "", embarque: r.embarque || "", status: r.status || "ativa", pagaEm: r.pagaEm || null, origem: r.origem || "manual" }])); }
 function setAtend(rows) { S.atend = {}; for (const r of rows) (S.atend[r.mes] ||= { porPessoa: {} }).porPessoa[r.email] = r.n; }
 function computeEquipe() {
   const hoje = ymNow(); const meses = [hoje, addM(hoje, -1), addM(hoje, -2)];
@@ -369,6 +393,8 @@ async function loadAll() {
     S.notas = Object.fromEntries(docsOf(ns).map(r => [r.id, r.obs || ""]));
     S.destinos = docsOf(ds); S.passeios = docsOf(ps);
     await carregarTickets();
+    try { const c = await col("config").doc("comercial").get(); if (c.exists) S.comercial = { ...S.comercial, cotacoes: {}, metas: {}, ...c.data() }; } catch (_) {}
+    try { S.bonus = Object.fromEntries(docsOf(await col("bonus").get()).map(b => [b.id, b])); } catch (_) { S.bonus = {}; }
     if (rs.exists) { const d = rs.data(); S.resumoAtual = JSON.stringify({ meses: d.meses, pessoas: d.pessoas }); }
     try { await syncResumo(); } catch (_) { /* tenta de novo no próximo carregamento */ }
     return;
@@ -380,10 +406,24 @@ async function loadAll() {
   const [vs, at, ds, ps] = await Promise.all([col("vendas").where("vendedor", "==", me).get(), col("atendimentos").where("email", "==", me).get(), col("destinos").get(), col("passeios").get()]);
   setVendas(docsOf(vs)); setAtend(docsOf(at)); S.destinos = docsOf(ds); S.passeios = docsOf(ps);
   await carregarTickets();
+  const souSup = meSnap.data().supervisor === true;
+  try { S.bonus = Object.fromEntries(docsOf(await (souSup ? col("bonus") : col("bonus").where("email", "==", me)).get()).map(b => [b.id, b])); } catch (_) { S.bonus = {}; }
+  S.vendasEquipe = null;
+  if (souSup) {
+    try { S.vendasEquipe = docsOf(await col("vendas").get()); } catch (_) { S.vendasEquipe = null; }
+    try { const c = await col("config").doc("comercial").get(); if (c.exists) S.comercial = { ...S.comercial, cotacoes: {}, metas: {}, ...c.data() }; } catch (_) {}
+  }
   S.equipeRes = null;
   if ((meSnap.data().abas || {}).equipe) {
     try { const r = await col("resumo").doc("equipe").get(); if (r.exists) S.equipeRes = r.data().pessoas || []; } catch (_) {}
   }
+}
+// Atualiza as vendas a partir da planilha do Trevor sozinho, no máximo a cada 30 minutos, quando a administradora abre o portal
+function talvezSincronizarTrevor() {
+  const c = S.comercial;
+  if (!S.isAdmin || S.previewUid || !c.planilha || S.importando) return;
+  if (c.ultimaImportacao && Date.now() - Date.parse(c.ultimaImportacao) < 30 * 60 * 1000) return;
+  importarTrevor(true);
 }
 async function carregarTickets() { try { S.tickets = docsOf(await col("tickets").get()); } catch (_) { S.tickets = []; } }
 async function reload(msg) {
@@ -402,8 +442,8 @@ document.addEventListener("focusout", () => { if (S.pendingRender) { S.pendingRe
 function setMain(html) { $("#main").innerHTML = html; if (html.includes("data-midia")) carregarFotos(); }
 function centerMsg(t, p, extra = "") { $("#tabs").innerHTML = ""; setMain(`<div class="center"><div class="box"><h2>${esc(t)}</h2><p class="muted">${p}</p>${extra}</div></div>`); }
 
-function ownerTabs() { return [["painel", "Visão geral"], ["vendas", "Vendas"], ["comissoes", "Comissões"], ["atendimentos", "Atendimentos"], ["acessos", "Equipe e acessos"], ["passeios", "Passeios"], ["tickets", "Tickets"]]; }
-function memberTabs(data) { const ab = { ...ABAS_PADRAO, ...((data && data.abas) || {}) }; return ABAS.filter(([k]) => ab[k]); }
+function ownerTabs() { return [["painel", "Visão geral"], ["comercial", "Comercial"], ["vendas", "Vendas"], ["comissoes", "Comissões"], ["atendimentos", "Atendimentos"], ["acessos", "Equipe e acessos"], ["passeios", "Passeios"], ["tickets", "Tickets"]]; }
+function memberTabs(data) { const ab = { ...ABAS_PADRAO, ...((data && data.abas) || {}) }; const t = ABAS.filter(([k]) => ab[k]); if (data && data.supervisor) t.splice(1, 0, ["comercial", "Comercial da equipe"]); return t; }
 
 function render() {
   renderWho();
@@ -500,6 +540,7 @@ function renderMember(data, viewingAs) {
   else if (S.tab === "vendas") html += memberVendas(vendas);
   else if (S.tab === "passeios") html += passeiosView();
   else if (S.tab === "tickets") html += ticketsView();
+  else if (S.tab === "comercial" && data.supervisor) html += ownerComercial();
   else if (S.tab === "equipe") html += memberEquipe(data, hoje);
   setMain(html);
 }
@@ -516,6 +557,18 @@ function memberInicio(data, vendas, hoje, viewingAs) {
   const linhas = meses.map(m => { const vs = ativas.filter(v => v.mesPagamento === m); return [m, vs.length, vs.reduce((s, v) => s + v.comissao, 0)]; });
   const maxL = Math.max(0, ...linhas.map(l => l[2]));
   const ult = [...vendas].sort((a, b) => (b.fechamento || "").localeCompare(a.fechamento || "")).slice(0, 5);
+  let bonusHtml = "";
+  if (data.bonus !== false) {
+    const vendido = vendidoNoMes(ativas, data.uid, hoje), b = bonusDe(vendido), prox = proximaFaixa(vendido);
+    const alvo = prox ? prox.falta + vendido : vendido;
+    const hist = [1, 2, 3].map(i => { const m = addM(hoje, -i), vv = vendidoNoMes(ativas, data.uid, m), bb = bonusDe(vv), reg = S.bonus[m + "__" + data.uid]; return { m, vv, bb, pago: reg && reg.pagoEm }; });
+    bonusHtml = `<section class="panel"><div class="section-head"><div><h3>Bônus de ${ymLong(hoje)}</h3><span class="muted small">Bônus individual pela faixa de valor vendido no mês.</span></div><span class="pill ${b ? "ok" : "neutral"}">${b ? "Bônus atual: " + money(b) : "Ainda sem bônus"}</span></div>
+      <div class="meta-bar" role="progressbar" aria-valuenow="${Math.round(vendido / Math.max(1, alvo) * 100)}" aria-valuemin="0" aria-valuemax="100"><i style="width:${Math.min(100, Math.round(vendido / Math.max(1, alvo) * 100))}%"></i></div>
+      <p style="margin:0">Você vendeu <strong>${money(vendido)}</strong> este mês.${prox ? ` Faltam <strong>${money(prox.falta)}</strong> para o bônus de <strong>${money(prox.bonus)}</strong>.` : " Você está na faixa máxima! 🏆"}</p>
+      <p class="muted small" style="margin:0">Faixas: R$ 600 (R$ 100 mil a R$ 200 mil) · R$ 800 (até R$ 300 mil) · R$ 1.000 (até R$ 500 mil) · R$ 1.500 (acima de R$ 500 mil).</p>
+      ${hist.some(h => h.vv) ? `<div class="tablewrap"><table><thead><tr><th>Mês</th><th class="n">Vendido</th><th class="n">Bônus</th><th>Situação</th></tr></thead><tbody>${hist.map(h => `<tr><td>${ymLabel(h.m)}</td><td class="n">${money(h.vv)}</td><td class="n">${h.bb ? money(h.bb) : "—"}</td><td>${h.bb ? (h.pago ? '<span class="pill ok">Pago</span>' : '<span class="pill warn">A pagar</span>') : ""}</td></tr>`).join("")}</tbody></table></div>` : ""}
+    </section>`;
+  }
   return `
   <div class="section-head"><div><h2>Olá${nome ? ", " + esc(nome.split(" ")[0]) : ""}</h2><p>Seus números de ${ymLong(hoje)}. Vendas contam pela data de fechamento.</p></div></div>
   <div class="tiles">
@@ -524,6 +577,7 @@ function memberInicio(data, vendas, hoje, viewingAs) {
     <div class="tile"><span class="k">Conversão</span><span class="v">${conv == null ? "—" : conv.toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + "%"}</span><span class="d">Vendas ÷ atendimentos do mês</span></div>
     <div class="tile feature"><span class="k">Comissão em ${MESES[+hoje.slice(5) - 1]}</span><span class="v">${money(receberMes)}</span><span class="d">Próximo mês: ${money(prox)}</span></div>
   </div>
+  ${bonusHtml}
   <div class="grid2">
     <section class="panel"><h3>Próximos pagamentos de comissão</h3>
       <div class="tablewrap"><table><thead><tr><th>Mês de pagamento</th><th class="n">Vendas</th><th class="n">Comissão</th><th style="width:28%"></th></tr></thead>
@@ -776,6 +830,7 @@ function renderOwner() {
   renderTabs(ownerTabs());
   let html = "";
   if (S.tab === "painel") html = ownerPainel();
+  else if (S.tab === "comercial") html = ownerComercial();
   else if (S.tab === "vendas") html = ownerVendas();
   else if (S.tab === "comissoes") html = ownerComissoes();
   else if (S.tab === "atendimentos") html = ownerAtendimentos();
@@ -826,6 +881,90 @@ function ownerPainel() {
   </section>`;
 }
 
+const listaEquipe = () => S.isAdmin ? allVendas() : (S.vendasEquipe || []).map(r => enrich({ ...r, obs: "" }));
+function bonusPainel(M, ativas, admin) {
+  const hoje = ymNow();
+  const ids = [...new Set([...(admin ? activeMembers() : []), ...ativas.filter(v => ymOf(v.fechamento) === M && v.vendedor).map(v => v.vendedor)])];
+  const linhas = ids.map(u => {
+    const vendido = vendidoNoMes(ativas, u, M), m = S.members[u];
+    const participa = !m || m.bonus !== false;
+    const b = participa ? bonusDe(vendido) : 0, prox = participa ? proximaFaixa(vendido) : null;
+    const reg = S.bonus[M + "__" + u];
+    return { u, nome: (m && m.apelido) || (ativas.find(v => v.vendedor === u) || {}).vendedorNome || u, vendido, b, prox, participa, pago: reg && reg.pagoEm };
+  }).sort((a, b) => b.vendido - a.vendido);
+  const total = linhas.reduce((s, l) => s + l.b, 0);
+  return `<section class="panel"><div class="section-head"><div><h3>Bônus por faixa de vendas · ${ymLabel(M)}</h3><span class="muted small">R$ 600 de R$ 100 mil a R$ 200 mil · R$ 800 até R$ 300 mil · R$ 1.000 até R$ 500 mil · R$ 1.500 acima de R$ 500 mil. Conta o valor vendido no mês (data de fechamento).</span></div>${total ? `<span class="pill info">Total ${money(total)}</span>` : ""}</div>
+    ${linhas.length ? `<div class="tablewrap"><table><thead><tr><th>Pessoa</th><th class="n">Vendido no mês</th><th class="n">Bônus</th><th>Próxima faixa</th><th>Situação</th>${admin ? "<th></th>" : ""}</tr></thead><tbody>${linhas.map(l => `<tr><td>${esc(l.nome)}</td><td class="n">${money(l.vendido)}</td><td class="n">${l.participa ? (l.b ? `<strong>${money(l.b)}</strong>` : "—") : '<span class="muted small">não participa</span>'}</td><td class="small">${l.participa ? (l.prox ? `faltam ${money(l.prox.falta)} para ${money(l.prox.bonus)}` : "faixa máxima 🏆") : ""}</td><td>${!l.b ? "" : M >= hoje ? '<span class="pill neutral">mês em andamento</span>' : l.pago ? '<span class="pill ok">Pago</span>' : '<span class="pill warn">A pagar</span>'}</td>${admin ? `<td>${l.b && M < hoje ? (l.pago ? `<button class="btn sm ghost" data-act="despagar-bonus" data-uid="${esc(l.u)}" data-ym="${M}">Desfazer</button>` : `<button class="btn sm" data-act="pagar-bonus" data-uid="${esc(l.u)}" data-ym="${M}" data-valor="${l.b}" data-vendido="${round2(l.vendido)}">Marcar pago</button>`) : ""}</td>` : ""}</tr>`).join("")}</tbody></table></div>` : `<div class="empty"><strong>Sem vendas em ${ymLabel(M)}</strong></div>`}
+  </section>`;
+}
+function ownerComercial() {
+  const M = S.filtros.comMesC || ymNow(), hoje = ymNow(), A = addM(M, -1);
+  const admin = S.isAdmin && !S.previewUid;
+  const ativas = listaEquipe().filter(v => v.status !== "cancelada");
+  const doMes = ativas.filter(v => ymOf(v.fechamento) === M), ant = ativas.filter(v => ymOf(v.fechamento) === A);
+  const soma = (l, k = "valor") => l.reduce((s, v) => s + (Number(v[k]) || 0), 0);
+  const fat = soma(doMes), fatA = soma(ant), q = doMes.length, qA = ant.length;
+  const ticket = q ? fat / q : 0, ticketA = qA ? fatA / qA : 0, pax = soma(doMes, "pax");
+  const delta = (a, b) => b ? `<span class="delta">${a >= b ? "▲" : "▼"} ${Math.abs((a - b) / b * 100).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}% vs ${ymLabel(A)}</span>` : `<span class="delta">Sem base em ${ymLabel(A)}</span>`;
+  const meta = Number((S.comercial.metas || {})[M]) || 0;
+  const meses = Array.from({ length: 12 }, (_, i) => addM(M, i - 11));
+  const porMes = meses.map(m => { const l = ativas.filter(v => ymOf(v.fechamento) === m); return { m, q: l.length, v: soma(l) }; });
+  const maxM = Math.max(1, ...porMes.map(x => x.v));
+  const agrupa = (fn) => { const g = {}; doMes.forEach(v => { const k = fn(v) || "—"; (g[k] ||= { k, q: 0, v: 0 }); g[k].q++; g[k].v += Number(v.valor) || 0; }); return Object.values(g).sort((a, b) => b.v - a.v); };
+  const porDest = agrupa(v => v.destino), porOrig = agrupa(v => v.origemLead || "Sem origem informada"), porVend = agrupa(v => vendLabel(v));
+  const tabela = (lista, titulo, comCor) => { const mx = Math.max(1, ...lista.map(x => x.v)); return `<section class="panel"><h3>${titulo}</h3>${lista.length ? `<div class="tablewrap"><table><thead><tr><th></th><th class="n">Vendas</th><th class="n">Valor</th><th style="width:22%"></th><th class="n">% do mês</th></tr></thead><tbody>${lista.map(x => `<tr><td>${comCor ? destTag(x.k) : esc(x.k)}</td><td class="n">${x.q}</td><td class="n">${money(x.v)}</td><td><div class="bar"><i style="width:${Math.round(x.v / mx * 100)}%"></i></div></td><td class="n">${fat ? (x.v / fat * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + "%" : "—"}</td></tr>`).join("")}</tbody></table></div>` : `<div class="empty"><strong>Sem vendas em ${ymLabel(M)}</strong></div>`}</section>`; };
+  const futuros = Array.from({ length: 6 }, (_, i) => addM(hoje, i));
+  const saldoMes = futuros.map(m => ({ m, v: soma(ativas.filter(v => ymOf(v.embarque) === m), "saldoBRL"), u: soma(ativas.filter(v => ymOf(v.embarque) === m), "saldoUSD") }));
+  const saldoTotal = soma(ativas.filter(v => (v.embarque || "9") >= hoje), "saldoBRL");
+  const temCrm = ativas.some(v => v.origem === "crm");
+  return `
+  <div class="section-head"><div><h2>Comercial</h2><p>Vendas pela data de fechamento, com os dados da planilha do Trevor${S.comercial.ultimaImportacao ? ` (lida em ${new Date(S.comercial.ultimaImportacao).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })})` : ""}.</p></div>
+    <div class="row"><div class="field"><label for="f-com-c">Mês</label><select id="f-com-c" data-filter="comMesC">${monthOptions(M, 12, 0)}</select></div>
+    ${admin ? `<button class="btn" data-act="atualizar-trevor" ${S.importando ? "disabled" : ""}>${S.importando ? "Lendo planilha…" : "Atualizar do Trevor"}</button>` : ""}</div></div>
+  ${admin && !S.comercial.planilha ? `<div class="banner"><span>Ligue a planilha do Trevor para as vendas entrarem sozinhas.</span><button class="btn sm primary" data-act="abrir-config-trevor">Ligar planilha</button></div>` : ""}
+  ${admin ? bannersComerciais(true) : ""}
+  <div class="tiles">
+    <div class="tile feature"><span class="k">Vendido em ${MESES[+M.slice(5) - 1]}</span><span class="v">${money(fat)}</span>${delta(fat, fatA)}</div>
+    <div class="tile"><span class="k">Vendas fechadas</span><span class="v">${q}</span>${delta(q, qA)}</div>
+    <div class="tile"><span class="k">Ticket médio</span><span class="v">${money(ticket)}</span>${delta(ticket, ticketA)}</div>
+    <div class="tile"><span class="k">Viajantes</span><span class="v">${pax || "—"}</span><span class="d">${pax ? "Passageiros das vendas do mês" : "A planilha não informou"}</span></div>
+  </div>
+  <section class="panel"><div class="section-head"><div><h3>Meta de ${ymLong(M)}</h3>${meta ? `<span class="muted small">${money(fat)} de ${money(meta)} · ${(fat / meta * 100).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}%${fat < meta ? " · faltam " + money(meta - fat) : " · meta batida 🎉"}</span>` : `<span class="muted small">${admin ? "Defina um valor para acompanhar." : "A meta do mês ainda não foi definida."}</span>`}</div>
+    ${admin ? `<div class="field" style="width:180px"><label for="meta-mes">Meta (R$)</label><input type="number" min="0" step="1000" id="meta-mes" data-meta="${M}" value="${meta || ""}" placeholder="Ex.: 600000"></div>` : ""}</div>
+    ${meta ? `<div class="meta-bar" role="progressbar" aria-valuenow="${Math.round(fat / meta * 100)}" aria-valuemin="0" aria-valuemax="100"><i style="width:${Math.min(100, Math.round(fat / meta * 100))}%"></i></div>` : ""}
+  </section>
+  <section class="panel"><h3>Valor vendido por mês</h3>
+    <div class="colunas" role="img" aria-label="Valor vendido nos últimos 12 meses">${porMes.map(x => `<div class="c ${x.m === M ? "sel" : ""}" title="${ymLabel(x.m)}: ${x.q} ${x.q === 1 ? "venda" : "vendas"} · ${money(x.v)}"><div class="b" style="height:${Math.max(1, Math.round(x.v / maxM * 100))}%">${x.v ? `<span>${(x.v / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 0 })} mil</span>` : ""}</div><div class="m">${ymLabel(x.m).replace("/20", "/")}</div></div>`).join("")}</div>
+    <details><summary class="muted small" style="cursor:pointer">Ver em tabela</summary><div class="tablewrap"><table><thead><tr><th>Mês</th><th class="n">Vendas</th><th class="n">Valor</th></tr></thead><tbody>${porMes.slice().reverse().map(x => `<tr><td>${ymLabel(x.m)}</td><td class="n">${x.q}</td><td class="n">${money(x.v)}</td></tr>`).join("")}</tbody></table></div></details>
+  </section>
+  <div class="grid2">${tabela(porVend, "Por pessoa", false)}${tabela(porDest, "Por destino", true)}</div>
+  ${bonusPainel(M, ativas, admin)}
+  <div class="grid2">${tabela(porOrig, "Por origem da venda", false)}
+    <section class="panel"><h3>A receber dos clientes</h3><p class="muted small" style="margin:0">Saldo em aberto pelo mês de chegada da viagem. Total a receber: <strong>${money(saldoTotal)}</strong>.</p>
+      ${temCrm ? `<div class="tablewrap"><table><thead><tr><th>Chegada em</th><th class="n">Saldo R$</th><th class="n">Saldo US$</th></tr></thead><tbody>${saldoMes.map(x => `<tr><td>${ymLabel(x.m)}</td><td class="n">${money(x.v)}</td><td class="n">${x.u ? "US$ " + x.u.toLocaleString("pt-BR", { maximumFractionDigits: 0 }) : "—"}</td></tr>`).join("")}</tbody></table></div>` : `<div class="empty"><strong>Disponível com a planilha do Trevor</strong></div>`}
+    </section></div>`;
+}
+function abrirConfigTrevor() {
+  const c = S.comercial;
+  const mesesUsd = [...new Set([...allVendas().filter(v => v.valorUSD).map(v => ymOf(v.fechamento)), ...Object.keys(c.cotacoes || {})])].filter(Boolean).sort().reverse();
+  $("#layer").innerHTML = `<div class="overlay" data-close><div class="dialog cfg-trevor">
+    <div class="section-head"><h2>Planilha do Trevor</h2><button type="button" class="btn sm ghost" data-close-btn>Fechar</button></div>
+    <div class="field"><label for="cfg-planilha">Link da planilha (Google Sheets)</label><input type="text" id="cfg-planilha" value="${esc(c.planilha || "")}" placeholder="https://docs.google.com/spreadsheets/d/..."></div>
+    <p class="small muted" style="margin:0">A planilha precisa estar compartilhada como “Qualquer pessoa com o link: Leitor”. O link fica guardado só para você; a equipe não vê. O portal lê a planilha sozinho quando você abre (no máximo a cada 30 minutos) e pelo botão “Atualizar do Trevor”.</p>
+    <h3>Cotação do dólar por mês da venda</h3>
+    <p class="small muted" style="margin:0">Usada para somar a parte em US$ ao valor da venda e calcular a comissão.</p>
+    ${(mesesUsd.length ? mesesUsd : [ymNow()]).map(m => `<div class="cot-linha"><span style="width:90px">${ymLabel(m)}</span><input type="number" min="0" step="0.01" data-cot="${m}" value="${(c.cotacoes || {})[m] || ""}" placeholder="Ex.: 5,45"><span class="muted small">${allVendas().filter(v => v.valorUSD && ymOf(v.fechamento) === m).length} venda(s) com dólar</span></div>`).join("")}
+    <div class="row" style="justify-content:flex-end"><button type="button" class="btn primary" data-act="salvar-trevor">Salvar e ler a planilha</button></div>
+  </div></div>`;
+}
+function abrirConferir() {
+  const l = allVendas().filter(v => v.conferir && v.status !== "cancelada").sort((a, b) => (b.fechamento || "").localeCompare(a.fechamento || ""));
+  $("#layer").innerHTML = `<div class="overlay" data-close><div class="dialog">
+    <div class="section-head"><h2>Vendas para conferir no CRM</h2><button type="button" class="btn sm ghost" data-close-btn>Fechar</button></div>
+    <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Venda</th><th>O que o Trevor apontou</th></tr></thead><tbody>${l.map(v => `<tr><td>${esc(v.cliente)}<div class="muted small">${esc(v.roteiro ? "Roteiro " + v.roteiro : "")}</div></td><td>${dLabel(v.fechamento)}<div class="muted small">${money(v.valorBRL)}${v.valorUSD ? " + US$ " + v.valorUSD.toLocaleString("pt-BR") : ""}</div></td><td>${esc(v.conferir)}</td></tr>`).join("")}</tbody></table></div>
+  </div></div>`;
+}
+
 function ownerVendas() {
   const f = S.filtros; const mem = activeMembers();
   let vs = allVendas();
@@ -834,10 +973,12 @@ function ownerVendas() {
   if (f.busca.trim()) { const q = f.busca.trim().toLowerCase(); vs = vs.filter(v => ((v.cliente || "") + " " + (v.destino || "") + " " + (v.obs || "")).toLowerCase().includes(q)); }
   vs.sort((a, b) => (b.fechamento || "").localeCompare(a.fechamento || ""));
   const ok = vs.filter(v => v.status !== "cancelada");
-  const vendOpts = [...new Set([...mem, ...Object.values(S.vendas).map(v => v.vendedor)])];
+  const vendOpts = [...new Set([...mem, ...Object.values(S.vendas).map(v => v.vendedor)])].filter(Boolean);
   return `
-  <div class="section-head"><div><h2>Vendas</h2><p>Por enquanto lançadas aqui. Quando o CRM e o Helena estiverem conectados, elas entram sozinhas.</p></div>
-    <button class="btn primary" data-act="nova-venda" ${mem.length ? "" : "disabled"}>Nova venda</button></div>
+  <div class="section-head"><div><h2>Vendas</h2><p>${S.comercial.planilha ? "Vêm da planilha do Trevor. Vendas fora do CRM você ainda pode lançar à mão." : "Ligue a planilha do Trevor para as vendas entrarem sozinhas, ou lance à mão."}</p></div>
+    <div class="row"><button class="btn sm ghost" data-act="abrir-config-trevor">Planilha e cotação</button><button class="btn" data-act="atualizar-trevor" ${S.importando || !S.comercial.planilha ? "disabled" : ""}>${S.importando ? "Lendo planilha…" : "Atualizar do Trevor"}</button><button class="btn primary" data-act="nova-venda" ${mem.length ? "" : "disabled"}>Nova venda</button></div></div>
+  ${!S.comercial.planilha ? `<div class="banner"><span>Ainda sem a planilha do Trevor ligada.</span><button class="btn sm primary" data-act="abrir-config-trevor">Ligar planilha</button></div>` : ""}
+  ${bannersComerciais(false)}
   ${mem.length ? "" : `<div class="notice">Cadastre a equipe primeiro. Cada venda precisa de um vendedor.</div>`}
   <div class="formgrid">
     <div class="field"><label for="f-vend">Vendedor</label><select id="f-vend" data-filter="vend"><option value="">Todos</option>${vendOpts.map(u => `<option value="${esc(u)}" ${u === f.vend ? "selected" : ""}>${esc(label(u))}</option>`).join("")}</select></div>
@@ -845,14 +986,14 @@ function ownerVendas() {
     <div class="field"><label for="f-busca">Buscar</label><input type="search" id="f-busca" placeholder="Cliente, destino ou observação" value="${esc(f.busca)}"></div>
   </div>
   <section class="panel">${vs.length ? `<div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Vendedor</th><th>Fechada em</th><th>Embarque</th><th class="n">Valor</th><th class="n">Comissão</th><th>Situação</th><th></th></tr></thead>
-  <tbody>${vs.map(v => `<tr><td>${esc(v.cliente)}<div>${destTag(v.destino)}</div></td><td>${esc(label(v.vendedor))}</td><td>${dLabel(v.fechamento)}</td><td>${dLabel(v.embarque)}</td><td class="n">${money(v.valor)}</td><td class="n">${money(v.comissao)}<div class="muted small">${pctFmt(v.pct)} · paga em ${ymLabel(v.mesPagamento)}</div></td><td>${pill(statusOf(v))}</td><td><button class="btn sm ghost" data-act="editar-venda" data-id="${esc(v.id)}">Editar</button></td></tr>`).join("")}</tbody>
+  <tbody>${vs.map(v => `<tr><td>${esc(v.cliente)}<div>${destTag(v.destino)}${v.valorUSD ? ` <span class="pill ${v.semCotacao ? "warn" : "neutral"}" title="${v.semCotacao ? "Sem cotação: conta só a parte em reais" : "Convertido pela cotação de " + ymLabel(ymOf(v.fechamento))}">US$ ${v.valorUSD.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}</span>` : ""}</div></td><td>${esc(vendLabel(v))}</td><td>${dLabel(v.fechamento)}</td><td>${dLabel(v.embarque)}</td><td class="n">${money(v.valor)}</td><td class="n">${!v.vendedor || v.casa ? `<span class="muted">—</span><div class="muted small">${v.casa ? "sem comissão" : "ligue o vendedor"}</div>` : `${money(v.comissao)}<div class="muted small">${pctFmt(v.pct)} · paga em ${ymLabel(v.mesPagamento)}</div>`}</td><td>${pill(statusOf(v))}</td><td><button class="btn sm ghost" data-act="editar-venda" data-id="${esc(v.id)}">Editar</button></td></tr>`).join("")}</tbody>
   <tfoot><tr><td colspan="4">${ok.length} confirmadas</td><td class="n">${money(ok.reduce((s, v) => s + v.valor, 0))}</td><td class="n">${money(ok.reduce((s, v) => s + v.comissao, 0))}</td><td colspan="2"></td></tr></tfoot></table></div>`
-    : `<div class="empty"><strong>Nenhuma venda ${f.vend || f.mes || f.busca ? "com esses filtros" : "lançada ainda"}</strong><span>Use “Nova venda” para lançar a primeira.</span></div>`}</section>`;
+    : `<div class="empty"><strong>Nenhuma venda ${f.vend || f.mes || f.busca ? "com esses filtros" : "lançada ainda"}</strong><span>${S.comercial.planilha ? "Clique em “Atualizar do Trevor”." : "Ligue a planilha do Trevor ou use “Nova venda”."}</span></div>`}</section>`;
 }
 
 function ownerComissoes() {
   const M = S.filtros.comMes; const hoje = ymNow();
-  const vs = allVendas().filter(v => v.status !== "cancelada");
+  const vs = allVendas().filter(v => v.status !== "cancelada" && v.vendedor && !v.casa);
   const doMes = vs.filter(v => v.mesPagamento === M);
   const pessoas = [...new Set(doMes.map(v => v.vendedor))].sort((a, b) => label(a).localeCompare(label(b), "pt-BR"));
   const futuros = Array.from({ length: 6 }, (_, i) => addM(hoje, i + 1));
@@ -906,9 +1047,11 @@ function ownerAcessos() {
         <div class="row"><button class="btn sm" data-act="ver-como" data-uid="${esc(u)}">Ver como essa pessoa</button><button class="btn sm" data-act="reenviar" data-uid="${esc(u)}">Reenviar link de senha</button>${m.ativo === false ? `<button class="btn sm" data-act="reativar" data-uid="${esc(u)}">Reativar</button>` : `<button class="btn sm danger" data-act="suspender" data-uid="${esc(u)}">Suspender acesso</button>`}</div></div>
       <div class="formgrid">
         <div class="field"><label for="ap-${esc(u)}">Nome no portal</label><input type="text" id="ap-${esc(u)}" data-cfg="apelido" data-uid="${esc(u)}" value="${esc(m.apelido || "")}" placeholder="Ex.: Júlia"></div>
+        <div class="field"><label for="crm-${esc(u)}">Nome no CRM (planilha do Trevor)</label><input type="text" id="crm-${esc(u)}" data-cfg="nomeCrm" data-uid="${esc(u)}" value="${esc(m.nomeCrm || "")}" placeholder="Ex.: Júlia Faedo"></div>
         <div class="field"><label for="pc-${esc(u)}">Comissão (% sobre a venda)</label><input type="number" min="0" max="100" step="0.1" id="pc-${esc(u)}" data-cfg="pct" data-uid="${esc(u)}" value="${m.pct ?? ""}" placeholder="Ex.: 3"></div>
       </div>
       <div><div class="field"><label>O que essa pessoa vê</label></div><div class="toggles">${ABAS.map(([k, t]) => `<label class="toggle"><input type="checkbox" data-aba="${k}" data-uid="${esc(u)}" ${ab[k] ? "checked" : ""}>${t}</label>`).join("")}</div></div>
+      <div><div class="field"><label>Papel</label></div><div class="toggles"><label class="toggle"><input type="checkbox" data-flag="supervisor" data-uid="${esc(u)}" ${m.supervisor ? "checked" : ""}>Supervisão de vendas (vê o comercial de toda a equipe)</label><label class="toggle"><input type="checkbox" data-flag="bonus" data-uid="${esc(u)}" ${m.bonus !== false ? "checked" : ""}>Participa do bônus mensal</label></div></div>
       <p class="muted small" style="margin:0">Mudar o percentual vale para as próximas vendas. As vendas já lançadas mantêm o percentual delas.</p>
     </div></div>`; }).join("") : `<div class="empty"><strong>Ninguém cadastrado ainda</strong><span>Use o formulário acima para cadastrar a primeira pessoa.</span></div>`}
   </section>`;
@@ -920,7 +1063,7 @@ function openVenda(id) {
   const mem = activeMembers();
   const vend = v ? v.vendedor : (mem[0] || "");
   const pct = v ? v.pct : ((S.members[vend] && S.members[vend].pct) ?? "");
-  const vendOpts = [...new Set([...mem, ...(v ? [v.vendedor] : [])])];
+  const vendOpts = [...new Set([...mem, ...(v && v.vendedor ? [v.vendedor] : [])])];
   $("#layer").innerHTML = `<div class="overlay" data-close><form class="dialog" id="venda-form" novalidate>
     <div class="section-head"><h2>${v ? "Editar venda" : "Nova venda"}</h2><button type="button" class="btn sm ghost" data-close-btn>Fechar</button></div>
     <div class="formgrid">
@@ -933,6 +1076,7 @@ function openVenda(id) {
       <div class="field"><label for="v-emb">Data de embarque</label><input type="date" id="v-emb" value="${esc(v ? v.embarque : "")}"></div>
       <div class="field" style="grid-column:1/-1"><label for="v-obs">Observação (só a administração vê)</label><input type="text" id="v-obs" value="${esc(v ? v.obs : "")}" placeholder="Opcional"></div>
     </div>
+    ${v && v.origem === "crm" ? `<div class="notice">Venda da planilha do Trevor${v.roteiro ? " (roteiro " + esc(v.roteiro) + ")" : ""}. Cliente, valor e datas voltam ao que está no CRM na próxima leitura; vendedor, comissão (%), cancelamento e observação ficam como você salvar aqui.</div>` : ""}
     <div class="notice" id="v-preview"></div>
     ${v ? `<label class="toggle" style="justify-self:start"><input type="checkbox" id="v-cancel" ${v.status === "cancelada" ? "checked" : ""}>Venda cancelada (não gera comissão)</label>` : ""}
     <p class="small" id="v-erro" style="color:var(--bad);margin:0" hidden></p>
@@ -969,7 +1113,7 @@ function openVenda(id) {
     const btn = form.querySelector("[type=submit]"); btn.disabled = true;
     try {
       const ref = v ? col("vendas").doc(v.id) : col("vendas").doc();
-      await ref.set(row);
+      await ref.set(row, { merge: true });
       if (obs) await col("vendasNotas").doc(ref.id).set({ obs });
       else if (v && v.obs) await col("vendasNotas").doc(ref.id).delete();
       closeLayer(); await reload(v ? "Venda atualizada" : "Venda lançada");
@@ -979,6 +1123,20 @@ function openVenda(id) {
 function closeLayer() { $("#layer").innerHTML = ""; }
 $("#layer").addEventListener("click", async (e) => {
   if (e.target.matches("[data-close]") || e.target.closest("[data-close-btn]")) return closeLayer();
+  if (e.target.closest('[data-act="salvar-trevor"]')) {
+    const link = $("#cfg-planilha").value.trim();
+    if (link && !urlPlanilha(link)) { toast("Esse não parece um link de planilha do Google."); return; }
+    const antes = { ...(S.comercial.cotacoes || {}) }, cot = { ...antes };
+    document.querySelectorAll("#layer [data-cot]").forEach(i => { const n = Number(String(i.value).replace(",", ".")); if (n > 0) cot[i.dataset.cot] = n; else delete cot[i.dataset.cot]; });
+    try {
+      await salvarComercial({ planilha: link, cotacoes: cot, ultimaImportacao: "" });
+      closeLayer();
+      const mudaram = [...new Set([...Object.keys(antes), ...Object.keys(cot)])].filter(m => antes[m] !== cot[m]);
+      for (const m of mudaram) await aplicarCotacao(m);
+      if (link) await importarTrevor(false); else render();
+    } catch (err) { toast(errMsg(err)); }
+    return;
+  }
   const del = e.target.closest('[data-act="excluir-venda"]');
   if (del) {
     if (del.dataset.confirm !== "1") { del.dataset.confirm = "1"; del.textContent = "Confirmar exclusão"; return; }
@@ -1001,6 +1159,11 @@ $("#main").addEventListener("click", async (e) => {
   const act = b.dataset.act, uid = b.dataset.uid, id = b.dataset.id;
   try {
     if (act === "nova-venda") openVenda(null);
+    else if (act === "atualizar-trevor") await importarTrevor(false);
+    else if (act === "pagar-bonus") await run(col("bonus").doc(b.dataset.ym + "__" + uid).set({ ym: b.dataset.ym, email: uid, bonus: Number(b.dataset.valor) || 0, vendido: Number(b.dataset.vendido) || 0, pagoEm: ymNow() }), "Bônus marcado como pago");
+    else if (act === "despagar-bonus") await run(col("bonus").doc(b.dataset.ym + "__" + uid).delete(), "Pagamento do bônus desfeito");
+    else if (act === "abrir-config-trevor") abrirConfigTrevor();
+    else if (act === "ver-conferir") abrirConferir();
     else if (act === "editar-venda") openVenda(id);
     else if (act === "pagar") await run(col("vendas").doc(id).update({ pagaEm: ymNow() }), "Comissão marcada como paga");
     else if (act === "despagar") await run(col("vendas").doc(id).update({ pagaEm: null }), "Pagamento desfeito");
@@ -1058,6 +1221,12 @@ $("#main").addEventListener("change", async (e) => {
       val = t.dataset.cfg === "pct" ? (val === "" ? null : Math.max(0, Math.min(100, Number(val)))) : val.trim();
       if ((S.members[uid] || {})[t.dataset.cfg] === val) return;
       await run(col("equipe").doc(uid).update({ [t.dataset.cfg]: val }), "Salvo");
+    } else if (t.dataset.flag) {
+      await run(col("equipe").doc(t.dataset.uid).update({ [t.dataset.flag]: t.checked }), "Salvo");
+    } else if (t.dataset.meta) {
+      const n = Number(t.value) || 0; const metas = { ...(S.comercial.metas || {}) };
+      if (n > 0) metas[t.dataset.meta] = n; else delete metas[t.dataset.meta];
+      await salvarComercial({ metas }, "Meta salva"); render();
     } else if (t.dataset.atend) {
       const mes = t.dataset.atend, email = t.dataset.uid; const n = t.value === "" ? null : Math.max(0, Math.round(Number(t.value)));
       const atual = S.atend[mes] && S.atend[mes].porPessoa ? S.atend[mes].porPessoa[email] : undefined;
@@ -1077,6 +1246,140 @@ $("#main").addEventListener("input", (e) => {
   S.filtros[key] = t.value; clearTimeout(buscaTimer);
   buscaTimer = setTimeout(() => { const pos = t.selectionStart; render(); const n = $("#" + t.id); if (n) { n.focus(); n.setSelectionRange(pos, pos); } }, 250);
 });
+
+// ---------- planilha do Trevor (vendas do CRM) ----------
+const semAcento = (t) => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+function lerCSV(txt) {
+  const linhas = []; let linha = [], campo = "", aspas = false;
+  for (let i = 0; i < txt.length; i++) {
+    const c = txt[i];
+    if (aspas) { if (c === '"') { if (txt[i + 1] === '"') { campo += '"'; i++; } else aspas = false; } else campo += c; }
+    else if (c === '"') aspas = true;
+    else if (c === ",") { linha.push(campo); campo = ""; }
+    else if (c === "\n") { linha.push(campo.replace(/\r$/, "")); linhas.push(linha); linha = []; campo = ""; }
+    else campo += c;
+  }
+  if (campo || linha.length) { linha.push(campo.replace(/\r$/, "")); linhas.push(linha); }
+  return linhas.filter(l => l.some(x => x.trim()));
+}
+function lerMoeda(t) {
+  let x = String(t || "").replace(/R\$|US\$|\$|\s| /g, "");
+  if (!x) return 0;
+  const neg = x.includes("-"); x = x.replace(/-/g, "");
+  if (x.includes(",")) x = x.replace(/\./g, "").replace(",", ".");
+  else if ((x.match(/\./g) || []).length > 1 || /\.\d{3}$/.test(x)) x = x.replace(/\./g, "");
+  const n = Number(x); return isNaN(n) ? 0 : round2(neg ? -n : n);
+}
+function lerData(t) {
+  const x = String(t || "").trim(); let m;
+  if ((m = x.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/))) return `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
+  if ((m = x.match(/^(\d{4})-(\d{2})-(\d{2})/))) return `${m[1]}-${m[2]}-${m[3]}`;
+  return "";
+}
+const DEST_CRM = (d) => { const n = semAcento(d); if (n.includes("cusco") || n.includes("machu") || n.includes("peru")) return n.includes("+") ? d : "Cusco e Machu Picchu"; if (n === "patagonia") return "Patagônia"; if (n === "japao") return "Japão"; if (n.startsWith("egito")) return "Egito e Jordânia"; if (n === "ushuaia") return "Ushuaia"; if (n === "mendoza") return "Mendoza"; if (n.includes("atacama") || n.includes("uyuni")) return "Atacama e Uyuni"; return d; };
+function acharVendedor(nome) {
+  const n = semAcento(nome); if (!n) return "";
+  if (/^programac/.test(n) || n.includes("expedicoes")) return "__casa";
+  const ids = Object.keys(S.members);
+  let u = ids.find(id => S.members[id].nomeCrm && semAcento(S.members[id].nomeCrm) === n);
+  if (!u) u = ids.find(id => { const a = semAcento(S.members[id].apelido); return a && (n === a || n.startsWith(a + " ")); });
+  return u || "";
+}
+function urlPlanilha(link) {
+  const id = (String(link).match(/\/d\/([A-Za-z0-9_-]{20,})/) || [])[1]; if (!id) return null;
+  const gid = (String(link).match(/[#&?]gid=(\d+)/) || [])[1];
+  return `https://docs.google.com/spreadsheets/d/${id}/export?format=csv${gid ? "&gid=" + gid : ""}`;
+}
+const CAMPOS_CRM = ["cliente", "destino", "vendedor", "vendedorNome", "casa", "valorBRL", "valorUSD", "cotacao", "semCotacao", "valor", "fechamento", "embarque", "retorno", "pax", "statusCrm", "pagoBRL", "saldoBRL", "pagoUSD", "saldoUSD", "origemLead", "conferir", "roteiro"];
+async function importarTrevor(silencioso) {
+  const c = S.comercial, url = urlPlanilha(c.planilha);
+  if (!url) { if (!silencioso) toast("Cole o link da planilha do Trevor primeiro."); return; }
+  S.importando = true; if (!silencioso) render();
+  try {
+    let txt;
+    try { const r = await fetch(url); txt = await r.text(); if (!r.ok || /^\s*<!doctype html|<html/i.test(txt)) throw new Error("html"); }
+    catch (_) { throw new Error("A planilha não abriu. Confira se ela está compartilhada como “Qualquer pessoa com o link: Leitor”."); }
+    const linhas = lerCSV(txt); if (linhas.length < 2) throw new Error("A planilha está vazia.");
+    const cab = linhas[0].map(semAcento), col_ = (nome) => cab.findIndex(h => h === nome || h.startsWith(nome));
+    const ix = { data: col_("data da venda"), dest: col_("destino"), rot: col_("roteiro"), cli: col_("cliente"), vend: col_("vendedor"), st: col_("status"), pax: col_("pax"), cheg: col_("chegada"), part: col_("partida"), tot: col_("total r$"), pago: col_("pago r$"), saldo: col_("saldo r$"), totU: col_("total us$"), pagoU: col_("pago us$"), saldoU: col_("saldo us$"), orig: col_("origem"), conf: col_("conferir"), conta: col_("conta no total") };
+    if (ix.data < 0 || ix.cli < 0 || ix.tot < 0) throw new Error("Não reconheci as colunas da planilha (faltam Data da venda, Cliente ou Total R$).");
+    const v_ = (l, k) => ix[k] >= 0 ? (l[ix[k]] || "").trim() : "";
+    const vistos = {}; let novas = 0, alteradas = 0, ignoradas = 0; const escritas = [];
+    for (const l of linhas.slice(1)) {
+      if (ix.conta >= 0 && v_(l, "conta") === "0") { ignoradas++; continue; }
+      const fechamento = lerData(v_(l, "data")); const cliente = v_(l, "cli");
+      if (!fechamento || !cliente) { ignoradas++; continue; }
+      let id = "crm_" + (v_(l, "rot").replace(/[^A-Za-z0-9_-]/g, "") || (fechamento + "_" + semAcento(cliente).replace(/[^a-z0-9]+/g, "-")).slice(0, 80));
+      vistos[id] = (vistos[id] || 0) + 1; if (vistos[id] > 1) id += "_" + vistos[id];
+      const antigo = S.vendas[id];
+      const achado = acharVendedor(v_(l, "vend"));
+      const casa = achado === "__casa";
+      let vendedor = casa ? "" : achado;
+      if (!vendedor && !casa && antigo && antigo.vendedor) vendedor = antigo.vendedor; // mantém quem você atribuiu à mão
+      const valorBRL = lerMoeda(v_(l, "tot")), valorUSD = lerMoeda(v_(l, "totU"));
+      const cot = Number((c.cotacoes || {})[ymOf(fechamento)]) || 0;
+      const d = {
+        cliente, destino: DEST_CRM(v_(l, "dest")), vendedor, vendedorNome: v_(l, "vend"), casa,
+        valorBRL, valorUSD, cotacao: valorUSD ? (cot || null) : null, semCotacao: !!(valorUSD && !cot),
+        valor: round2(valorBRL + (valorUSD && cot ? valorUSD * cot : 0)),
+        fechamento, embarque: lerData(v_(l, "cheg")), retorno: lerData(v_(l, "part")), pax: Number(v_(l, "pax")) || null,
+        statusCrm: v_(l, "st"), pagoBRL: lerMoeda(v_(l, "pago")), saldoBRL: lerMoeda(v_(l, "saldo")), pagoUSD: lerMoeda(v_(l, "pagoU")), saldoUSD: lerMoeda(v_(l, "saldoU")),
+        origemLead: v_(l, "orig"), conferir: v_(l, "conf"), roteiro: v_(l, "rot")
+      };
+      const mudou = !antigo || CAMPOS_CRM.some(k => JSON.stringify(antigo[k] ?? null) !== JSON.stringify(d[k] ?? null));
+      if (!mudou) continue;
+      const extra = { origem: "crm", atualizadoEm: new Date().toISOString() };
+      if (!antigo) { extra.status = "ativa"; extra.pagaEm = null; novas++; } else alteradas++;
+      if (!antigo || antigo.vendedor !== vendedor || antigo.pct == null) extra.pct = casa || !vendedor ? 0 : (Number((S.members[vendedor] || {}).pct) || 0);
+      escritas.push([id, { ...d, ...extra }]);
+    }
+    for (let i = 0; i < escritas.length; i += 400) {
+      const lote = S.db.batch();
+      escritas.slice(i, i + 400).forEach(([id, d]) => lote.set(col("vendas").doc(id), d, { merge: true }));
+      await lote.commit();
+    }
+    const resultado = { linhas: linhas.length - 1, novas, alteradas, ignoradas, em: new Date().toISOString() };
+    S.comercial.ultimaImportacao = resultado.em; S.comercial.ultimoResultado = resultado;
+    await col("config").doc("comercial").set({ ultimaImportacao: resultado.em, ultimoResultado: resultado }, { merge: true });
+    S.importando = false;
+    await reload(silencioso && !novas && !alteradas ? "" : `Planilha do Trevor lida: ${novas} ${novas === 1 ? "venda nova" : "vendas novas"}, ${alteradas} ${alteradas === 1 ? "atualizada" : "atualizadas"}.`);
+  } catch (e) {
+    S.importando = false;
+    if (!silencioso) { toast(e && e.message && !e.code ? e.message : errMsg(e)); render(); }
+  }
+}
+async function salvarComercial(campos, msg) {
+  S.comercial = { ...S.comercial, ...campos };
+  await col("config").doc("comercial").set(campos, { mergeFields: Object.keys(campos) });
+  if (msg) toast(msg);
+}
+// Quando a cotação de um mês muda, recalcula as vendas em dólar daquele mês
+async function aplicarCotacao(ym) {
+  const cot = Number(S.comercial.cotacoes[ym]) || 0;
+  const lote = S.db.batch(); let n = 0;
+  for (const [id, v] of Object.entries(S.vendas)) {
+    if (v.origem !== "crm" || !v.valorUSD || ymOf(v.fechamento) !== ym) continue;
+    lote.set(col("vendas").doc(id), { cotacao: cot || null, semCotacao: !cot, valor: round2((v.valorBRL || 0) + (cot ? v.valorUSD * cot : 0)) }, { merge: true }); n++;
+  }
+  if (n) await lote.commit();
+  await reload(n ? `Cotação aplicada em ${n} ${n === 1 ? "venda" : "vendas"} de ${ymLabel(ym)}.` : "Cotação salva.");
+}
+function alertasComerciais() {
+  const vs = allVendas().filter(v => v.origem === "crm" && v.status !== "cancelada");
+  const semCot = [...new Set(vs.filter(v => v.semCotacao).map(v => ymOf(v.fechamento)))].sort();
+  const comUsd = vs.filter(v => v.valorUSD);
+  const semCadastro = [...new Set(vs.filter(v => !v.vendedor && !v.casa && v.vendedorNome).map(v => v.vendedorNome))];
+  const conferir = vs.filter(v => v.conferir);
+  return { semCot, comUsd, semCadastro, conferir };
+}
+function bannersComerciais(completo) {
+  const a = alertasComerciais(); let h = "";
+  if (a.semCot.length) h += `<div class="banner warn-b"><span>💵 Há vendas em <strong>dólar</strong> sem cotação em ${a.semCot.map(m => `<strong>${ymLabel(m)}</strong>`).join(", ")}. Por enquanto elas contam só a parte em reais.</span><button class="btn sm" data-act="abrir-config-trevor">Informar cotação</button></div>`;
+  else if (completo && a.comUsd.length) h += `<div class="banner"><span>💵 ${a.comUsd.length} ${a.comUsd.length === 1 ? "venda tem" : "vendas têm"} parte em dólar, já convertida pela cotação que você informou.</span><button class="btn sm" data-act="abrir-config-trevor">Ver cotações</button></div>`;
+  if (a.semCadastro.length) h += `<div class="banner warn-b"><span>Vendedor(a) da planilha sem cadastro no portal: ${a.semCadastro.map(n => `<strong>${esc(n)}</strong>`).join(", ")}. As vendas aparecem, mas sem comissão.</span><button class="btn sm" data-tab-go="acessos">Cadastrar ou ligar nome</button></div>`;
+  if (completo && a.conferir.length) h += `<div class="banner"><span>O Trevor marcou <strong>${a.conferir.length}</strong> ${a.conferir.length === 1 ? "venda" : "vendas"} para conferir no CRM (coluna “Conferir”).</span><button class="btn sm" data-act="ver-conferir">Ver quais</button></div>`;
+  return h;
+}
 
 // ---------- importação dos passeios ----------
 async function importarPasseios(file) {
@@ -1106,7 +1409,7 @@ function payloadFor(uid) {
   if (abas.equipe) {
     equipe = S.isAdmin ? computeEquipe().pessoas : S.equipeRes;
   }
-  return { apelido: cfg.apelido || "", pct: cfg.pct ?? 0, abas, vendas, atendimentos, equipe };
+  return { apelido: cfg.apelido || "", pct: cfg.pct ?? 0, abas, vendas, atendimentos, equipe, uid, supervisor: cfg.supervisor === true, bonus: cfg.bonus !== false };
 }
 
 // ---------- início ----------
@@ -1120,6 +1423,7 @@ async function start(user) {
     await loadAll();
     try { S.tab = localStorage.getItem("araya-tab-" + (S.isAdmin ? "o" : "m")); } catch (_) {}
     S.ready = true; render();
+    talvezSincronizarTrevor();
   } catch (e) { centerMsg("O portal não carregou", "Recarregue a página. Se continuar, avise a Letícia.", `<button class="btn" data-act="sair">Sair</button>`); }
 }
 function boot() {
