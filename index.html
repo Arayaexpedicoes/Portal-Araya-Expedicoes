@@ -318,7 +318,7 @@ const DESTINOS = ["Cusco e Machu Picchu", "Patagônia", "Egito e Jordânia", "Ja
 const DCOR = { "Cusco e Machu Picchu": "--d-cusco", "cusco-machu-picchu": "--d-cusco", "Patagônia": "--d-patagonia", "patagonia": "--d-patagonia", "Ushuaia": "--d-patagonia", "ushuaia": "--d-patagonia", "Egito e Jordânia": "--d-egito", "egito-jordania": "--d-egito", "Japão": "--d-japao", "japao": "--d-japao", "Mendoza": "--d-mendoza", "mendoza": "--d-mendoza", "Atacama e Uyuni": "--d-atacama" };
 const dc = (k) => `--dc:var(${DCOR[k] || "--d-outro"})`;
 const destTag = (n) => n ? `<span class="dest" style="${dc(n)}">${esc(n)}</span>` : "";
-const ABAS = [["inicio", "Início"], ["comissoes", "Comissões"], ["vendas", "Minhas vendas"], ["passeios", "Passeios"], ["tickets", "Tickets"], ["equipe", "Resultados da equipe"]];
+const ABAS = [["inicio", "Início"], ["vendas", "Minhas vendas"], ["passeios", "Passeios"], ["tickets", "Tickets"], ["equipe", "Resultados da equipe"]];
 const ABAS_PADRAO = { inicio: true, comissoes: true, vendas: true, passeios: true, tickets: true, equipe: false };
 const emailOk = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
 
