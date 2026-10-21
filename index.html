@@ -363,6 +363,7 @@ function errMsg(e) {
 const label = (uid) => (S.members[uid] && S.members[uid].apelido) || uid || "—";
 const vendLabel = (v) => v.vendedor ? ((S.members[v.vendedor] && S.members[v.vendedor].apelido) || v.vendedorNome || v.vendedor) : v.casa ? "Venda da casa" : (v.vendedorNome ? v.vendedorNome + (S.isAdmin ? " (sem cadastro)" : "") : "—");
 // Bônus mensal individual por faixa de valor vendido no mês (pela data de fechamento)
+const INICIO_BONUS = "2026-10"; // o bônus vale a partir das vendas de outubro de 2026
 const FAIXAS_BONUS = [{ acima: 500000, bonus: 1500, rotulo: "acima de R$ 500.000" }, { acima: 300000, bonus: 1000, rotulo: "de R$ 300.001 a R$ 500.000" }, { acima: 200000, bonus: 800, rotulo: "de R$ 200.001 a R$ 300.000" }, { min: 100000, bonus: 600, rotulo: "de R$ 100.000 a R$ 200.000" }];
 function bonusDe(valor) { const f = FAIXAS_BONUS.find(f => f.min != null ? valor >= f.min : valor > f.acima); return f ? f.bonus : 0; }
 function proximaFaixa(valor) { const atual = bonusDe(valor); const a = [[100000, 600], [200000, 800], [300000, 1000], [500000, 1500]].find(([, b]) => b > atual); return a ? { falta: Math.max(0, round2(a[0] - valor)), bonus: a[1] } : null; }
@@ -605,10 +606,10 @@ function memberInicio(data, vendas, hoje, viewingAs) {
   const maxL = Math.max(0, ...linhas.map(l => l[2]));
   const ult = [...vendas].sort((a, b) => (b.fechamento || "").localeCompare(a.fechamento || "")).slice(0, 5);
   let bonusHtml = "";
-  if (data.bonus !== false) {
+  if (data.bonus !== false && hoje >= INICIO_BONUS) {
     const vendido = vendidoNoMes(ativas, data.uid, hoje), b = bonusDe(vendido), prox = proximaFaixa(vendido);
     const alvo = prox ? prox.falta + vendido : vendido;
-    const hist = [1, 2, 3].map(i => { const m = addM(hoje, -i), vv = vendidoNoMes(ativas, data.uid, m), bb = bonusDe(vv), reg = S.bonus[m + "__" + data.uid]; return { m, vv, bb, pago: reg && reg.pagoEm }; });
+    const hist = [1, 2, 3].map(i => addM(hoje, -i)).filter(m => m >= INICIO_BONUS).map(m => { const vv = vendidoNoMes(ativas, data.uid, m), bb = bonusDe(vv), reg = S.bonus[m + "__" + data.uid]; return { m, vv, bb, pago: reg && reg.pagoEm }; });
     bonusHtml = `<section class="panel"><div class="section-head"><div><h3>Bônus de ${ymLong(hoje)}</h3><span class="muted small">Bônus individual pela faixa de valor vendido no mês.</span></div><span class="pill ${b ? "ok" : "neutral"}">${b ? "Bônus atual: " + money(b) : "Ainda sem bônus"}</span></div>
       <div class="meta-bar" role="progressbar" aria-valuenow="${Math.round(vendido / Math.max(1, alvo) * 100)}" aria-valuemin="0" aria-valuemax="100"><i style="width:${Math.min(100, Math.round(vendido / Math.max(1, alvo) * 100))}%"></i></div>
       <p style="margin:0">Você vendeu <strong>${money(vendido)}</strong> este mês.${prox ? ` Faltam <strong>${money(prox.falta)}</strong> para o bônus de <strong>${money(prox.bonus)}</strong>.` : " Você está na faixa máxima! 🏆"}</p>
@@ -931,6 +932,7 @@ function ownerPainel() {
 const listaEquipe = () => S.isAdmin ? allVendas() : (S.vendasEquipe || []).map(r => enrich({ ...r, obs: "" }));
 function bonusPainel(M, ativas, admin) {
   const hoje = ymNow();
+  if (M < INICIO_BONUS) return `<section class="panel"><h3>Bônus por faixa de vendas</h3><p class="muted small" style="margin:0">O bônus mensal vale a partir das vendas de ${ymLong(INICIO_BONUS)}.</p></section>`;
   const ids = [...new Set([...(admin ? activeMembers() : []), ...ativas.filter(v => ymOf(v.fechamento) === M && v.vendedor).map(v => v.vendedor)])];
   const linhas = ids.map(u => {
     const vendido = vendidoNoMes(ativas, u, M), m = S.members[u];
