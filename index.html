@@ -371,7 +371,7 @@ const vendidoNoMes = (lista, uid, ym) => lista.filter(v => v.vendedor === uid &&
 // ---------- dados ----------
 const col = (n) => S.db.collection(n);
 const docsOf = (snap) => snap.docs.map(d => ({ id: d.id, ...d.data() }));
-function setMembers(rows) { S.members = Object.fromEntries(rows.map(r => [r.id, { apelido: r.apelido || "", nomeCrm: r.nomeCrm || "", supervisor: r.supervisor === true, bonus: r.bonus !== false, pct: r.pct == null ? null : Number(r.pct), abas: r.abas || {}, ativo: r.ativo !== false, uid: r.uid || null }])); }
+function setMembers(rows) { S.members = Object.fromEntries(rows.map(r => [r.id, { apelido: r.apelido || "", nomeCrm: r.nomeCrm || "", supervisor: r.supervisor === true, bonus: r.bonus !== false, semEmail: r.semEmail === true, pct: r.pct == null ? null : Number(r.pct), abas: r.abas || {}, ativo: r.ativo !== false, uid: r.uid || null }])); }
 function setVendas(rows) { S.vendas = Object.fromEntries(rows.map(r => [r.id, { ...r, cliente: r.cliente || "", vendedor: r.vendedor, destino: r.destino || "", valor: Number(r.valor) || 0, pct: Number(r.pct) || 0, fechamento: r.fechamento || "", embarque: r.embarque || "", status: r.status || "ativa", pagaEm: r.pagaEm || null, origem: r.origem || "manual" }])); }
 function setAtend(rows) { S.atend = {}; for (const r of rows) (S.atend[r.mes] ||= { porPessoa: {} }).porPessoa[r.email] = r.n; }
 function computeEquipe() {
@@ -461,7 +461,7 @@ function render() {
 
 function renderWho() {
   if (!S.session) { $("#who").innerHTML = ""; return; }
-  $("#who").innerHTML = `<span>${esc(S.email)}${S.isAdmin ? " · administradora" : ""}</span><button class="linkbtn" data-act="sair" type="button">Sair</button>`;
+  $("#who").innerHTML = `<span>${esc(S.email)}${S.isAdmin ? " · administradora" : ""}</span>${S.ready ? `<button class="linkbtn" data-act="trocar-senha" type="button">Trocar senha</button>` : ""}<button class="linkbtn" data-act="sair" type="button">Sair</button>`;
 }
 function renderTabs(list) {
   if (!list.find(t => t[0] === S.tab)) S.tab = list.length ? list[0][0] : null;
@@ -525,7 +525,54 @@ $("#main").addEventListener("submit", async (e) => {
 document.addEventListener("click", async (e) => {
   const a = e.target.closest("[data-auth]"); if (a) { S.authMode = a.dataset.auth; S.authMsg = null; render(); return; }
   const s = e.target.closest('[data-act="sair"]'); if (s) { await S.auth.signOut(); S.previewUid = null; S.tab = null; S.authMode = "entrar"; S.authMsg = null; }
+  if (e.target.closest('#who [data-act="trocar-senha"]')) abrirTrocarSenha();
 });
+const gerarSenha = () => { const c = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789"; const b = crypto.getRandomValues(new Uint8Array(10)); return Array.from(b, x => c[x % c.length]).join(""); };
+function mostrarSenhaCriada(email, senha, titulo) {
+  $("#layer").innerHTML = `<div class="overlay" data-close><div class="dialog" style="max-width:480px">
+    <div class="section-head"><h2>${esc(titulo)}</h2><button type="button" class="btn sm ghost" data-close-btn>Fechar</button></div>
+    <p style="margin:0">Envie estes dados para a pessoa. <strong>A senha não fica salva em lugar nenhum</strong>: anote antes de fechar.</p>
+    <div class="panel" style="background:var(--surface-2);box-shadow:none"><div><span class="muted small">Endereço</span><br><strong>${esc(portalUrl())}</strong></div><div><span class="muted small">Login</span><br><strong>${esc(email)}</strong></div><div><span class="muted small">Senha</span><br><strong style="font-size:1.2rem;letter-spacing:.05em">${esc(senha)}</strong></div></div>
+    <p class="small muted" style="margin:0">Depois de entrar, a pessoa pode trocar a senha em “Trocar senha”, no topo do portal.</p>
+    <div class="row" style="justify-content:flex-end"><button type="button" class="btn" data-copiar="${esc("Portal da Equipe Araya\n" + portalUrl() + "\nLogin: " + email + "\nSenha: " + senha)}">Copiar dados</button><button type="button" class="btn primary" data-close-btn>Pronto, anotei</button></div>
+  </div></div>`;
+}
+function abrirNovaSenha(email) {
+  $("#layer").innerHTML = `<div class="overlay" data-close><div class="dialog" style="max-width:520px">
+    <div class="section-head"><h2>Nova senha para ${esc(label(email))}</h2><button type="button" class="btn sm ghost" data-close-btn>Fechar</button></div>
+    <p style="margin:0">Como esse login usa e-mail fictício, a troca é feita em dois passos:</p>
+    <ol style="margin:0;padding-left:20px;display:grid;gap:6px">
+      <li>No Firebase, abra <strong>Authentication → Users</strong>, procure <strong>${esc(email)}</strong>, clique nos <strong>⋮</strong> e em <strong>Excluir conta</strong>. (Os dados da pessoa no portal não são apagados.)</li>
+      <li>Volte aqui, defina a nova senha e clique em <strong>Recriar login</strong>.</li>
+    </ol>
+    <div class="field"><label for="ns-senha">Nova senha</label><div class="row" style="flex-wrap:nowrap"><input type="text" id="ns-senha" value="${gerarSenha()}" autocomplete="off"><button type="button" class="btn sm" data-gerar-ns>Gerar</button></div></div>
+    <p class="small" id="ns-erro" style="color:var(--bad);margin:0" hidden></p>
+    <div class="row" style="justify-content:flex-end"><button type="button" class="btn" data-close-btn>Cancelar</button><button type="button" class="btn primary" data-act="recriar-login" data-uid="${esc(email)}">Recriar login</button></div>
+  </div></div>`;
+}
+function abrirTrocarSenha() {
+  $("#layer").innerHTML = `<div class="overlay" data-close><form class="dialog" id="senha-form" style="max-width:440px" novalidate>
+    <div class="section-head"><h2>Trocar senha</h2><button type="button" class="btn sm ghost" data-close-btn>Fechar</button></div>
+    <div class="field"><label for="s-atual">Senha atual</label><input type="password" id="s-atual" autocomplete="current-password"></div>
+    <div class="field"><label for="s-nova">Nova senha (mínimo 8 caracteres)</label><input type="password" id="s-nova" autocomplete="new-password"></div>
+    <div class="field"><label for="s-nova2">Repita a nova senha</label><input type="password" id="s-nova2" autocomplete="new-password"></div>
+    <p class="small" id="s-erro" style="color:var(--bad);margin:0" hidden></p>
+    <div class="row" style="justify-content:flex-end"><button type="button" class="btn" data-close-btn>Cancelar</button><button type="submit" class="btn primary">Salvar nova senha</button></div>
+  </form></div>`;
+  $("#senha-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const atual = $("#s-atual").value, nova = $("#s-nova").value, erro = $("#s-erro");
+    const falha = (t) => { erro.hidden = false; erro.textContent = t; };
+    if (nova.length < 8) return falha("A nova senha precisa ter pelo menos 8 caracteres.");
+    if (nova !== $("#s-nova2").value) return falha("As duas senhas novas não são iguais.");
+    try {
+      const u = S.auth.currentUser;
+      await u.reauthenticateWithCredential(firebase.auth.EmailAuthProvider.credential(u.email, atual));
+      await u.updatePassword(nova);
+      closeLayer(); toast("Senha trocada");
+    } catch (err) { falha(err && /wrong-password|invalid-credential|invalid-login/.test(err.code || "") ? "A senha atual não confere." : AUTH_ERR(err)); }
+  });
+}
 
 // ---------- visão da equipe ----------
 function renderMember(data, viewingAs) {
@@ -946,16 +993,29 @@ function ownerComercial() {
 }
 function abrirConfigTrevor() {
   const c = S.comercial;
-  const mesesUsd = [...new Set([...allVendas().filter(v => v.valorUSD).map(v => ymOf(v.fechamento)), ...Object.keys(c.cotacoes || {})])].filter(Boolean).sort().reverse();
   $("#layer").innerHTML = `<div class="overlay" data-close><div class="dialog cfg-trevor">
     <div class="section-head"><h2>Planilha do Trevor</h2><button type="button" class="btn sm ghost" data-close-btn>Fechar</button></div>
     <div class="field"><label for="cfg-planilha">Link da planilha (Google Sheets)</label><input type="text" id="cfg-planilha" value="${esc(c.planilha || "")}" placeholder="https://docs.google.com/spreadsheets/d/..."></div>
     <p class="small muted" style="margin:0">A planilha precisa estar compartilhada como “Qualquer pessoa com o link: Leitor”. O link fica guardado só para você; a equipe não vê. O portal lê a planilha sozinho quando você abre (no máximo a cada 30 minutos) e pelo botão “Atualizar do Trevor”.</p>
-    <h3>Cotação do dólar por mês da venda</h3>
-    <p class="small muted" style="margin:0">Usada para somar a parte em US$ ao valor da venda e calcular a comissão.</p>
-    ${(mesesUsd.length ? mesesUsd : [ymNow()]).map(m => `<div class="cot-linha"><span style="width:90px">${ymLabel(m)}</span><input type="number" min="0" step="0.01" data-cot="${m}" value="${(c.cotacoes || {})[m] || ""}" placeholder="Ex.: 5,45"><span class="muted small">${allVendas().filter(v => v.valorUSD && ymOf(v.fechamento) === m).length} venda(s) com dólar</span></div>`).join("")}
+    <p class="small muted" style="margin:0">A cotação do dólar é informada venda a venda, em “Vendas em dólar”. Se um dia a planilha do Trevor tiver uma coluna “Cotação”, o portal usa ela sozinho.</p>
     <div class="row" style="justify-content:flex-end"><button type="button" class="btn primary" data-act="salvar-trevor">Salvar e ler a planilha</button></div>
   </div></div>`;
+}
+function abrirDolar() {
+  const l = allVendas().filter(v => v.valorUSD && v.status !== "cancelada").sort((a, b) => (b.fechamento || "").localeCompare(a.fechamento || ""));
+  const usd = (n) => "US$ " + (Number(n) || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  $("#layer").innerHTML = `<div class="overlay" data-close><div class="dialog" style="max-width:820px">
+    <div class="section-head"><h2>Vendas em dólar</h2><button type="button" class="btn sm ghost" data-close-btn>Fechar</button></div>
+    <p class="small muted" style="margin:0">Informe o câmbio do dia de cada venda. O valor total (reais + dólar convertido) é o que conta para comissão, bônus e relatórios. A cotação que você digitar aqui fica guardada mesmo quando a planilha for lida de novo.</p>
+    <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Venda</th><th class="n">Parte em R$</th><th class="n">Parte em US$</th><th>Cotação</th><th class="n">Total em R$</th></tr></thead><tbody>
+    ${l.map(v => { const c = v.cotacaoVenda || v.cotacao || ""; return `<tr><td>${esc(v.cliente)}<div class="muted small">${esc(vendLabel(v))}</div></td><td>${dLabel(v.fechamento)}</td><td class="n">${money(v.valorBRL)}</td><td class="n">${usd(v.valorUSD)}</td><td><input type="number" min="0" step="0.0001" data-cotv="${esc(v.id)}" data-brl="${v.valorBRL || 0}" data-usd="${v.valorUSD}" value="${c}" placeholder="Ex.: 5,4321" style="width:110px"></td><td class="n" data-total="${esc(v.id)}">${c ? money((v.valorBRL || 0) + v.valorUSD * c) : '<span class="pill warn">sem cotação</span>'}</td></tr>`; }).join("")}
+    </tbody></table></div>
+    <div class="row" style="justify-content:flex-end"><button type="button" class="btn primary" data-act="salvar-dolar">Salvar cotações</button></div>
+  </div></div>`;
+  $("#layer").querySelectorAll("[data-cotv]").forEach(i => i.addEventListener("input", () => {
+    const c = Number(String(i.value).replace(",", ".")) || 0, cel = $("#layer").querySelector(`[data-total="${i.dataset.cotv}"]`);
+    cel.innerHTML = c ? money(Number(i.dataset.brl) + Number(i.dataset.usd) * c) : '<span class="pill warn">sem cotação</span>';
+  }));
 }
 function abrirConferir() {
   const l = allVendas().filter(v => v.conferir && v.status !== "cancelada").sort((a, b) => (b.fechamento || "").localeCompare(a.fechamento || ""));
@@ -976,7 +1036,7 @@ function ownerVendas() {
   const vendOpts = [...new Set([...mem, ...Object.values(S.vendas).map(v => v.vendedor)])].filter(Boolean);
   return `
   <div class="section-head"><div><h2>Vendas</h2><p>${S.comercial.planilha ? "Vêm da planilha do Trevor. Vendas fora do CRM você ainda pode lançar à mão." : "Ligue a planilha do Trevor para as vendas entrarem sozinhas, ou lance à mão."}</p></div>
-    <div class="row"><button class="btn sm ghost" data-act="abrir-config-trevor">Planilha e cotação</button><button class="btn" data-act="atualizar-trevor" ${S.importando || !S.comercial.planilha ? "disabled" : ""}>${S.importando ? "Lendo planilha…" : "Atualizar do Trevor"}</button><button class="btn primary" data-act="nova-venda" ${mem.length ? "" : "disabled"}>Nova venda</button></div></div>
+    <div class="row"><button class="btn sm ghost" data-act="abrir-config-trevor">Planilha do Trevor</button>${allVendas().some(v => v.valorUSD) ? `<button class="btn sm ghost" data-act="abrir-dolar">Vendas em dólar</button>` : ""}<button class="btn" data-act="atualizar-trevor" ${S.importando || !S.comercial.planilha ? "disabled" : ""}>${S.importando ? "Lendo planilha…" : "Atualizar do Trevor"}</button><button class="btn primary" data-act="nova-venda" ${mem.length ? "" : "disabled"}>Nova venda</button></div></div>
   ${!S.comercial.planilha ? `<div class="banner"><span>Ainda sem a planilha do Trevor ligada.</span><button class="btn sm primary" data-act="abrir-config-trevor">Ligar planilha</button></div>` : ""}
   ${bannersComerciais(false)}
   ${mem.length ? "" : `<div class="notice">Cadastre a equipe primeiro. Cada venda precisa de um vendedor.</div>`}
@@ -986,7 +1046,7 @@ function ownerVendas() {
     <div class="field"><label for="f-busca">Buscar</label><input type="search" id="f-busca" placeholder="Cliente, destino ou observação" value="${esc(f.busca)}"></div>
   </div>
   <section class="panel">${vs.length ? `<div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Vendedor</th><th>Fechada em</th><th>Embarque</th><th class="n">Valor</th><th class="n">Comissão</th><th>Situação</th><th></th></tr></thead>
-  <tbody>${vs.map(v => `<tr><td>${esc(v.cliente)}<div>${destTag(v.destino)}${v.valorUSD ? ` <span class="pill ${v.semCotacao ? "warn" : "neutral"}" title="${v.semCotacao ? "Sem cotação: conta só a parte em reais" : "Convertido pela cotação de " + ymLabel(ymOf(v.fechamento))}">US$ ${v.valorUSD.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}</span>` : ""}</div></td><td>${esc(vendLabel(v))}</td><td>${dLabel(v.fechamento)}</td><td>${dLabel(v.embarque)}</td><td class="n">${money(v.valor)}</td><td class="n">${!v.vendedor || v.casa ? `<span class="muted">—</span><div class="muted small">${v.casa ? "sem comissão" : "ligue o vendedor"}</div>` : `${money(v.comissao)}<div class="muted small">${pctFmt(v.pct)} · paga em ${ymLabel(v.mesPagamento)}</div>`}</td><td>${pill(statusOf(v))}</td><td><button class="btn sm ghost" data-act="editar-venda" data-id="${esc(v.id)}">Editar</button></td></tr>`).join("")}</tbody>
+  <tbody>${vs.map(v => `<tr><td>${esc(v.cliente)}<div>${destTag(v.destino)}${v.valorUSD ? ` <span class="pill ${v.semCotacao ? "warn" : "neutral"}" title="${v.semCotacao ? "Sem cotação: conta só a parte em reais" : "Convertido pelo câmbio de R$ " + String(v.cotacao).replace(".", ",")}">US$ ${v.valorUSD.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}</span>` : ""}</div></td><td>${esc(vendLabel(v))}</td><td>${dLabel(v.fechamento)}</td><td>${dLabel(v.embarque)}</td><td class="n">${money(v.valor)}</td><td class="n">${!v.vendedor || v.casa ? `<span class="muted">—</span><div class="muted small">${v.casa ? "sem comissão" : "ligue o vendedor"}</div>` : `${money(v.comissao)}<div class="muted small">${pctFmt(v.pct)} · paga em ${ymLabel(v.mesPagamento)}</div>`}</td><td>${pill(statusOf(v))}</td><td><button class="btn sm ghost" data-act="editar-venda" data-id="${esc(v.id)}">Editar</button></td></tr>`).join("")}</tbody>
   <tfoot><tr><td colspan="4">${ok.length} confirmadas</td><td class="n">${money(ok.reduce((s, v) => s + v.valor, 0))}</td><td class="n">${money(ok.reduce((s, v) => s + v.comissao, 0))}</td><td colspan="2"></td></tr></tfoot></table></div>`
     : `<div class="empty"><strong>Nenhuma venda ${f.vend || f.mes || f.busca ? "com esses filtros" : "lançada ainda"}</strong><span>${S.comercial.planilha ? "Clique em “Atualizar do Trevor”." : "Ligue a planilha do Trevor ou use “Nova venda”."}</span></div>`}</section>`;
 }
@@ -1036,15 +1096,17 @@ function ownerAcessos() {
       <div class="field"><label for="n-apelido">Nome no portal</label><input type="text" id="n-apelido" placeholder="Ex.: Júlia"></div>
       <div class="field"><label for="n-pct">Comissão (%)</label><input type="number" id="n-pct" min="0" max="100" step="0.1" placeholder="Ex.: 3"></div>
       <div class="field" style="align-self:end"><button class="btn primary" type="submit">Cadastrar</button></div>
+      <label class="toggle" style="grid-column:1/-1;justify-self:start"><input type="checkbox" id="n-semail">E-mail fictício (sem caixa de entrada): eu defino a senha inicial</label>
+      <div class="field" id="n-senha-box" hidden><label for="n-senha">Senha inicial</label><div class="row" style="flex-wrap:nowrap"><input type="text" id="n-senha" placeholder="Mínimo 8 caracteres" autocomplete="off"><button type="button" class="btn sm" data-act="gerar-senha">Gerar</button></div></div>
     </form>
     <p class="small muted" id="add-erro" style="margin:0"></p>
-    <div class="notice">Ao cadastrar, a pessoa recebe um e-mail do Google para criar a senha. Depois ela entra em <strong>${esc(portal)}</strong> com esse e-mail e a senha criada.</div>
+    <div class="notice">Ao cadastrar, a pessoa recebe um e-mail do Google para criar a senha. Depois ela entra em <strong>${esc(portal)}</strong> com esse e-mail e a senha criada. Se marcar <strong>e-mail fictício</strong>, nenhum e-mail é enviado: você define a senha e passa para a pessoa.</div>
   </section>
   <section class="panel"><h3>Com acesso (${ids.length})</h3>
     ${ids.length ? ids.map(u => { const m = S.members[u]; const ab = { ...ABAS_PADRAO, ...(m.abas || {}) }; return `
     <div class="member" style="grid-template-columns:1fr"><div class="body">
       <div class="row" style="justify-content:space-between"><div style="min-width:0"><strong>${esc(m.apelido || u)}</strong> ${m.ativo === false ? '<span class="pill bad">acesso suspenso</span>' : '<span class="pill ok">ativo</span>'}<div class="muted small" style="overflow-wrap:anywhere">${esc(u)}</div></div>
-        <div class="row"><button class="btn sm" data-act="ver-como" data-uid="${esc(u)}">Ver como essa pessoa</button><button class="btn sm" data-act="reenviar" data-uid="${esc(u)}">Reenviar link de senha</button>${m.ativo === false ? `<button class="btn sm" data-act="reativar" data-uid="${esc(u)}">Reativar</button>` : `<button class="btn sm danger" data-act="suspender" data-uid="${esc(u)}">Suspender acesso</button>`}</div></div>
+        <div class="row"><button class="btn sm" data-act="ver-como" data-uid="${esc(u)}">Ver como essa pessoa</button>${m.semEmail ? `<button class="btn sm" data-act="nova-senha" data-uid="${esc(u)}">Nova senha</button>` : `<button class="btn sm" data-act="reenviar" data-uid="${esc(u)}">Reenviar link de senha</button>`}${m.ativo === false ? `<button class="btn sm" data-act="reativar" data-uid="${esc(u)}">Reativar</button>` : `<button class="btn sm danger" data-act="suspender" data-uid="${esc(u)}">Suspender acesso</button>`}</div></div>
       <div class="formgrid">
         <div class="field"><label for="ap-${esc(u)}">Nome no portal</label><input type="text" id="ap-${esc(u)}" data-cfg="apelido" data-uid="${esc(u)}" value="${esc(m.apelido || "")}" placeholder="Ex.: Júlia"></div>
         <div class="field"><label for="crm-${esc(u)}">Nome no CRM (planilha do Trevor)</label><input type="text" id="crm-${esc(u)}" data-cfg="nomeCrm" data-uid="${esc(u)}" value="${esc(m.nomeCrm || "")}" placeholder="Ex.: Júlia Faedo"></div>
@@ -1123,16 +1185,41 @@ function openVenda(id) {
 function closeLayer() { $("#layer").innerHTML = ""; }
 $("#layer").addEventListener("click", async (e) => {
   if (e.target.matches("[data-close]") || e.target.closest("[data-close-btn]")) return closeLayer();
+  if (e.target.closest("[data-gerar-ns]")) { $("#ns-senha").value = gerarSenha(); return; }
+  const cp = e.target.closest("[data-copiar]");
+  if (cp) { try { await navigator.clipboard.writeText(cp.dataset.copiar.replace(/\\n/g, "\n")); toast("Dados copiados"); } catch (_) { toast("Não deu para copiar; anote os dados."); } return; }
+  if (e.target.closest('[data-act="recriar-login"]')) {
+    const uid = e.target.closest("[data-act]").dataset.uid, senha = ($("#ns-senha").value || "").trim(), erro = $("#ns-erro");
+    if (senha.length < 8) { erro.hidden = false; erro.textContent = "A senha precisa ter pelo menos 8 caracteres."; return; }
+    try {
+      const sec = firebase.apps.find(a => a.name === "cadastro") || firebase.initializeApp(FIREBASE_CONFIG, "cadastro");
+      const cred = await sec.auth().createUserWithEmailAndPassword(uid, senha);
+      const novo = cred.user.uid; await sec.auth().signOut();
+      await col("equipe").doc(uid).update({ uid: novo });
+      await reload("Login recriado."); mostrarSenhaCriada(uid, senha, "Nova senha criada");
+    } catch (err) {
+      erro.hidden = false;
+      erro.textContent = err && err.code === "auth/email-already-in-use" ? "O login antigo ainda existe. Apague primeiro no Firebase (passo 1 acima) e tente de novo." : (err && err.code && err.code.startsWith("auth/") ? AUTH_ERR(err) : errMsg(err));
+    }
+    return;
+  }
+  if (e.target.closest('[data-act="salvar-dolar"]')) {
+    const lote = S.db.batch(); let n = 0;
+    document.querySelectorAll("#layer [data-cotv]").forEach(i => {
+      const id = i.dataset.cotv, v = S.vendas[id]; if (!v) return;
+      const c = Number(String(i.value).replace(",", ".")) || 0;
+      if ((Number(v.cotacaoVenda) || 0) === c && !!v.semCotacao === !c) return;
+      lote.set(col("vendas").doc(id), { cotacaoVenda: c || null, cotacao: c || null, semCotacao: !c, valor: round2((v.valorBRL || 0) + (c ? v.valorUSD * c : 0)) }, { merge: true }); n++;
+    });
+    try { if (n) await lote.commit(); closeLayer(); await reload(n ? `Cotação salva em ${n} ${n === 1 ? "venda" : "vendas"}.` : "Nada mudou."); } catch (err) { toast(errMsg(err)); }
+    return;
+  }
   if (e.target.closest('[data-act="salvar-trevor"]')) {
     const link = $("#cfg-planilha").value.trim();
     if (link && !urlPlanilha(link)) { toast("Esse não parece um link de planilha do Google."); return; }
-    const antes = { ...(S.comercial.cotacoes || {}) }, cot = { ...antes };
-    document.querySelectorAll("#layer [data-cot]").forEach(i => { const n = Number(String(i.value).replace(",", ".")); if (n > 0) cot[i.dataset.cot] = n; else delete cot[i.dataset.cot]; });
     try {
-      await salvarComercial({ planilha: link, cotacoes: cot, ultimaImportacao: "" });
+      await salvarComercial({ planilha: link, ultimaImportacao: "" });
       closeLayer();
-      const mudaram = [...new Set([...Object.keys(antes), ...Object.keys(cot)])].filter(m => antes[m] !== cot[m]);
-      for (const m of mudaram) await aplicarCotacao(m);
       if (link) await importarTrevor(false); else render();
     } catch (err) { toast(errMsg(err)); }
     return;
@@ -1163,6 +1250,7 @@ $("#main").addEventListener("click", async (e) => {
     else if (act === "pagar-bonus") await run(col("bonus").doc(b.dataset.ym + "__" + uid).set({ ym: b.dataset.ym, email: uid, bonus: Number(b.dataset.valor) || 0, vendido: Number(b.dataset.vendido) || 0, pagoEm: ymNow() }), "Bônus marcado como pago");
     else if (act === "despagar-bonus") await run(col("bonus").doc(b.dataset.ym + "__" + uid).delete(), "Pagamento do bônus desfeito");
     else if (act === "abrir-config-trevor") abrirConfigTrevor();
+    else if (act === "abrir-dolar") abrirDolar();
     else if (act === "ver-conferir") abrirConferir();
     else if (act === "editar-venda") openVenda(id);
     else if (act === "pagar") await run(col("vendas").doc(id).update({ pagaEm: ymNow() }), "Comissão marcada como paga");
@@ -1178,6 +1266,8 @@ $("#main").addEventListener("click", async (e) => {
       await run(col("equipe").doc(uid).update({ ativo: false }), "Acesso suspenso");
     }
     else if (act === "reativar") await run(col("equipe").doc(uid).update({ ativo: true }), "Acesso reativado");
+    else if (act === "gerar-senha") { $("#n-senha").value = gerarSenha(); }
+    else if (act === "nova-senha") abrirNovaSenha(uid);
     else if (act === "reenviar") { b.disabled = true; await sendLink(uid); toast("Link de senha enviado para " + uid); b.disabled = false; }
     else if (act === "ver-como") { S.previewUid = uid; S.tab = "inicio"; render(); window.scrollTo({ top: 0 }); }
     else if (act === "sair-preview") { S.previewUid = null; S.tab = "acessos"; render(); }
@@ -1190,15 +1280,18 @@ $("#main").addEventListener("submit", async (e) => {
   const erro = $("#add-erro");
   if (!emailOk(email)) { erro.textContent = "Digite um e-mail válido."; erro.style.color = "var(--bad)"; return; }
   if (S.members[email]) { erro.textContent = "Esse e-mail já está cadastrado."; erro.style.color = "var(--bad)"; return; }
+  const semEmail = $("#n-semail").checked, senhaIni = ($("#n-senha").value || "").trim();
+  if (semEmail && senhaIni.length < 8) { erro.textContent = "Defina uma senha inicial com pelo menos 8 caracteres (ou clique em Gerar)."; erro.style.color = "var(--bad)"; return; }
   const btn = e.target.querySelector("[type=submit]"); btn.disabled = true;
   erro.style.color = "var(--muted)"; erro.textContent = "Criando o login…";
   try {
     const sec = firebase.apps.find(a => a.name === "cadastro") || firebase.initializeApp(FIREBASE_CONFIG, "cadastro");
     const bytes = crypto.getRandomValues(new Uint8Array(24));
-    const tmp = Array.from(bytes, x => x.toString(16).padStart(2, "0")).join("") + "Aa1!";
+    const tmp = semEmail ? senhaIni : Array.from(bytes, x => x.toString(16).padStart(2, "0")).join("") + "Aa1!";
     const cred = await sec.auth().createUserWithEmailAndPassword(email, tmp);
     const uid = cred.user.uid; await sec.auth().signOut();
-    await col("equipe").doc(email).set({ apelido, pct: p === "" ? null : Math.max(0, Math.min(100, Number(p))), abas: { ...ABAS_PADRAO }, ativo: true, uid, criadoEm: new Date().toISOString() });
+    await col("equipe").doc(email).set({ apelido, pct: p === "" ? null : Math.max(0, Math.min(100, Number(p))), abas: { ...ABAS_PADRAO }, ativo: true, uid, semEmail, criadoEm: new Date().toISOString() });
+    if (semEmail) { await reload("Pessoa cadastrada."); mostrarSenhaCriada(email, senhaIni, "Login criado"); return; }
     let aviso = "Pessoa cadastrada. Ela recebeu um e-mail para criar a senha.";
     try { await sendLink(email); } catch (_) { aviso = "Pessoa cadastrada, mas o e-mail de senha não saiu. Use “Reenviar link de senha”."; }
     await reload(aviso);
@@ -1211,6 +1304,7 @@ $("#main").addEventListener("submit", async (e) => {
 });
 $("#main").addEventListener("change", async (e) => {
   const t = e.target;
+  if (t.id === "n-semail") { $("#n-senha-box").hidden = !t.checked; if (t.checked && !$("#n-senha").value) $("#n-senha").value = gerarSenha(); return; }
   if (t.dataset.filter) { S.filtros[t.dataset.filter] = t.value; render(); return; }
   try {
     if (t.dataset.aba) {
@@ -1301,7 +1395,7 @@ async function importarTrevor(silencioso) {
     catch (_) { throw new Error("A planilha não abriu. Confira se ela está compartilhada como “Qualquer pessoa com o link: Leitor”."); }
     const linhas = lerCSV(txt); if (linhas.length < 2) throw new Error("A planilha está vazia.");
     const cab = linhas[0].map(semAcento), col_ = (nome) => cab.findIndex(h => h === nome || h.startsWith(nome));
-    const ix = { data: col_("data da venda"), dest: col_("destino"), rot: col_("roteiro"), cli: col_("cliente"), vend: col_("vendedor"), st: col_("status"), pax: col_("pax"), cheg: col_("chegada"), part: col_("partida"), tot: col_("total r$"), pago: col_("pago r$"), saldo: col_("saldo r$"), totU: col_("total us$"), pagoU: col_("pago us$"), saldoU: col_("saldo us$"), orig: col_("origem"), conf: col_("conferir"), conta: col_("conta no total") };
+    const ix = { data: col_("data da venda"), dest: col_("destino"), rot: col_("roteiro"), cli: col_("cliente"), vend: col_("vendedor"), st: col_("status"), pax: col_("pax"), cheg: col_("chegada"), part: col_("partida"), tot: col_("total r$"), pago: col_("pago r$"), saldo: col_("saldo r$"), totU: col_("total us$"), pagoU: col_("pago us$"), saldoU: col_("saldo us$"), orig: col_("origem"), conf: col_("conferir"), conta: col_("conta no total"), cot: cab.findIndex(h => /^(cotacao|cambio|taxa de cambio)/.test(h)) };
     if (ix.data < 0 || ix.cli < 0 || ix.tot < 0) throw new Error("Não reconheci as colunas da planilha (faltam Data da venda, Cliente ou Total R$).");
     const v_ = (l, k) => ix[k] >= 0 ? (l[ix[k]] || "").trim() : "";
     const vistos = {}; let novas = 0, alteradas = 0, ignoradas = 0; const escritas = [];
@@ -1317,7 +1411,8 @@ async function importarTrevor(silencioso) {
       let vendedor = casa ? "" : achado;
       if (!vendedor && !casa && antigo && antigo.vendedor) vendedor = antigo.vendedor; // mantém quem você atribuiu à mão
       const valorBRL = lerMoeda(v_(l, "tot")), valorUSD = lerMoeda(v_(l, "totU"));
-      const cot = Number((c.cotacoes || {})[ymOf(fechamento)]) || 0;
+      // cotação da própria venda: a que você digitou no portal > coluna de cotação da planilha (se existir) > cotação antiga do mês
+      const cot = Number(antigo && antigo.cotacaoVenda) || lerMoeda(v_(l, "cot")) || Number((c.cotacoes || {})[ymOf(fechamento)]) || 0;
       const d = {
         cliente, destino: DEST_CRM(v_(l, "dest")), vendedor, vendedorNome: v_(l, "vend"), casa,
         valorBRL, valorUSD, cotacao: valorUSD ? (cot || null) : null, semCotacao: !!(valorUSD && !cot),
@@ -1366,7 +1461,7 @@ async function aplicarCotacao(ym) {
 }
 function alertasComerciais() {
   const vs = allVendas().filter(v => v.origem === "crm" && v.status !== "cancelada");
-  const semCot = [...new Set(vs.filter(v => v.semCotacao).map(v => ymOf(v.fechamento)))].sort();
+  const semCot = vs.filter(v => v.valorUSD && v.semCotacao);
   const comUsd = vs.filter(v => v.valorUSD);
   const semCadastro = [...new Set(vs.filter(v => !v.vendedor && !v.casa && v.vendedorNome).map(v => v.vendedorNome))];
   const conferir = vs.filter(v => v.conferir);
@@ -1374,8 +1469,8 @@ function alertasComerciais() {
 }
 function bannersComerciais(completo) {
   const a = alertasComerciais(); let h = "";
-  if (a.semCot.length) h += `<div class="banner warn-b"><span>💵 Há vendas em <strong>dólar</strong> sem cotação em ${a.semCot.map(m => `<strong>${ymLabel(m)}</strong>`).join(", ")}. Por enquanto elas contam só a parte em reais.</span><button class="btn sm" data-act="abrir-config-trevor">Informar cotação</button></div>`;
-  else if (completo && a.comUsd.length) h += `<div class="banner"><span>💵 ${a.comUsd.length} ${a.comUsd.length === 1 ? "venda tem" : "vendas têm"} parte em dólar, já convertida pela cotação que você informou.</span><button class="btn sm" data-act="abrir-config-trevor">Ver cotações</button></div>`;
+  if (a.semCot.length) h += `<div class="banner warn-b"><span>💵 ${a.semCot.length === 1 ? "<strong>1 venda</strong> em dólar está" : `<strong>${a.semCot.length} vendas</strong> em dólar estão`} sem cotação. Enquanto isso, contam só a parte em reais (na comissão e no bônus também).</span><button class="btn sm" data-act="abrir-dolar">Informar câmbio</button></div>`;
+  else if (completo && a.comUsd.length) h += `<div class="banner"><span>💵 ${a.comUsd.length} ${a.comUsd.length === 1 ? "venda tem" : "vendas têm"} parte em dólar, convertida pelo câmbio de cada venda.</span><button class="btn sm" data-act="abrir-dolar">Ver câmbios</button></div>`;
   if (a.semCadastro.length) h += `<div class="banner warn-b"><span>Vendedor(a) da planilha sem cadastro no portal: ${a.semCadastro.map(n => `<strong>${esc(n)}</strong>`).join(", ")}. As vendas aparecem, mas sem comissão.</span><button class="btn sm" data-tab-go="acessos">Cadastrar ou ligar nome</button></div>`;
   if (completo && a.conferir.length) h += `<div class="banner"><span>O Trevor marcou <strong>${a.conferir.length}</strong> ${a.conferir.length === 1 ? "venda" : "vendas"} para conferir no CRM (coluna “Conferir”).</span><button class="btn sm" data-act="ver-conferir">Ver quais</button></div>`;
   return h;
