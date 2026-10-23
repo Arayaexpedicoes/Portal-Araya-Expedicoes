@@ -188,6 +188,32 @@ input.cell{width:84px;text-align:right;padding:5px 8px}
 /* Comercial */
 .banner.warn-b{background:var(--warn-soft)}
 .grid2 > .panel{align-content:start}
+.slots{border-collapse:separate;border-spacing:6px;margin:-6px}
+.slots th,.slots td{border:0;padding:0;text-align:center}
+.slots th{padding:2px 0 4px}
+.slots th.hoje{color:var(--accent)}
+.slots td.rot{text-align:left;padding-right:6px;white-space:nowrap}
+.slots td.rot strong{display:block;font-size:.88rem}
+.slots td.rot span{font-size:.72rem;color:var(--muted)}
+.slots tbody tr:hover td{background:none}
+.slot{width:100%;min-width:46px;height:42px;border-radius:10px;border:1px dashed color-mix(in srgb, var(--muted) 45%, transparent);background:transparent;color:var(--muted);cursor:pointer;font:inherit;font-size:.78rem;font-weight:600;transition:background .12s}
+.slot:hover{background:var(--surface-2)}
+.slot[aria-pressed="true"]{background:var(--accent);border:1px solid var(--accent);color:var(--accent-ink)}
+.slot.ex{outline:2px solid var(--warn);outline-offset:1px}
+.mini{display:inline-flex;gap:3px}
+.mini i{width:20px;height:20px;border-radius:5px;background:var(--surface-2);font-style:normal;font-size:.62rem;font-weight:700;display:grid;place-items:center;color:var(--muted)}
+.mini i.on{background:var(--accent);color:var(--accent-ink)}
+.agora{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.mini.cnt i{background:transparent;border:1px solid var(--line);color:var(--fg)}
+.mini.cnt i.zero{background:var(--bad-soft);border-color:transparent;color:var(--bad)}
+.slot .s,.btn .s{display:none}
+@media (max-width:640px){
+  .slots{border-spacing:3px;margin:-3px}
+  .slots td.rot span{display:none}
+  .slot{min-width:0;height:38px;font-size:.9rem}
+  .slot .l,.btn .l{display:none} .slot .s,.btn .s{display:inline}
+}
+td.hojecol,th.hojecol{background:color-mix(in srgb, var(--accent-soft) 55%, transparent)}
 .delta{font-size:.8rem;color:var(--muted)}
 .meta-bar{height:8px;border-radius:99px;background:var(--surface-2);overflow:hidden}
 .meta-bar > i{display:block;height:100%;border-radius:inherit;background:var(--accent)}
@@ -318,8 +344,8 @@ const DESTINOS = ["Cusco e Machu Picchu", "Patagônia", "Egito e Jordânia", "Ja
 const DCOR = { "Cusco e Machu Picchu": "--d-cusco", "cusco-machu-picchu": "--d-cusco", "Patagônia": "--d-patagonia", "patagonia": "--d-patagonia", "Ushuaia": "--d-patagonia", "ushuaia": "--d-patagonia", "Egito e Jordânia": "--d-egito", "egito-jordania": "--d-egito", "Japão": "--d-japao", "japao": "--d-japao", "Mendoza": "--d-mendoza", "mendoza": "--d-mendoza", "Atacama e Uyuni": "--d-atacama" };
 const dc = (k) => `--dc:var(${DCOR[k] || "--d-outro"})`;
 const destTag = (n) => n ? `<span class="dest" style="${dc(n)}">${esc(n)}</span>` : "";
-const ABAS = [["inicio", "Início"], ["vendas", "Minhas vendas"], ["passeios", "Passeios"], ["tickets", "Tickets"], ["equipe", "Resultados da equipe"]];
-const ABAS_PADRAO = { inicio: true, comissoes: true, vendas: true, passeios: true, tickets: true, equipe: false };
+const ABAS = [["inicio", "Início"], ["vendas", "Minhas vendas"], ["agenda", "Disponibilidade"], ["passeios", "Passeios"], ["tickets", "Tickets"], ["equipe", "Resultados da equipe"]];
+const ABAS_PADRAO = { inicio: true, comissoes: true, vendas: true, agenda: true, passeios: true, tickets: true, equipe: false };
 const emailOk = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
 
 // Regra de comissão: valor × percentual; paga no mês seguinte ao mês de embarque.
@@ -340,7 +366,7 @@ const pill = (st) => { const [c, t] = STATUS_PILL[st] || ["neutral", st]; return
 const S = {
   auth: null, db: null, session: null, resumoAtual: "", email: "", isAdmin: false, ready: false, authMode: "entrar", authMsg: null, recovery: false,
   members: {}, vendas: {}, notas: {}, atend: {}, destinos: [], passeios: [], tickets: [], equipeRes: null,
-  comercial: { planilha: "", cotacoes: {}, metas: {}, ultimaImportacao: "", ultimoResultado: null }, importando: false, vendasEquipe: null, bonus: {},
+  comercial: { planilha: "", cotacoes: {}, metas: {}, ultimaImportacao: "", ultimoResultado: null }, importando: false, vendasEquipe: null, bonus: {}, disp: {}, dispErro: false,
   tab: null, previewUid: null,
   filtros: { vend: "", mes: "", busca: "", comMes: ymNow(), painelMes: ymNow(), destino: null, passeio: null, tourBusca: "", minhasMes: "", tkDest: null, tkItem: null, tkBusca: "", comMesC: ymNow() },
   pendingRender: false
@@ -393,7 +419,7 @@ async function loadAll() {
     setMembers(docsOf(eq)); setVendas(docsOf(vs)); setAtend(docsOf(at));
     S.notas = Object.fromEntries(docsOf(ns).map(r => [r.id, r.obs || ""]));
     S.destinos = docsOf(ds); S.passeios = docsOf(ps);
-    await carregarTickets();
+    await carregarTickets(); await carregarDisp();
     try { const c = await col("config").doc("comercial").get(); if (c.exists) S.comercial = { ...S.comercial, cotacoes: {}, metas: {}, ...c.data() }; } catch (_) {}
     try { S.bonus = Object.fromEntries(docsOf(await col("bonus").get()).map(b => [b.id, b])); } catch (_) { S.bonus = {}; }
     if (rs.exists) { const d = rs.data(); S.resumoAtual = JSON.stringify({ meses: d.meses, pessoas: d.pessoas }); }
@@ -406,7 +432,7 @@ async function loadAll() {
   if (!meSnap.exists || meSnap.data().ativo === false) return;
   const [vs, at, ds, ps] = await Promise.all([col("vendas").where("vendedor", "==", me).get(), col("atendimentos").where("email", "==", me).get(), col("destinos").get(), col("passeios").get()]);
   setVendas(docsOf(vs)); setAtend(docsOf(at)); S.destinos = docsOf(ds); S.passeios = docsOf(ps);
-  await carregarTickets();
+  await carregarTickets(); await carregarDisp();
   const souSup = meSnap.data().supervisor === true;
   try { S.bonus = Object.fromEntries(docsOf(await (souSup ? col("bonus") : col("bonus").where("email", "==", me)).get()).map(b => [b.id, b])); } catch (_) { S.bonus = {}; }
   S.vendasEquipe = null;
@@ -426,6 +452,7 @@ function talvezSincronizarTrevor() {
   if (c.ultimaImportacao && Date.now() - Date.parse(c.ultimaImportacao) < 30 * 60 * 1000) return;
   importarTrevor(true);
 }
+async function carregarDisp() { try { S.disp = Object.fromEntries(docsOf(await col("disponibilidade").get()).map(d => [d.id, d])); S.dispErro = false; } catch (_) { S.disp = {}; S.dispErro = true; } }
 async function carregarTickets() { try { S.tickets = docsOf(await col("tickets").get()); } catch (_) { S.tickets = []; } }
 async function reload(msg) {
   try { await loadAll(); } catch (e) { toast(errMsg(e)); }
@@ -443,7 +470,7 @@ document.addEventListener("focusout", () => { if (S.pendingRender) { S.pendingRe
 function setMain(html) { $("#main").innerHTML = html; if (html.includes("data-midia")) carregarFotos(); }
 function centerMsg(t, p, extra = "") { $("#tabs").innerHTML = ""; setMain(`<div class="center"><div class="box"><h2>${esc(t)}</h2><p class="muted">${p}</p>${extra}</div></div>`); }
 
-function ownerTabs() { return [["painel", "Visão geral"], ["comercial", "Comercial"], ["vendas", "Vendas"], ["comissoes", "Comissões"], ["atendimentos", "Atendimentos"], ["acessos", "Equipe e acessos"], ["passeios", "Passeios"], ["tickets", "Tickets"]]; }
+function ownerTabs() { return [["painel", "Visão geral"], ["comercial", "Comercial"], ["vendas", "Vendas"], ["comissoes", "Comissões"], ["atendimentos", "Atendimentos"], ["agenda", "Disponibilidade"], ["acessos", "Equipe e acessos"], ["passeios", "Passeios"], ["tickets", "Tickets"]]; }
 function memberTabs(data) { const ab = { ...ABAS_PADRAO, ...((data && data.abas) || {}) }; const t = ABAS.filter(([k]) => ab[k]); if (data && data.supervisor) t.splice(1, 0, ["comercial", "Comercial da equipe"]); return t; }
 
 function render() {
@@ -586,6 +613,7 @@ function renderMember(data, viewingAs) {
   if (S.tab === "inicio") html += memberInicio(data, vendas, hoje, viewingAs);
   else if (S.tab === "comissoes") html += memberComissoes(data, vendas, hoje);
   else if (S.tab === "vendas") html += memberVendas(vendas);
+  else if (S.tab === "agenda") html += agendaView(viewingAs || S.email);
   else if (S.tab === "passeios") html += passeiosView();
   else if (S.tab === "tickets") html += ticketsView();
   else if (S.tab === "comercial" && data.supervisor) html += ownerComercial();
@@ -874,6 +902,60 @@ function ticketsView() {
 const activeMembers = () => Object.entries(S.members).filter(([, m]) => m.ativo !== false).map(([u]) => u).sort((a, b) => label(a).localeCompare(label(b), "pt-BR"));
 const allVendas = () => Object.entries(S.vendas).map(([id, v]) => enrich({ id, ...v, obs: S.notas[id] || "" }));
 
+// ---------- disponibilidade: previsão de quem estará online (não é controle de horário) ----------
+const PERIODOS = [["m", "Manhã", "8h às 12h", 8, 12], ["t", "Tarde", "12h às 18h", 12, 18], ["n", "Noite", "18h às 22h", 18, 22]];
+const DIAS_C = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"], DIAS_L = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
+const DIAS_ORDEM = [1, 2, 3, 4, 5, 6, 0];
+const isoDia = (d) => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+const proxDias = (n) => Array.from({ length: n }, (_, i) => { const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() + i); return d; });
+const diaCurto = (d, i) => i === 0 ? "Hoje" : i === 1 ? "Amanhã" : DIAS_C[d.getDay()] + " " + String(d.getDate()).padStart(2, "0") + "/" + String(d.getMonth() + 1).padStart(2, "0");
+const dispDe = (email) => S.disp[email] || { semana: {}, excecoes: {}, obs: "" };
+function doPadrao(disp, d) { const s = (disp.semana || {})[d.getDay()] || {}; return { m: !!s.m, t: !!s.t, n: !!s.n }; }
+function doDia(disp, d) { const ex = (disp.excecoes || {})[isoDia(d)]; return ex ? { m: !!ex.m, t: !!ex.t, n: !!ex.n, ex: true } : { ...doPadrao(disp, d), ex: false }; }
+function periodoAgora() { const h = new Date().getHours(); return PERIODOS.find(p => h >= p[3] && h < p[4]) || null; }
+async function salvarDisp(email, d) {
+  const hoje = isoDia(new Date());
+  const doc = { nome: (S.members[email] && S.members[email].apelido) || d.nome || email, semana: d.semana || {}, excecoes: Object.fromEntries(Object.entries(d.excecoes || {}).filter(([k]) => k >= hoje)), obs: d.obs || "", atualizadoEm: new Date().toISOString() };
+  S.disp[email] = doc; render();
+  try { await col("disponibilidade").doc(email).set(doc); } catch (e) { toast(errMsg(e)); await reload(); }
+}
+function pessoasDisp() {
+  if (S.isAdmin) return activeMembers().map(u => ({ u, nome: label(u), d: S.disp[u] || null }));
+  return Object.entries(S.disp).map(([u, d]) => ({ u, nome: d.nome || u, d })).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+}
+function agendaEquipe(eu) {
+  const dias = proxDias(7), agora = periodoAgora(), pessoas = pessoasDisp();
+  const preenchidas = pessoas.filter(p => p.d);
+  const onAgora = agora ? preenchidas.filter(p => doDia(p.d, dias[0])[agora[0]]) : [];
+  const cob = (d, k) => preenchidas.filter(p => doDia(p.d, d)[k]).length;
+  return `<section class="panel"><div class="section-head"><div><h3>Quem deve estar online</h3><span class="muted small">Previsão dos próximos 7 dias, pelo que cada pessoa marcou.</span></div></div>
+    <div class="agora">${agora ? `<span class="pill ${onAgora.length ? "ok" : "warn"}">Agora · ${agora[1].toLowerCase()}</span>${onAgora.length ? onAgora.map(p => `<span>${esc(p.nome)}${p.u === eu ? " (você)" : ""}</span>`).join('<span class="muted">·</span>') : '<span class="muted small">ninguém marcou este período</span>'}` : '<span class="pill neutral">Agora · fora dos períodos (antes das 8h ou depois das 22h)</span>'}</div>
+    ${pessoas.length ? `<div class="tablewrap"><table><thead><tr><th>Pessoa</th>${dias.map((d, i) => `<th class="${i === 0 ? "hojecol" : ""}">${diaCurto(d, i)}</th>`).join("")}</tr></thead><tbody>
+    ${pessoas.map(p => `<tr><td>${esc(p.nome)}${p.u === eu ? ' <span class="muted small">(você)</span>' : ""}${p.d && p.d.obs ? `<div class="muted small">${esc(p.d.obs)}</div>` : ""}</td>${p.d ? dias.map((d, i) => { const x = doDia(p.d, d); return `<td class="${i === 0 ? "hojecol" : ""}"><span class="mini" title="${PERIODOS.map(q => q[1] + ": " + (x[q[0]] ? "online" : "fora")).join(" · ")}${x.ex ? " (dia ajustado)" : ""}">${PERIODOS.map(q => `<i class="${x[q[0]] ? "on" : ""}">${q[1][0]}</i>`).join("")}</span></td>`; }).join("") : `<td colspan="7"><span class="muted small">Ainda não preencheu</span></td>`}</tr>`).join("")}
+    </tbody><tfoot><tr><td><span class="small">Quantas pessoas</span></td>${dias.map((d, i) => `<td class="${i === 0 ? "hojecol" : ""}"><span class="mini cnt" title="${PERIODOS.map(q => q[1] + ": " + cob(d, q[0])).join(" · ")}">${PERIODOS.map(q => { const n = cob(d, q[0]); return `<i class="${n ? "" : "zero"}">${n}</i>`; }).join("")}</span></td>`).join("")}</tr></tfoot></table></div>
+    <p class="muted small" style="margin:0">M = manhã (8h às 12h) · T = tarde (12h às 18h) · N = noite (18h às 22h). Na última linha, quantas pessoas em cada período; em vermelho, período sem ninguém.</p>` : `<div class="empty"><strong>Ninguém preencheu ainda</strong><span>Assim que a equipe marcar os períodos, a previsão aparece aqui.</span></div>`}
+  </section>`;
+}
+function agendaView(email) {
+  const intro = `<div class="section-head"><div><h2>Disponibilidade</h2><p>${email ? "Marque os períodos em que você pretende estar online. Não é controle de horário: é só uma previsão para a equipe se organizar e saber com quem contar. Dá para mudar quando quiser." : "Previsão de quem vai estar online, preenchida por cada pessoa na aba Disponibilidade. Como a equipe é PJ, não é controle de horário: serve só para a gente se organizar."}</p></div></div>`;
+  if (S.dispErro) return intro + `<div class="banner warn-b"><span>${S.isAdmin && !S.previewUid ? "Para ativar esta aba, publique as regras novas do Firestore (arquivo regras-firestore)." : "Esta seção ainda está sendo ativada. Tente de novo mais tarde."}</span></div>`;
+  if (!email) return intro + agendaEquipe(null);
+  const d = dispDe(email), dias = proxDias(14), hojeDow = new Date().getDay();
+  const semana = `<section class="panel"><div><h3>Minha semana</h3><span class="muted small">Toque nos períodos em que você costuma estar online. Isso vale para todas as semanas.</span></div>
+    <div class="tablewrap"><table class="slots"><thead><tr><th></th>${DIAS_ORDEM.map(w => `<th class="${w === hojeDow ? "hoje" : ""}">${DIAS_C[w]}</th>`).join("")}</tr></thead><tbody>
+    ${PERIODOS.map(([k, nome, hr]) => `<tr><td class="rot"><strong>${nome}</strong><span>${hr}</span></td>${DIAS_ORDEM.map(w => { const on = !!(((d.semana || {})[w] || {})[k]); return `<td><button type="button" class="slot" data-act="disp-semana" data-uid="${esc(email)}" data-dia="${w}" data-p="${k}" aria-pressed="${on}" aria-label="${nome} de ${DIAS_L[w]}">${on ? '<span class="l">Online</span><span class="s">✓</span>' : "—"}</button></td>`; }).join("")}</tr>`).join("")}
+    </tbody></table></div>
+    <div class="field"><label for="disp-obs">Recado para a equipe (opcional)</label><input type="text" id="disp-obs" data-disp-obs="${esc(email)}" maxlength="140" value="${esc(d.obs || "")}" placeholder="Ex.: nas tardes, a partir das 14h"></div>
+  </section>`;
+  const ajustes = Object.keys(d.excecoes || {}).filter(k => k >= isoDia(new Date())).length;
+  const prox = `<section class="panel"><div class="section-head"><div><h3>Próximos 14 dias</h3><span class="muted small">Algum dia vai ser diferente (feriado, folga, um período a mais)? Ajuste só aquele dia aqui. O contorno amarelo mostra o que mudou em relação à sua semana.</span></div>${ajustes ? `<span class="pill warn">${ajustes} ${ajustes === 1 ? "dia ajustado" : "dias ajustados"}</span>` : ""}</div>
+    <div class="tablewrap"><table class="slots"><thead><tr><th></th>${PERIODOS.map(p => `<th>${p[1]}</th>`).join("")}<th></th></tr></thead><tbody>
+    ${dias.map((dt, i) => { const x = doDia(d, dt), pad = doPadrao(d, dt), iso = isoDia(dt); return `<tr><td class="rot"><strong>${diaCurto(dt, i)}</strong><span>${i < 2 ? DIAS_C[dt.getDay()] + " " + dLabel(iso).slice(0, 5) : DIAS_L[dt.getDay()]}</span></td>${PERIODOS.map(([k, nome]) => `<td><button type="button" class="slot ${x[k] !== pad[k] ? "ex" : ""}" data-act="disp-dia" data-uid="${esc(email)}" data-iso="${iso}" data-p="${k}" aria-pressed="${x[k]}" aria-label="${nome} de ${dLabel(iso)}">${x[k] ? '<span class="l">Online</span><span class="s">✓</span>' : "—"}</button></td>`).join("")}<td>${x.ex ? `<button type="button" class="btn sm ghost" data-act="disp-padrao" data-uid="${esc(email)}" data-iso="${iso}" title="Voltar ao que está na sua semana"><span class="l">Voltar à semana</span><span class="s">↺</span></button>` : ""}</td></tr>`; }).join("")}
+    </tbody></table></div>
+  </section>`;
+  return intro + `<div class="grid2">${semana}${prox}</div>` + agendaEquipe(email);
+}
+
 function renderOwner() {
   renderTabs(ownerTabs());
   let html = "";
@@ -882,6 +964,7 @@ function renderOwner() {
   else if (S.tab === "vendas") html = ownerVendas();
   else if (S.tab === "comissoes") html = ownerComissoes();
   else if (S.tab === "atendimentos") html = ownerAtendimentos();
+  else if (S.tab === "agenda") html = agendaView(null);
   else if (S.tab === "acessos") html = ownerAcessos();
   else if (S.tab === "passeios") html = passeiosView();
   else if (S.tab === "tickets") html = ticketsView();
@@ -1272,6 +1355,20 @@ $("#main").addEventListener("click", async (e) => {
     else if (act === "abrir-dolar") abrirDolar();
     else if (act === "ver-conferir") abrirConferir();
     else if (act === "editar-venda") openVenda(id);
+    else if (act === "disp-semana") {
+      const d = dispDe(uid), w = b.dataset.dia, k = b.dataset.p;
+      const semana = { ...(d.semana || {}), [w]: { ...((d.semana || {})[w] || {}), [k]: b.getAttribute("aria-pressed") !== "true" } };
+      await salvarDisp(uid, { ...d, semana });
+    }
+    else if (act === "disp-dia") {
+      const d = dispDe(uid), iso = b.dataset.iso, k = b.dataset.p, dt = new Date(iso + "T12:00:00");
+      const atual = doDia(d, dt), pad = doPadrao(d, dt);
+      const novo = { m: atual.m, t: atual.t, n: atual.n, [k]: !atual[k] };
+      const excecoes = { ...(d.excecoes || {}) };
+      if (novo.m === pad.m && novo.t === pad.t && novo.n === pad.n) delete excecoes[iso]; else excecoes[iso] = novo;
+      await salvarDisp(uid, { ...d, excecoes });
+    }
+    else if (act === "disp-padrao") { const d = dispDe(uid), excecoes = { ...(d.excecoes || {}) }; delete excecoes[b.dataset.iso]; await salvarDisp(uid, { ...d, excecoes }); }
     else if (act === "pagar") await run(col("vendas").doc(id).update({ pagaEm: ymNow() }), "Comissão marcada como paga");
     else if (act === "despagar") await run(col("vendas").doc(id).update({ pagaEm: null }), "Pagamento desfeito");
     else if (act === "pagar-todas") {
@@ -1282,6 +1379,7 @@ $("#main").addEventListener("click", async (e) => {
     }
     else if (act === "suspender") {
       if (b.dataset.confirm !== "1") { b.dataset.confirm = "1"; b.textContent = "Confirmar suspensão"; return; }
+      try { await col("disponibilidade").doc(uid).delete(); } catch (_) {}
       await run(col("equipe").doc(uid).update({ ativo: false }), "Acesso suspenso");
     }
     else if (act === "reativar") await run(col("equipe").doc(uid).update({ ativo: true }), "Acesso reativado");
@@ -1325,6 +1423,7 @@ $("#main").addEventListener("change", async (e) => {
   const t = e.target;
   if (t.id === "n-semail") { $("#n-senha-box").hidden = !t.checked; if (t.checked && !$("#n-senha").value) $("#n-senha").value = gerarSenha(); return; }
   if (t.dataset.filter) { S.filtros[t.dataset.filter] = t.value; render(); return; }
+  if (t.dataset.dispObs) { const d = dispDe(t.dataset.dispObs), obs = t.value.trim(); if ((d.obs || "") !== obs) { await salvarDisp(t.dataset.dispObs, { ...d, obs }); toast("Recado salvo"); } return; }
   try {
     if (t.dataset.aba) {
       const uid = t.dataset.uid; const ab = { ...ABAS_PADRAO, ...((S.members[uid] || {}).abas || {}) }; ab[t.dataset.aba] = t.checked;
