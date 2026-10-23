@@ -666,7 +666,7 @@ function memberVendas(vendas) {
   <div class="section-head"><div><h2>Minhas vendas</h2><p>Vendas lançadas no seu nome nos últimos 24 meses.</p></div>
     <div class="field"><label for="f-minhas-mes">Mês de fechamento</label><select id="f-minhas-mes" data-filter="minhasMes"><option value="">Todos</option>${meses.map(m => `<option value="${m}" ${m === f ? "selected" : ""}>${ymLabel(m)}</option>`).join("")}</select></div></div>
   <section class="panel">${lista.length ? `<div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Destino</th><th>Fechada em</th><th>Embarque</th><th class="n">Valor</th><th>Situação</th></tr></thead>
-  <tbody>${lista.map(v => `<tr><td>${esc(v.cliente)}</td><td>${destTag(v.destino)}</td><td>${dLabel(v.fechamento)}</td><td>${dLabel(v.embarque)}</td><td class="n">${money(v.valor)}</td><td>${v.status === "cancelada" ? pill("cancelada") : '<span class="pill ok">Confirmada</span>'}</td></tr>`).join("")}</tbody>
+  <tbody>${lista.map(v => `<tr><td>${esc(v.cliente)}</td><td>${destTag(v.destino)}</td><td>${dLabel(v.fechamento)}</td><td>${dLabel(v.embarque)}</td><td class="n">${money(v.valor)}${reembNota(v)}</td><td>${v.status === "cancelada" ? pill("cancelada") : '<span class="pill ok">Confirmada</span>'}</td></tr>`).join("")}</tbody>
   <tfoot><tr><td colspan="4">${ok.length} vendas confirmadas</td><td class="n">${money(ok.reduce((s, v) => s + v.valor, 0))}</td><td></td></tr></tfoot></table></div>` : `<div class="empty"><strong>Nenhuma venda neste período</strong></div>`}</section>`;
 }
 
@@ -963,8 +963,10 @@ function ownerComercial() {
   const porDest = agrupa(v => v.destino), porOrig = agrupa(v => v.origemLead || "Sem origem informada"), porVend = agrupa(v => vendLabel(v));
   const tabela = (lista, titulo, comCor) => { const mx = Math.max(1, ...lista.map(x => x.v)); return `<section class="panel"><h3>${titulo}</h3>${lista.length ? `<div class="tablewrap"><table><thead><tr><th></th><th class="n">Vendas</th><th class="n">Valor</th><th style="width:22%"></th><th class="n">% do mês</th></tr></thead><tbody>${lista.map(x => `<tr><td>${comCor ? destTag(x.k) : esc(x.k)}</td><td class="n">${x.q}</td><td class="n">${money(x.v)}</td><td><div class="bar"><i style="width:${Math.round(x.v / mx * 100)}%"></i></div></td><td class="n">${fat ? (x.v / fat * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + "%" : "—"}</td></tr>`).join("")}</tbody></table></div>` : `<div class="empty"><strong>Sem vendas em ${ymLabel(M)}</strong></div>`}</section>`; };
   const futuros = Array.from({ length: 6 }, (_, i) => addM(hoje, i));
-  const saldoMes = futuros.map(m => ({ m, v: soma(ativas.filter(v => ymOf(v.embarque) === m), "saldoBRL"), u: soma(ativas.filter(v => ymOf(v.embarque) === m), "saldoUSD") }));
-  const saldoTotal = soma(ativas.filter(v => (v.embarque || "9") >= hoje), "saldoBRL");
+  const somaPos = (l, k) => l.reduce((s, v) => s + Math.max(0, Number(v[k]) || 0), 0);
+  const saldoMes = futuros.map(m => ({ m, v: somaPos(ativas.filter(v => ymOf(v.embarque) === m), "saldoBRL"), u: somaPos(ativas.filter(v => ymOf(v.embarque) === m), "saldoUSD") }));
+  const saldoTotal = somaPos(ativas.filter(v => (v.embarque || "9") >= hoje), "saldoBRL");
+  const reembMes = soma(doMes, "reembolsoBRL");
   const temCrm = ativas.some(v => v.origem === "crm");
   return `
   <div class="section-head"><div><h2>Comercial</h2><p>Vendas pela data de fechamento, com os dados da planilha do Trevor${S.comercial.ultimaImportacao ? ` (lida em ${new Date(S.comercial.ultimaImportacao).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })})` : ""}.</p></div>
@@ -973,7 +975,7 @@ function ownerComercial() {
   ${admin && !S.comercial.planilha ? `<div class="banner"><span>Ligue a planilha do Trevor para as vendas entrarem sozinhas.</span><button class="btn sm primary" data-act="abrir-config-trevor">Ligar planilha</button></div>` : ""}
   ${admin ? bannersComerciais(true) : ""}
   <div class="tiles">
-    <div class="tile feature"><span class="k">Vendido em ${MESES[+M.slice(5) - 1]}</span><span class="v">${money(fat)}</span>${delta(fat, fatA)}</div>
+    <div class="tile feature"><span class="k">Vendido em ${MESES[+M.slice(5) - 1]}</span><span class="v">${money(fat)}</span>${delta(fat, fatA)}${reembMes ? `<span class="d">Já sem ${money(reembMes)} de reembolsos</span>` : ""}</div>
     <div class="tile"><span class="k">Vendas fechadas</span><span class="v">${q}</span>${delta(q, qA)}</div>
     <div class="tile"><span class="k">Ticket médio</span><span class="v">${money(ticket)}</span>${delta(ticket, ticketA)}</div>
     <div class="tile"><span class="k">Viajantes</span><span class="v">${pax || "—"}</span><span class="d">${pax ? "Passageiros das vendas do mês" : "A planilha não informou"}</span></div>
@@ -991,7 +993,22 @@ function ownerComercial() {
   <div class="grid2">${tabela(porOrig, "Por origem da venda", false)}
     <section class="panel"><h3>A receber dos clientes</h3><p class="muted small" style="margin:0">Saldo em aberto pelo mês de chegada da viagem. Total a receber: <strong>${money(saldoTotal)}</strong>.</p>
       ${temCrm ? `<div class="tablewrap"><table><thead><tr><th>Chegada em</th><th class="n">Saldo R$</th><th class="n">Saldo US$</th></tr></thead><tbody>${saldoMes.map(x => `<tr><td>${ymLabel(x.m)}</td><td class="n">${money(x.v)}</td><td class="n">${x.u ? "US$ " + x.u.toLocaleString("pt-BR", { maximumFractionDigits: 0 }) : "—"}</td></tr>`).join("")}</tbody></table></div>` : `<div class="empty"><strong>Disponível com a planilha do Trevor</strong></div>`}
-    </section></div>`;
+    </section></div>
+  ${reembolsosPainel(ativas, admin)}`;
+}
+function reembNota(v) {
+  if (!v.reembolsoBRL && !v.reembolsoUSD) return "";
+  const t = [v.reembolsoBRL ? money(v.reembolsoBRL) : "", v.reembolsoUSD ? "US$ " + v.reembolsoUSD.toLocaleString("pt-BR") : ""].filter(Boolean).join(" + ");
+  return `<div class="muted small" title="${esc(v.reembolsoDetalhe || "")}">− ${t} de reembolso</div>`;
+}
+function reembolsosPainel(ativas, admin) {
+  const l = ativas.filter(v => v.reembolsoBRL || v.reembolsoUSD).sort((a, b) => (b.fechamento || "").localeCompare(a.fechamento || ""));
+  if (!l.length) return "";
+  const tot = l.reduce((s, v) => s + (Number(v.reembolsoBRL) || 0), 0);
+  const devolver = l.filter(v => (Number(v.saldoBRL) || 0) < 0);
+  return `<section class="panel"><div class="section-head"><div><h3>Reembolsos</h3><span class="muted small">O valor da venda já vem sem o reembolso, e comissão e bônus contam o valor final.${admin && devolver.length ? ` ${devolver.length} ${devolver.length === 1 ? "venda tem" : "vendas têm"} pagamento acima do valor final: confira se o dinheiro já voltou para o cliente.` : ""}</span></div><span class="pill info">Total geral ${money(tot)}</span></div>
+    <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Fechada em</th><th class="n">Reembolso</th><th>Motivo</th><th class="n">Valor final</th>${admin ? "<th>Devolução</th>" : ""}</tr></thead><tbody>${l.map(v => `<tr><td>${esc(v.cliente)}<div class="muted small">${esc(vendLabel(v))}${v.roteiro ? " · Roteiro " + esc(v.roteiro) : ""}</div></td><td>${dLabel(v.fechamento)}</td><td class="n">${money(v.reembolsoBRL)}${v.reembolsoUSD ? `<div class="muted small">+ US$ ${v.reembolsoUSD.toLocaleString("pt-BR")}</div>` : ""}</td><td class="small">${esc(String(v.reembolsoDetalhe || "—").replace(/^R\$\s?[\d.,]+\s*-\s*/, ""))}</td><td class="n">${money(v.valor)}</td>${admin ? `<td>${(Number(v.saldoBRL) || 0) < 0 ? `<span class="pill warn">confirmar ${money(-v.saldoBRL)}</span>` : '<span class="pill ok">ok</span>'}</td>` : ""}</tr>`).join("")}</tbody></table></div>
+  </section>`;
 }
 function abrirConfigTrevor() {
   const c = S.comercial;
@@ -999,7 +1016,7 @@ function abrirConfigTrevor() {
     <div class="section-head"><h2>Planilha do Trevor</h2><button type="button" class="btn sm ghost" data-close-btn>Fechar</button></div>
     <div class="field"><label for="cfg-planilha">Link da planilha (Google Sheets)</label><input type="text" id="cfg-planilha" value="${esc(c.planilha || "")}" placeholder="https://docs.google.com/spreadsheets/d/..."></div>
     <p class="small muted" style="margin:0">A planilha precisa estar compartilhada como “Qualquer pessoa com o link: Leitor”. O link fica guardado só para você; a equipe não vê. O portal lê a planilha sozinho quando você abre (no máximo a cada 30 minutos) e pelo botão “Atualizar do Trevor”.</p>
-    <p class="small muted" style="margin:0">A cotação do dólar é informada venda a venda, em “Vendas em dólar”. Se um dia a planilha do Trevor tiver uma coluna “Cotação”, o portal usa ela sozinho.</p>
+    <p class="small muted" style="margin:0">Quando o CRM já converteu o dólar, o “Valor final R$” da planilha já vem em reais e não precisa de cotação. Só as vendas com saldo ainda em dólar pedem o câmbio do dia, em “Vendas em dólar”.</p>
     <div class="row" style="justify-content:flex-end"><button type="button" class="btn primary" data-act="salvar-trevor">Salvar e ler a planilha</button></div>
   </div></div>`;
 }
@@ -1008,7 +1025,7 @@ function abrirDolar() {
   const usd = (n) => "US$ " + (Number(n) || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   $("#layer").innerHTML = `<div class="overlay" data-close><div class="dialog" style="max-width:820px">
     <div class="section-head"><h2>Vendas em dólar</h2><button type="button" class="btn sm ghost" data-close-btn>Fechar</button></div>
-    <p class="small muted" style="margin:0">Informe o câmbio do dia de cada venda. O valor total (reais + dólar convertido) é o que conta para comissão, bônus e relatórios. A cotação que você digitar aqui fica guardada mesmo quando a planilha for lida de novo.</p>
+    <p class="small muted" style="margin:0">Aqui aparecem só as vendas que ainda têm parte em dólar (as já convertidas no CRM entram direto em reais). Informe o câmbio do dia de cada uma. O valor total (reais + dólar convertido) é o que conta para comissão, bônus e relatórios. A cotação que você digitar aqui fica guardada mesmo quando a planilha for lida de novo.</p>
     <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Venda</th><th class="n">Parte em R$</th><th class="n">Parte em US$</th><th>Cotação</th><th class="n">Total em R$</th></tr></thead><tbody>
     ${l.map(v => { const c = v.cotacaoVenda || v.cotacao || ""; return `<tr><td>${esc(v.cliente)}<div class="muted small">${esc(vendLabel(v))}</div></td><td>${dLabel(v.fechamento)}</td><td class="n">${money(v.valorBRL)}</td><td class="n">${usd(v.valorUSD)}</td><td><input type="number" min="0" step="0.0001" data-cotv="${esc(v.id)}" data-brl="${v.valorBRL || 0}" data-usd="${v.valorUSD}" value="${c}" placeholder="Ex.: 5,4321" style="width:110px"></td><td class="n" data-total="${esc(v.id)}">${c ? money((v.valorBRL || 0) + v.valorUSD * c) : '<span class="pill warn">sem cotação</span>'}</td></tr>`; }).join("")}
     </tbody></table></div>
@@ -1048,7 +1065,7 @@ function ownerVendas() {
     <div class="field"><label for="f-busca">Buscar</label><input type="search" id="f-busca" placeholder="Cliente, destino ou observação" value="${esc(f.busca)}"></div>
   </div>
   <section class="panel">${vs.length ? `<div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Vendedor</th><th>Fechada em</th><th>Embarque</th><th class="n">Valor</th><th class="n">Comissão</th><th>Situação</th><th></th></tr></thead>
-  <tbody>${vs.map(v => `<tr><td>${esc(v.cliente)}<div>${destTag(v.destino)}${v.valorUSD ? ` <span class="pill ${v.semCotacao ? "warn" : "neutral"}" title="${v.semCotacao ? "Sem cotação: conta só a parte em reais" : "Convertido pelo câmbio de R$ " + String(v.cotacao).replace(".", ",")}">US$ ${v.valorUSD.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}</span>` : ""}</div></td><td>${esc(vendLabel(v))}</td><td>${dLabel(v.fechamento)}</td><td>${dLabel(v.embarque)}</td><td class="n">${money(v.valor)}</td><td class="n">${!v.vendedor || v.casa ? `<span class="muted">—</span><div class="muted small">${v.casa ? "sem comissão" : "ligue o vendedor"}</div>` : `${money(v.comissao)}<div class="muted small">${pctFmt(v.pct)} · paga em ${ymLabel(v.mesPagamento)}</div>`}</td><td>${pill(statusOf(v))}</td><td><button class="btn sm ghost" data-act="editar-venda" data-id="${esc(v.id)}">Editar</button></td></tr>`).join("")}</tbody>
+  <tbody>${vs.map(v => `<tr><td>${esc(v.cliente)}<div>${destTag(v.destino)}${v.valorUSD ? ` <span class="pill ${v.semCotacao ? "warn" : "neutral"}" title="${v.semCotacao ? "Sem cotação: conta só a parte em reais" : "Convertido pelo câmbio de R$ " + String(v.cotacao).replace(".", ",")}">US$ ${v.valorUSD.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}</span>` : ""}</div></td><td>${esc(vendLabel(v))}</td><td>${dLabel(v.fechamento)}</td><td>${dLabel(v.embarque)}</td><td class="n">${money(v.valor)}${reembNota(v)}</td><td class="n">${!v.vendedor || v.casa ? `<span class="muted">—</span><div class="muted small">${v.casa ? "sem comissão" : "ligue o vendedor"}</div>` : `${money(v.comissao)}<div class="muted small">${pctFmt(v.pct)} · paga em ${ymLabel(v.mesPagamento)}</div>`}</td><td>${pill(statusOf(v))}</td><td><button class="btn sm ghost" data-act="editar-venda" data-id="${esc(v.id)}">Editar</button></td></tr>`).join("")}</tbody>
   <tfoot><tr><td colspan="4">${ok.length} confirmadas</td><td class="n">${money(ok.reduce((s, v) => s + v.valor, 0))}</td><td class="n">${money(ok.reduce((s, v) => s + v.comissao, 0))}</td><td colspan="2"></td></tr></tfoot></table></div>`
     : `<div class="empty"><strong>Nenhuma venda ${f.vend || f.mes || f.busca ? "com esses filtros" : "lançada ainda"}</strong><span>${S.comercial.planilha ? "Clique em “Atualizar do Trevor”." : "Ligue a planilha do Trevor ou use “Nova venda”."}</span></div>`}</section>`;
 }
@@ -1386,7 +1403,7 @@ function urlPlanilha(link) {
   const gid = (String(link).match(/[#&?]gid=(\d+)/) || [])[1];
   return `https://docs.google.com/spreadsheets/d/${id}/export?format=csv${gid ? "&gid=" + gid : ""}`;
 }
-const CAMPOS_CRM = ["cliente", "destino", "vendedor", "vendedorNome", "casa", "valorBRL", "valorUSD", "cotacao", "semCotacao", "valor", "fechamento", "embarque", "retorno", "pax", "statusCrm", "pagoBRL", "saldoBRL", "pagoUSD", "saldoUSD", "origemLead", "conferir", "roteiro"];
+const CAMPOS_CRM = ["cliente", "destino", "vendedor", "vendedorNome", "casa", "valorBRL", "valorUSD", "cotacao", "semCotacao", "valor", "fechamento", "embarque", "retorno", "pax", "statusCrm", "pagoBRL", "saldoBRL", "pagoUSD", "saldoUSD", "origemLead", "conferir", "roteiro", "reembolsoBRL", "reembolsoUSD", "reembolsoDetalhe", "descontoBRL", "moedaCrm"];
 async function importarTrevor(silencioso) {
   const c = S.comercial, url = urlPlanilha(c.planilha);
   if (!url) { if (!silencioso) toast("Cole o link da planilha do Trevor primeiro."); return; }
@@ -1397,8 +1414,8 @@ async function importarTrevor(silencioso) {
     catch (_) { throw new Error("A planilha não abriu. Confira se ela está compartilhada como “Qualquer pessoa com o link: Leitor”."); }
     const linhas = lerCSV(txt); if (linhas.length < 2) throw new Error("A planilha está vazia.");
     const cab = linhas[0].map(semAcento), col_ = (nome) => cab.findIndex(h => h === nome || h.startsWith(nome));
-    const ix = { data: col_("data da venda"), dest: col_("destino"), rot: col_("roteiro"), cli: col_("cliente"), vend: col_("vendedor"), st: col_("status"), pax: col_("pax"), cheg: col_("chegada"), part: col_("partida"), tot: col_("total r$"), pago: col_("pago r$"), saldo: col_("saldo r$"), totU: col_("total us$"), pagoU: col_("pago us$"), saldoU: col_("saldo us$"), orig: col_("origem"), conf: col_("conferir"), conta: col_("conta no total"), cot: cab.findIndex(h => /^(cotacao|cambio|taxa de cambio)/.test(h)) };
-    if (ix.data < 0 || ix.cli < 0 || ix.tot < 0) throw new Error("Não reconheci as colunas da planilha (faltam Data da venda, Cliente ou Total R$).");
+    const ix = { data: col_("data da venda"), dest: col_("destino"), rot: col_("roteiro"), cli: col_("cliente"), vend: col_("vendedor"), st: col_("status"), pax: col_("pax"), cheg: col_("chegada"), part: col_("partida"), tot: col_("valor final r$") >= 0 ? col_("valor final r$") : col_("total r$"), pago: col_("pago r$"), saldo: col_("saldo r$"), totU: col_("valor final us$") >= 0 ? col_("valor final us$") : col_("total us$"), subU: col_("subtotal us$"), adicU: col_("adicionais us$"), descU: col_("descontos us$"), reemb: col_("reembolsos r$"), reembU: col_("reembolsos us$"), reembD: col_("detalhe dos reembolsos"), desc: col_("descontos r$"), moeda: col_("moeda do preco"), pagoU: col_("pago us$"), saldoU: col_("saldo us$"), orig: col_("origem"), conf: col_("conferir"), conta: col_("conta no total"), cot: cab.findIndex(h => /^(cotacao|cambio|taxa de cambio)/.test(h)) };
+    if (ix.data < 0 || ix.cli < 0 || ix.tot < 0) throw new Error("Não reconheci as colunas da planilha (faltam Data da venda, Cliente ou Valor final R$).");
     const v_ = (l, k) => ix[k] >= 0 ? (l[ix[k]] || "").trim() : "";
     const vistos = {}; let novas = 0, alteradas = 0, ignoradas = 0; const escritas = [];
     for (const l of linhas.slice(1)) {
@@ -1412,7 +1429,14 @@ async function importarTrevor(silencioso) {
       const casa = achado === "__casa";
       let vendedor = casa ? "" : achado;
       if (!vendedor && !casa && antigo && antigo.vendedor) vendedor = antigo.vendedor; // mantém quem você atribuiu à mão
-      const valorBRL = lerMoeda(v_(l, "tot")), valorUSD = lerMoeda(v_(l, "totU"));
+      // Planilha nova: "Valor final R$" já vem com o dólar convertido e sem os reembolsos.
+      // A parte em dólar é recalculada pelas colunas (algumas células de US$ às vezes vêm com texto em R$).
+      const valorBRL = lerMoeda(v_(l, "tot"));
+      const usdCel = (k) => /R\$/.test(v_(l, k)) ? 0 : lerMoeda(v_(l, k));
+      const valorUSD = ix.subU >= 0 ? Math.max(0, round2(usdCel("subU") + usdCel("adicU") - usdCel("descU") - usdCel("reembU"))) : lerMoeda(v_(l, "totU"));
+      const pagoBRL = lerMoeda(v_(l, "pago")), pagoUSD = usdCel("pagoU");
+      const saldoBRL = ix.subU >= 0 ? round2(valorBRL - pagoBRL) : lerMoeda(v_(l, "saldo"));
+      const saldoUSD = ix.subU >= 0 ? round2(valorUSD - pagoUSD) : lerMoeda(v_(l, "saldoU"));
       // cotação da própria venda: a que você digitou no portal > coluna de cotação da planilha (se existir) > cotação antiga do mês
       const cot = Number(antigo && antigo.cotacaoVenda) || lerMoeda(v_(l, "cot")) || Number((c.cotacoes || {})[ymOf(fechamento)]) || 0;
       const d = {
@@ -1420,8 +1444,9 @@ async function importarTrevor(silencioso) {
         valorBRL, valorUSD, cotacao: valorUSD ? (cot || null) : null, semCotacao: !!(valorUSD && !cot),
         valor: round2(valorBRL + (valorUSD && cot ? valorUSD * cot : 0)),
         fechamento, embarque: lerData(v_(l, "cheg")), retorno: lerData(v_(l, "part")), pax: Number(v_(l, "pax")) || null,
-        statusCrm: v_(l, "st"), pagoBRL: lerMoeda(v_(l, "pago")), saldoBRL: lerMoeda(v_(l, "saldo")), pagoUSD: lerMoeda(v_(l, "pagoU")), saldoUSD: lerMoeda(v_(l, "saldoU")),
-        origemLead: v_(l, "orig"), conferir: v_(l, "conf"), roteiro: v_(l, "rot")
+        statusCrm: v_(l, "st"), pagoBRL, saldoBRL, pagoUSD, saldoUSD,
+        origemLead: v_(l, "orig"), conferir: v_(l, "conf"), roteiro: v_(l, "rot"),
+        reembolsoBRL: lerMoeda(v_(l, "reemb")), reembolsoUSD: usdCel("reembU"), reembolsoDetalhe: v_(l, "reembD"), descontoBRL: lerMoeda(v_(l, "desc")), moedaCrm: v_(l, "moeda")
       };
       const mudou = !antigo || CAMPOS_CRM.some(k => JSON.stringify(antigo[k] ?? null) !== JSON.stringify(d[k] ?? null));
       if (!mudou) continue;
