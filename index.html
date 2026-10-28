@@ -348,11 +348,18 @@ const ABAS = [["inicio", "Início"], ["vendas", "Minhas vendas"], ["agenda", "Di
 const ABAS_PADRAO = { inicio: true, comissoes: true, vendas: true, agenda: true, passeios: true, tickets: true, equipe: false };
 const emailOk = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
 
+const semAcento = (t) => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
 // Regra de comissão: valor × percentual; paga no mês seguinte ao FIM da viagem (data de volta / "Partida" do CRM).
 // Ex.: chegou 25/10 e volta 01/11 → viagem conta em novembro → comissão paga em dezembro.
 function enrich(v) {
   const pct = Number(v.pct) || 0, valor = Number(v.valor) || 0;
-  return { ...v, valor, pct, comissao: round2(valor * pct / 100), mesPagamento: (v.retorno || v.embarque) ? addM(ymOf(v.retorno || v.embarque), 1) : "" };
+  // Só gera comissão o roteiro com status "Programado" no CRM (vendas lançadas à mão contam normalmente)
+  const naoProgramado = v.origem === "crm" && !v.pagaEm && !semAcento(v.statusCrm).startsWith("programad");
+  const prevista = round2(valor * pct / 100);
+  return { ...v, valor, pct, comissaoPrevista: prevista, naoProgramado, comissao: naoProgramado ? 0 : prevista, mesPagamento: (v.retorno || v.embarque) ? addM(ymOf(v.retorno || v.embarque), 1) : "" };
+}
+function comCel(v) {
+  return v.naoProgramado ? `<span class="muted">${money(v.comissaoPrevista)}</span><div class="muted small">conta quando estiver Programado</div>` : money(v.comissao);
 }
 function viagemCel(v) {
   return `${dLabel(v.embarque)}${v.retorno ? `<div class="muted small">volta ${dLabel(v.retorno)}</div>` : ""}`;
@@ -360,10 +367,11 @@ function viagemCel(v) {
 function statusOf(v, hoje = ymNow()) {
   if (v.status === "cancelada") return "cancelada";
   if (v.pagaEm) return "paga";
+  if (v.naoProgramado) return "nao-programado";
   if (!v.mesPagamento) return "sem-data";
   return hoje >= v.mesPagamento ? "a-pagar" : "prevista";
 }
-const STATUS_PILL = { "paga": ["ok", "Paga"], "a-pagar": ["warn", "A pagar"], "prevista": ["info", "Prevista"], "cancelada": ["bad", "Cancelada"], "sem-data": ["neutral", "Sem data da viagem"] };
+const STATUS_PILL = { "paga": ["ok", "Paga"], "a-pagar": ["warn", "A pagar"], "prevista": ["info", "Prevista"], "cancelada": ["bad", "Cancelada"], "sem-data": ["neutral", "Sem data da viagem"], "nao-programado": ["neutral", "Aguardando “Programado”"] };
 const pill = (st) => { const [c, t] = STATUS_PILL[st] || ["neutral", st]; return `<span class="pill ${c}">${t}</span>`; };
 
 // ---------- estado ----------
@@ -662,7 +670,7 @@ function memberInicio(data, vendas, hoje, viewingAs) {
     <section class="panel"><h3>Próximos pagamentos de comissão</h3>
       <div class="tablewrap"><table><thead><tr><th>Mês de pagamento</th><th class="n">Vendas</th><th class="n">Comissão</th><th style="width:28%"></th></tr></thead>
       <tbody>${linhas.map(([m, q, t]) => `<tr><td>${ymLabel(m)}${m === hoje ? ' <span class="pill warn">este mês</span>' : ""}</td><td class="n">${q}</td><td class="n">${money(t)}</td><td><div class="bar"><i style="width:${maxL ? Math.round(t / maxL * 100) : 0}%"></i></div></td></tr>`).join("")}</tbody></table></div>
-      <p class="muted small" style="margin:0">A comissão é paga no mês seguinte ao fim da viagem do cliente. Quem volta em julho gera comissão paga em agosto. Se a viagem começa em julho e termina em agosto, a comissão sai em setembro.</p>
+      <p class="muted small" style="margin:0">A comissão é paga no mês seguinte ao fim da viagem do cliente, quando o roteiro está como “Programado” no CRM. Quem volta em julho gera comissão paga em agosto. Se a viagem começa em julho e termina em agosto, a comissão sai em setembro.</p>
     </section>
     <section class="panel"><h3>Últimas vendas</h3>
       ${ult.length ? `<div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Fechada em</th><th class="n">Valor</th></tr></thead><tbody>${ult.map(v => `<tr><td>${esc(v.cliente)}<div>${destTag(v.destino)}</div></td><td>${dLabel(v.fechamento)}</td><td class="n">${money(v.valor)}</td></tr>`).join("")}</tbody></table></div>` : `<div class="empty"><strong>Nenhuma venda registrada ainda</strong><span>Suas vendas aparecem aqui assim que forem lançadas.</span></div>`}
@@ -685,7 +693,7 @@ function memberComissoes(data, vendas, hoje) {
     const vs = ativas.filter(v => v.mesPagamento === m);
     return `<section class="panel"><div class="section-head"><h3>Pagamento em ${ymLong(m)}</h3><strong>${money(vs.reduce((s, v) => s + v.comissao, 0))}</strong></div>
     <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Viagem</th><th class="n">Venda</th><th class="n">%</th><th class="n">Comissão</th><th>Situação</th></tr></thead>
-    <tbody>${vs.map(v => `<tr><td>${esc(v.cliente)}<div>${destTag(v.destino)}</div></td><td>${viagemCel(v)}</td><td class="n">${money(v.valor)}</td><td class="n">${pctFmt(v.pct)}</td><td class="n">${money(v.comissao)}</td><td>${pill(statusOf(v, hoje))}</td></tr>`).join("")}</tbody></table></div></section>`;
+    <tbody>${vs.map(v => `<tr><td>${esc(v.cliente)}<div>${destTag(v.destino)}</div></td><td>${viagemCel(v)}</td><td class="n">${money(v.valor)}</td><td class="n">${pctFmt(v.pct)}</td><td class="n">${comCel(v)}</td><td>${pill(statusOf(v, hoje))}</td></tr>`).join("")}</tbody></table></div></section>`;
   }).join("") : `<div class="empty"><strong>Nenhuma comissão por enquanto</strong><span>Quando uma venda sua for lançada, a comissão aparece aqui no mês em que será paga.</span></div>`}`;
 }
 
@@ -1123,6 +1131,14 @@ function abrirDolar() {
     cel.innerHTML = c ? money(Number(i.dataset.brl) + Number(i.dataset.usd) * c) : '<span class="pill warn">sem cotação</span>';
   }));
 }
+function abrirFora() {
+  const l = alertasComerciais().fora.map(enrich).sort((a, b) => (b.fechamento || "").localeCompare(a.fechamento || ""));
+  $("#layer").innerHTML = `<div class="overlay" data-close><div class="dialog" style="max-width:860px">
+    <div class="section-head"><h2>Vendas que saíram da planilha</h2><button type="button" class="btn sm ghost" data-close-btn>Fechar</button></div>
+    <p class="small muted" style="margin:0">Estas vendas vieram de uma leitura anterior, mas não estão na planilha atual do Trevor. Se foram canceladas no CRM, abra e marque “Venda cancelada” (ou exclua). Se ainda valem, pode deixar como estão.</p>
+    <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Vendedor</th><th>Fechada em</th><th>Viagem</th><th class="n">Valor</th><th>Status no CRM</th><th></th></tr></thead><tbody>${l.map(v => `<tr><td>${esc(v.cliente)}<div class="muted small">${esc(v.roteiro ? "Roteiro " + v.roteiro : "")}</div></td><td>${esc(vendLabel(v))}</td><td>${dLabel(v.fechamento)}</td><td>${viagemCel(v)}</td><td class="n">${money(v.valor)}</td><td class="small">${esc(v.statusCrm || "—")}</td><td><button type="button" class="btn sm ghost" data-act="editar-venda-fora" data-id="${esc(v.id)}">Abrir</button></td></tr>`).join("")}</tbody></table></div>
+  </div></div>`;
+}
 function abrirConferir() {
   const l = allVendas().filter(v => v.conferir && v.status !== "cancelada").sort((a, b) => (b.fechamento || "").localeCompare(a.fechamento || ""));
   $("#layer").innerHTML = `<div class="overlay" data-close><div class="dialog">
@@ -1152,7 +1168,7 @@ function ownerVendas() {
     <div class="field"><label for="f-busca">Buscar</label><input type="search" id="f-busca" placeholder="Cliente, destino ou observação" value="${esc(f.busca)}"></div>
   </div>
   <section class="panel">${vs.length ? `<div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Vendedor</th><th>Fechada em</th><th>Viagem</th><th class="n">Valor</th><th class="n">Comissão</th><th>Situação</th><th></th></tr></thead>
-  <tbody>${vs.map(v => `<tr><td>${esc(v.cliente)}<div>${destTag(v.destino)}${v.valorUSD ? ` <span class="pill ${v.semCotacao ? "warn" : "neutral"}" title="${v.semCotacao ? "Sem cotação: conta só a parte em reais" : "Convertido pelo câmbio de R$ " + String(v.cotacao).replace(".", ",")}">US$ ${v.valorUSD.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}</span>` : ""}</div></td><td>${esc(vendLabel(v))}</td><td>${dLabel(v.fechamento)}</td><td>${viagemCel(v)}</td><td class="n">${money(v.valor)}${reembNota(v)}</td><td class="n">${!v.vendedor || v.casa ? `<span class="muted">—</span><div class="muted small">${v.casa ? "sem comissão" : "ligue o vendedor"}</div>` : `${money(v.comissao)}<div class="muted small">${pctFmt(v.pct)} · paga em ${ymLabel(v.mesPagamento)}</div>`}</td><td>${pill(statusOf(v))}</td><td><button class="btn sm ghost" data-act="editar-venda" data-id="${esc(v.id)}">Editar</button></td></tr>`).join("")}</tbody>
+  <tbody>${vs.map(v => `<tr><td>${esc(v.cliente)}<div>${destTag(v.destino)}${v.valorUSD ? ` <span class="pill ${v.semCotacao ? "warn" : "neutral"}" title="${v.semCotacao ? "Sem cotação: conta só a parte em reais" : "Convertido pelo câmbio de R$ " + String(v.cotacao).replace(".", ",")}">US$ ${v.valorUSD.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}</span>` : ""}</div></td><td>${esc(vendLabel(v))}</td><td>${dLabel(v.fechamento)}</td><td>${viagemCel(v)}</td><td class="n">${money(v.valor)}${reembNota(v)}</td><td class="n">${!v.vendedor || v.casa ? `<span class="muted">—</span><div class="muted small">${v.casa ? "sem comissão" : "ligue o vendedor"}</div>` : `${comCel(v)}<div class="muted small">${pctFmt(v.pct)} · paga em ${ymLabel(v.mesPagamento)}</div>`}</td><td>${pill(statusOf(v))}</td><td><button class="btn sm ghost" data-act="editar-venda" data-id="${esc(v.id)}">Editar</button></td></tr>`).join("")}</tbody>
   <tfoot><tr><td colspan="4">${ok.length} confirmadas</td><td class="n">${money(ok.reduce((s, v) => s + v.valor, 0))}</td><td class="n">${money(ok.reduce((s, v) => s + v.comissao, 0))}</td><td colspan="2"></td></tr></tfoot></table></div>`
     : `<div class="empty"><strong>Nenhuma venda ${f.vend || f.mes || f.busca ? "com esses filtros" : "lançada ainda"}</strong><span>${S.comercial.planilha ? "Clique em “Atualizar do Trevor”." : "Ligue a planilha do Trevor ou use “Nova venda”."}</span></div>`}</section>`;
 }
@@ -1165,7 +1181,7 @@ function ownerComissoes() {
   const futuros = Array.from({ length: 6 }, (_, i) => addM(hoje, i + 1));
   const ids = [...new Set(vs.map(v => v.vendedor))];
   return `
-  <div class="section-head"><div><h2>Comissões</h2><p>Cada comissão é paga no mês seguinte ao fim da viagem (data de volta do cliente). Marque como paga quando fizer o pagamento: a pessoa vê a mudança no próximo acesso.</p></div>
+  <div class="section-head"><div><h2>Comissões</h2><p>Cada comissão é paga no mês seguinte ao fim da viagem (data de volta do cliente), e só conta quando o roteiro está como “Programado” no CRM. Marque como paga quando fizer o pagamento: a pessoa vê a mudança no próximo acesso.</p></div>
     <div class="field"><label for="f-com-mes">Mês de pagamento</label><select id="f-com-mes" data-filter="comMes">${monthOptions(M, 12, 6)}</select></div></div>
   ${pessoas.length ? pessoas.map(u => {
     const lista = doMes.filter(v => v.vendedor === u);
@@ -1173,7 +1189,7 @@ function ownerComissoes() {
     return `<section class="panel"><div class="section-head"><div><h3>${esc(label(u))}</h3><span class="muted small">${lista.length} ${lista.length === 1 ? "venda" : "vendas"} · ${money(total)}</span></div>
       ${aberto.length && M <= hoje ? `<button class="btn sm primary" data-act="pagar-todas" data-uid="${esc(u)}">Marcar ${aberto.length === 1 ? "como paga" : "as " + aberto.length + " como pagas"}</button>` : ""}</div>
       <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Viagem</th><th class="n">Venda</th><th class="n">%</th><th class="n">Comissão</th><th>Situação</th><th></th></tr></thead>
-      <tbody>${lista.map(v => { const st = statusOf(v); return `<tr><td>${esc(v.cliente)}<div>${destTag(v.destino)}</div></td><td>${viagemCel(v)}</td><td class="n">${money(v.valor)}</td><td class="n">${pctFmt(v.pct)}</td><td class="n">${money(v.comissao)}</td><td>${pill(st)}</td><td>${st === "paga" ? `<button class="btn sm ghost" data-act="despagar" data-id="${esc(v.id)}">Desfazer</button>` : st === "a-pagar" ? `<button class="btn sm" data-act="pagar" data-id="${esc(v.id)}">Marcar paga</button>` : ""}</td></tr>`; }).join("")}</tbody></table></div></section>`;
+      <tbody>${lista.map(v => { const st = statusOf(v); return `<tr><td>${esc(v.cliente)}<div>${destTag(v.destino)}</div></td><td>${viagemCel(v)}</td><td class="n">${money(v.valor)}</td><td class="n">${pctFmt(v.pct)}</td><td class="n">${comCel(v)}</td><td>${pill(st)}</td><td>${st === "paga" ? `<button class="btn sm ghost" data-act="despagar" data-id="${esc(v.id)}">Desfazer</button>` : st === "a-pagar" ? `<button class="btn sm" data-act="pagar" data-id="${esc(v.id)}">Marcar paga</button>` : ""}</td></tr>`; }).join("")}</tbody></table></div></section>`;
   }).join("") : `<div class="empty"><strong>Nenhuma comissão com pagamento em ${ymLong(M)}</strong><span>Comissões de ${ymLong(M)} vêm de clientes que embarcaram em ${ymLong(addM(M, -1))}.</span></div>`}
   <section class="panel"><h3>Previsão dos próximos meses</h3>
     ${ids.length ? `<div class="tablewrap"><table><thead><tr><th>Pessoa</th>${futuros.map(m => `<th class="n">${ymLabel(m)}</th>`).join("")}</tr></thead>
@@ -1294,6 +1310,7 @@ function closeLayer() { $("#layer").innerHTML = ""; }
 $("#layer").addEventListener("click", async (e) => {
   if (e.target.matches("[data-close]") || e.target.closest("[data-close-btn]")) return closeLayer();
   if (e.target.closest("[data-gerar-ns]")) { $("#ns-senha").value = gerarSenha(); return; }
+  const vf = e.target.closest('[data-act="editar-venda-fora"]'); if (vf) { openVenda(vf.dataset.id); return; }
   const cp = e.target.closest("[data-copiar]");
   if (cp) { try { await navigator.clipboard.writeText(cp.dataset.copiar.replace(/\\n/g, "\n")); toast("Dados copiados"); } catch (_) { toast("Não deu para copiar; anote os dados."); } return; }
   if (e.target.closest('[data-act="recriar-login"]')) {
@@ -1360,6 +1377,7 @@ $("#main").addEventListener("click", async (e) => {
     else if (act === "abrir-config-trevor") abrirConfigTrevor();
     else if (act === "abrir-dolar") abrirDolar();
     else if (act === "ver-conferir") abrirConferir();
+    else if (act === "ver-fora") abrirFora();
     else if (act === "editar-venda") openVenda(id);
     else if (act === "disp-semana") {
       const d = dispDe(uid), w = b.dataset.dia, k = b.dataset.p;
@@ -1379,7 +1397,7 @@ $("#main").addEventListener("click", async (e) => {
     else if (act === "despagar") await run(col("vendas").doc(id).update({ pagaEm: null }), "Pagamento desfeito");
     else if (act === "pagar-todas") {
       b.disabled = true;
-      const lista = allVendas().filter(v => v.vendedor === uid && v.mesPagamento === S.filtros.comMes && v.status !== "cancelada" && !v.pagaEm).map(v => v.id);
+      const lista = allVendas().filter(v => v.vendedor === uid && v.mesPagamento === S.filtros.comMes && v.status !== "cancelada" && !v.pagaEm && !v.naoProgramado).map(v => v.id);
       const batch = S.db.batch(); lista.forEach(i => batch.update(col("vendas").doc(i), { pagaEm: ymNow() }));
       await run(batch.commit(), "Comissões marcadas como pagas");
     }
@@ -1466,7 +1484,6 @@ $("#main").addEventListener("input", (e) => {
 });
 
 // ---------- planilha do Trevor (vendas do CRM) ----------
-const semAcento = (t) => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
 function lerCSV(txt) {
   const linhas = []; let linha = [], campo = "", aspas = false;
   for (let i = 0; i < txt.length; i++) {
@@ -1566,8 +1583,9 @@ async function importarTrevor(silencioso) {
       await lote.commit();
     }
     const resultado = { linhas: linhas.length - 1, novas, alteradas, ignoradas, em: new Date().toISOString() };
-    S.comercial.ultimaImportacao = resultado.em; S.comercial.ultimoResultado = resultado;
-    await col("config").doc("comercial").set({ ultimaImportacao: resultado.em, ultimoResultado: resultado }, { merge: true });
+    const idsPlanilha = Object.keys(vistos).sort();
+    S.comercial.ultimaImportacao = resultado.em; S.comercial.ultimoResultado = resultado; S.comercial.idsPlanilha = idsPlanilha;
+    await col("config").doc("comercial").set({ ultimaImportacao: resultado.em, ultimoResultado: resultado, idsPlanilha }, { merge: true });
     S.importando = false;
     await reload(silencioso && !novas && !alteradas ? "" : `Planilha do Trevor lida: ${novas} ${novas === 1 ? "venda nova" : "vendas novas"}, ${alteradas} ${alteradas === 1 ? "atualizada" : "atualizadas"}.`);
   } catch (e) {
@@ -1597,13 +1615,16 @@ function alertasComerciais() {
   const comUsd = vs.filter(v => v.valorUSD);
   const semCadastro = [...new Set(vs.filter(v => !v.vendedor && !v.casa && v.vendedorNome).map(v => v.vendedorNome))];
   const conferir = vs.filter(v => v.conferir);
-  return { semCot, comUsd, semCadastro, conferir };
+  const ids = S.comercial.idsPlanilha; const naPlanilha = ids && ids.length ? new Set(ids) : null;
+  const fora = naPlanilha ? vs.filter(v => !naPlanilha.has(v.id)) : [];
+  return { semCot, comUsd, semCadastro, conferir, fora };
 }
 function bannersComerciais(completo) {
   const a = alertasComerciais(); let h = "";
   if (a.semCot.length) h += `<div class="banner warn-b"><span>💵 ${a.semCot.length === 1 ? "<strong>1 venda</strong> em dólar está" : `<strong>${a.semCot.length} vendas</strong> em dólar estão`} sem cotação. Enquanto isso, contam só a parte em reais (na comissão e no bônus também).</span><button class="btn sm" data-act="abrir-dolar">Informar câmbio</button></div>`;
   else if (completo && a.comUsd.length) h += `<div class="banner"><span>💵 ${a.comUsd.length} ${a.comUsd.length === 1 ? "venda tem" : "vendas têm"} parte em dólar, convertida pelo câmbio de cada venda.</span><button class="btn sm" data-act="abrir-dolar">Ver câmbios</button></div>`;
   if (a.semCadastro.length) h += `<div class="banner warn-b"><span>Vendedor(a) da planilha sem cadastro no portal: ${a.semCadastro.map(n => `<strong>${esc(n)}</strong>`).join(", ")}. As vendas aparecem, mas sem comissão.</span><button class="btn sm" data-tab-go="acessos">Cadastrar ou ligar nome</button></div>`;
+  if (a.fora.length) h += `<div class="banner warn-b"><span><strong>${a.fora.length}</strong> ${a.fora.length === 1 ? "venda está" : "vendas estão"} no portal mas não aparecem mais na planilha do Trevor (podem ter sido canceladas ou apagadas no CRM). Elas continuam contando até você conferir.</span><button class="btn sm" data-act="ver-fora">Ver quais</button></div>`;
   if (completo && a.conferir.length) h += `<div class="banner"><span>O Trevor marcou <strong>${a.conferir.length}</strong> ${a.conferir.length === 1 ? "venda" : "vendas"} para conferir no CRM (coluna “Conferir”).</span><button class="btn sm" data-act="ver-conferir">Ver quais</button></div>`;
   return h;
 }
