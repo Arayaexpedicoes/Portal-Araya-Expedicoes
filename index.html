@@ -348,10 +348,14 @@ const ABAS = [["inicio", "Início"], ["vendas", "Minhas vendas"], ["agenda", "Di
 const ABAS_PADRAO = { inicio: true, comissoes: true, vendas: true, agenda: true, passeios: true, tickets: true, equipe: false };
 const emailOk = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
 
-// Regra de comissão: valor × percentual; paga no mês seguinte ao mês de embarque.
+// Regra de comissão: valor × percentual; paga no mês seguinte ao FIM da viagem (data de volta / "Partida" do CRM).
+// Ex.: chegou 25/10 e volta 01/11 → viagem conta em novembro → comissão paga em dezembro.
 function enrich(v) {
   const pct = Number(v.pct) || 0, valor = Number(v.valor) || 0;
-  return { ...v, valor, pct, comissao: round2(valor * pct / 100), mesPagamento: v.embarque ? addM(ymOf(v.embarque), 1) : "" };
+  return { ...v, valor, pct, comissao: round2(valor * pct / 100), mesPagamento: (v.retorno || v.embarque) ? addM(ymOf(v.retorno || v.embarque), 1) : "" };
+}
+function viagemCel(v) {
+  return `${dLabel(v.embarque)}${v.retorno ? `<div class="muted small">volta ${dLabel(v.retorno)}</div>` : ""}`;
 }
 function statusOf(v, hoje = ymNow()) {
   if (v.status === "cancelada") return "cancelada";
@@ -359,7 +363,7 @@ function statusOf(v, hoje = ymNow()) {
   if (!v.mesPagamento) return "sem-data";
   return hoje >= v.mesPagamento ? "a-pagar" : "prevista";
 }
-const STATUS_PILL = { "paga": ["ok", "Paga"], "a-pagar": ["warn", "A pagar"], "prevista": ["info", "Prevista"], "cancelada": ["bad", "Cancelada"], "sem-data": ["neutral", "Sem data de embarque"] };
+const STATUS_PILL = { "paga": ["ok", "Paga"], "a-pagar": ["warn", "A pagar"], "prevista": ["info", "Prevista"], "cancelada": ["bad", "Cancelada"], "sem-data": ["neutral", "Sem data da viagem"] };
 const pill = (st) => { const [c, t] = STATUS_PILL[st] || ["neutral", st]; return `<span class="pill ${c}">${t}</span>`; };
 
 // ---------- estado ----------
@@ -658,7 +662,7 @@ function memberInicio(data, vendas, hoje, viewingAs) {
     <section class="panel"><h3>Próximos pagamentos de comissão</h3>
       <div class="tablewrap"><table><thead><tr><th>Mês de pagamento</th><th class="n">Vendas</th><th class="n">Comissão</th><th style="width:28%"></th></tr></thead>
       <tbody>${linhas.map(([m, q, t]) => `<tr><td>${ymLabel(m)}${m === hoje ? ' <span class="pill warn">este mês</span>' : ""}</td><td class="n">${q}</td><td class="n">${money(t)}</td><td><div class="bar"><i style="width:${maxL ? Math.round(t / maxL * 100) : 0}%"></i></div></td></tr>`).join("")}</tbody></table></div>
-      <p class="muted small" style="margin:0">A comissão é paga no mês seguinte ao embarque do cliente. Quem embarca em julho gera comissão paga em agosto.</p>
+      <p class="muted small" style="margin:0">A comissão é paga no mês seguinte ao fim da viagem do cliente. Quem volta em julho gera comissão paga em agosto. Se a viagem começa em julho e termina em agosto, a comissão sai em setembro.</p>
     </section>
     <section class="panel"><h3>Últimas vendas</h3>
       ${ult.length ? `<div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Fechada em</th><th class="n">Valor</th></tr></thead><tbody>${ult.map(v => `<tr><td>${esc(v.cliente)}<div>${destTag(v.destino)}</div></td><td>${dLabel(v.fechamento)}</td><td class="n">${money(v.valor)}</td></tr>`).join("")}</tbody></table></div>` : `<div class="empty"><strong>Nenhuma venda registrada ainda</strong><span>Suas vendas aparecem aqui assim que forem lançadas.</span></div>`}
@@ -680,8 +684,8 @@ function memberComissoes(data, vendas, hoje) {
   ${meses.length ? meses.map(m => {
     const vs = ativas.filter(v => v.mesPagamento === m);
     return `<section class="panel"><div class="section-head"><h3>Pagamento em ${ymLong(m)}</h3><strong>${money(vs.reduce((s, v) => s + v.comissao, 0))}</strong></div>
-    <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Embarque</th><th class="n">Venda</th><th class="n">%</th><th class="n">Comissão</th><th>Situação</th></tr></thead>
-    <tbody>${vs.map(v => `<tr><td>${esc(v.cliente)}<div>${destTag(v.destino)}</div></td><td>${dLabel(v.embarque)}</td><td class="n">${money(v.valor)}</td><td class="n">${pctFmt(v.pct)}</td><td class="n">${money(v.comissao)}</td><td>${pill(statusOf(v, hoje))}</td></tr>`).join("")}</tbody></table></div></section>`;
+    <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Viagem</th><th class="n">Venda</th><th class="n">%</th><th class="n">Comissão</th><th>Situação</th></tr></thead>
+    <tbody>${vs.map(v => `<tr><td>${esc(v.cliente)}<div>${destTag(v.destino)}</div></td><td>${viagemCel(v)}</td><td class="n">${money(v.valor)}</td><td class="n">${pctFmt(v.pct)}</td><td class="n">${money(v.comissao)}</td><td>${pill(statusOf(v, hoje))}</td></tr>`).join("")}</tbody></table></div></section>`;
   }).join("") : `<div class="empty"><strong>Nenhuma comissão por enquanto</strong><span>Quando uma venda sua for lançada, a comissão aparece aqui no mês em que será paga.</span></div>`}`;
 }
 
@@ -1003,7 +1007,7 @@ function ownerPainel() {
   <div class="tiles">
     <div class="tile"><span class="k">Vendas fechadas</span><span class="v">${tot.q}</span><span class="d">${money(tot.val)}</span></div>
     <div class="tile"><span class="k">Atendimentos</span><span class="v">${tot.at || "—"}</span><span class="d">${tot.at ? "Conversão de " + (tot.q / tot.at * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + "%" : "Ainda não lançados"}</span></div>
-    <div class="tile feature"><span class="k">Comissões de ${MESES[+M.slice(5) - 1]}</span><span class="v">${money(tot.com)}</span><span class="d">${M <= hoje ? "Embarques do mês anterior" : "Prevista"}</span></div>
+    <div class="tile feature"><span class="k">Comissões de ${MESES[+M.slice(5) - 1]}</span><span class="v">${money(tot.com)}</span><span class="d">${M <= hoje ? "Viagens que terminaram no mês anterior" : "Prevista"}</span></div>
     <div class="tile"><span class="k">Comissões futuras</span><span class="v">${money(tot.prev)}</span><span class="d">Após ${ymLabel(M)}</span></div>
   </div>
   <section class="panel"><h3>Por pessoa</h3>
@@ -1147,8 +1151,8 @@ function ownerVendas() {
     <div class="field"><label for="f-mes">Mês de fechamento</label><select id="f-mes" data-filter="mes">${monthOptions(f.mes, 12, 0, true)}</select></div>
     <div class="field"><label for="f-busca">Buscar</label><input type="search" id="f-busca" placeholder="Cliente, destino ou observação" value="${esc(f.busca)}"></div>
   </div>
-  <section class="panel">${vs.length ? `<div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Vendedor</th><th>Fechada em</th><th>Embarque</th><th class="n">Valor</th><th class="n">Comissão</th><th>Situação</th><th></th></tr></thead>
-  <tbody>${vs.map(v => `<tr><td>${esc(v.cliente)}<div>${destTag(v.destino)}${v.valorUSD ? ` <span class="pill ${v.semCotacao ? "warn" : "neutral"}" title="${v.semCotacao ? "Sem cotação: conta só a parte em reais" : "Convertido pelo câmbio de R$ " + String(v.cotacao).replace(".", ",")}">US$ ${v.valorUSD.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}</span>` : ""}</div></td><td>${esc(vendLabel(v))}</td><td>${dLabel(v.fechamento)}</td><td>${dLabel(v.embarque)}</td><td class="n">${money(v.valor)}${reembNota(v)}</td><td class="n">${!v.vendedor || v.casa ? `<span class="muted">—</span><div class="muted small">${v.casa ? "sem comissão" : "ligue o vendedor"}</div>` : `${money(v.comissao)}<div class="muted small">${pctFmt(v.pct)} · paga em ${ymLabel(v.mesPagamento)}</div>`}</td><td>${pill(statusOf(v))}</td><td><button class="btn sm ghost" data-act="editar-venda" data-id="${esc(v.id)}">Editar</button></td></tr>`).join("")}</tbody>
+  <section class="panel">${vs.length ? `<div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Vendedor</th><th>Fechada em</th><th>Viagem</th><th class="n">Valor</th><th class="n">Comissão</th><th>Situação</th><th></th></tr></thead>
+  <tbody>${vs.map(v => `<tr><td>${esc(v.cliente)}<div>${destTag(v.destino)}${v.valorUSD ? ` <span class="pill ${v.semCotacao ? "warn" : "neutral"}" title="${v.semCotacao ? "Sem cotação: conta só a parte em reais" : "Convertido pelo câmbio de R$ " + String(v.cotacao).replace(".", ",")}">US$ ${v.valorUSD.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}</span>` : ""}</div></td><td>${esc(vendLabel(v))}</td><td>${dLabel(v.fechamento)}</td><td>${viagemCel(v)}</td><td class="n">${money(v.valor)}${reembNota(v)}</td><td class="n">${!v.vendedor || v.casa ? `<span class="muted">—</span><div class="muted small">${v.casa ? "sem comissão" : "ligue o vendedor"}</div>` : `${money(v.comissao)}<div class="muted small">${pctFmt(v.pct)} · paga em ${ymLabel(v.mesPagamento)}</div>`}</td><td>${pill(statusOf(v))}</td><td><button class="btn sm ghost" data-act="editar-venda" data-id="${esc(v.id)}">Editar</button></td></tr>`).join("")}</tbody>
   <tfoot><tr><td colspan="4">${ok.length} confirmadas</td><td class="n">${money(ok.reduce((s, v) => s + v.valor, 0))}</td><td class="n">${money(ok.reduce((s, v) => s + v.comissao, 0))}</td><td colspan="2"></td></tr></tfoot></table></div>`
     : `<div class="empty"><strong>Nenhuma venda ${f.vend || f.mes || f.busca ? "com esses filtros" : "lançada ainda"}</strong><span>${S.comercial.planilha ? "Clique em “Atualizar do Trevor”." : "Ligue a planilha do Trevor ou use “Nova venda”."}</span></div>`}</section>`;
 }
@@ -1161,15 +1165,15 @@ function ownerComissoes() {
   const futuros = Array.from({ length: 6 }, (_, i) => addM(hoje, i + 1));
   const ids = [...new Set(vs.map(v => v.vendedor))];
   return `
-  <div class="section-head"><div><h2>Comissões</h2><p>Cada comissão é paga no mês seguinte ao embarque. Marque como paga quando fizer o pagamento: a pessoa vê a mudança no próximo acesso.</p></div>
+  <div class="section-head"><div><h2>Comissões</h2><p>Cada comissão é paga no mês seguinte ao fim da viagem (data de volta do cliente). Marque como paga quando fizer o pagamento: a pessoa vê a mudança no próximo acesso.</p></div>
     <div class="field"><label for="f-com-mes">Mês de pagamento</label><select id="f-com-mes" data-filter="comMes">${monthOptions(M, 12, 6)}</select></div></div>
   ${pessoas.length ? pessoas.map(u => {
     const lista = doMes.filter(v => v.vendedor === u);
     const total = lista.reduce((s, v) => s + v.comissao, 0); const aberto = lista.filter(v => !v.pagaEm);
     return `<section class="panel"><div class="section-head"><div><h3>${esc(label(u))}</h3><span class="muted small">${lista.length} ${lista.length === 1 ? "venda" : "vendas"} · ${money(total)}</span></div>
       ${aberto.length && M <= hoje ? `<button class="btn sm primary" data-act="pagar-todas" data-uid="${esc(u)}">Marcar ${aberto.length === 1 ? "como paga" : "as " + aberto.length + " como pagas"}</button>` : ""}</div>
-      <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Embarque</th><th class="n">Venda</th><th class="n">%</th><th class="n">Comissão</th><th>Situação</th><th></th></tr></thead>
-      <tbody>${lista.map(v => { const st = statusOf(v); return `<tr><td>${esc(v.cliente)}<div>${destTag(v.destino)}</div></td><td>${dLabel(v.embarque)}</td><td class="n">${money(v.valor)}</td><td class="n">${pctFmt(v.pct)}</td><td class="n">${money(v.comissao)}</td><td>${pill(st)}</td><td>${st === "paga" ? `<button class="btn sm ghost" data-act="despagar" data-id="${esc(v.id)}">Desfazer</button>` : st === "a-pagar" ? `<button class="btn sm" data-act="pagar" data-id="${esc(v.id)}">Marcar paga</button>` : ""}</td></tr>`; }).join("")}</tbody></table></div></section>`;
+      <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Viagem</th><th class="n">Venda</th><th class="n">%</th><th class="n">Comissão</th><th>Situação</th><th></th></tr></thead>
+      <tbody>${lista.map(v => { const st = statusOf(v); return `<tr><td>${esc(v.cliente)}<div>${destTag(v.destino)}</div></td><td>${viagemCel(v)}</td><td class="n">${money(v.valor)}</td><td class="n">${pctFmt(v.pct)}</td><td class="n">${money(v.comissao)}</td><td>${pill(st)}</td><td>${st === "paga" ? `<button class="btn sm ghost" data-act="despagar" data-id="${esc(v.id)}">Desfazer</button>` : st === "a-pagar" ? `<button class="btn sm" data-act="pagar" data-id="${esc(v.id)}">Marcar paga</button>` : ""}</td></tr>`; }).join("")}</tbody></table></div></section>`;
   }).join("") : `<div class="empty"><strong>Nenhuma comissão com pagamento em ${ymLong(M)}</strong><span>Comissões de ${ymLong(M)} vêm de clientes que embarcaram em ${ymLong(addM(M, -1))}.</span></div>`}
   <section class="panel"><h3>Previsão dos próximos meses</h3>
     ${ids.length ? `<div class="tablewrap"><table><thead><tr><th>Pessoa</th>${futuros.map(m => `<th class="n">${ymLabel(m)}</th>`).join("")}</tr></thead>
@@ -1237,7 +1241,8 @@ function openVenda(id) {
       <div class="field"><label for="v-valor">Valor da venda (R$)</label><input type="number" min="0" step="0.01" id="v-valor" value="${v ? v.valor : ""}" placeholder="Ex.: 12500"></div>
       <div class="field"><label for="v-pct">Comissão (%)</label><input type="number" min="0" max="100" step="0.1" id="v-pct" value="${pct ?? ""}" placeholder="Percentual"></div>
       <div class="field"><label for="v-fech">Data de fechamento</label><input type="date" id="v-fech" value="${esc(v ? v.fechamento : new Date().toISOString().slice(0, 10))}"></div>
-      <div class="field"><label for="v-emb">Data de embarque</label><input type="date" id="v-emb" value="${esc(v ? v.embarque : "")}"></div>
+      <div class="field"><label for="v-emb">Data de chegada (início da viagem)</label><input type="date" id="v-emb" value="${esc(v ? v.embarque : "")}"></div>
+      <div class="field"><label for="v-ret">Data de volta (fim da viagem)</label><input type="date" id="v-ret" value="${esc(v ? (v.retorno || "") : "")}"></div>
       <div class="field" style="grid-column:1/-1"><label for="v-obs">Observação (só a administração vê)</label><input type="text" id="v-obs" value="${esc(v ? v.obs : "")}" placeholder="Opcional"></div>
     </div>
     ${v && v.origem === "crm" ? `<div class="notice">Venda da planilha do Trevor${v.roteiro ? " (roteiro " + esc(v.roteiro) + ")" : ""}. Cliente, valor e datas voltam ao que está no CRM na próxima leitura; vendedor, comissão (%), cancelamento e observação ficam como você salvar aqui.</div>` : ""}
@@ -1251,8 +1256,8 @@ function openVenda(id) {
   </form></div>`;
   const form = $("#venda-form");
   const upd = () => {
-    const valor = Number($("#v-valor").value) || 0, p = Number($("#v-pct").value) || 0, emb = $("#v-emb").value;
-    $("#v-preview").textContent = emb ? `Comissão de ${money(valor * p / 100)}, paga em ${ymLong(addM(ymOf(emb), 1))}.` : "Informe a data de embarque para calcular quando a comissão será paga.";
+    const valor = Number($("#v-valor").value) || 0, p = Number($("#v-pct").value) || 0, fim = $("#v-ret").value || $("#v-emb").value;
+    $("#v-preview").textContent = fim ? `Comissão de ${money(valor * p / 100)}, paga em ${ymLong(addM(ymOf(fim), 1))} (mês seguinte ao fim da viagem).` : "Informe as datas da viagem para calcular quando a comissão será paga.";
   };
   form.addEventListener("input", upd);
   $("#v-vend").addEventListener("change", () => { if (!v) { const m = S.members[$("#v-vend").value]; $("#v-pct").value = m && m.pct != null ? m.pct : ""; upd(); } });
@@ -1263,7 +1268,7 @@ function openVenda(id) {
     const row = {
       cliente: $("#v-cliente").value.trim(), vendedor: $("#v-vend").value, destino: $("#v-dest").value,
       valor: round2($("#v-valor").value), pct: Number($("#v-pct").value) || 0,
-      fechamento: $("#v-fech").value, embarque: $("#v-emb").value,
+      fechamento: $("#v-fech").value, embarque: $("#v-emb").value, retorno: $("#v-ret").value || null,
       status: v && $("#v-cancel") && $("#v-cancel").checked ? "cancelada" : "ativa",
       pagaEm: v ? (v.pagaEm || null) : null, origem: v ? (v.origem || "manual") : "manual",
       atualizadoEm: new Date().toISOString()
@@ -1271,9 +1276,10 @@ function openVenda(id) {
     const obs = $("#v-obs").value.trim();
     const faltam = [];
     if (!row.cliente) faltam.push("cliente"); if (!row.vendedor) faltam.push("vendedor"); if (!(row.valor > 0)) faltam.push("valor");
-    if (!row.fechamento) faltam.push("data de fechamento"); if (!row.embarque) faltam.push("data de embarque");
+    if (!row.fechamento) faltam.push("data de fechamento"); if (!row.embarque) faltam.push("data de chegada");
     if (faltam.length) { erro.hidden = false; erro.textContent = "Preencha: " + faltam.join(", ") + "."; return; }
-    if (row.embarque < row.fechamento) { erro.hidden = false; erro.textContent = "A data de embarque está antes da data de fechamento. Confira as datas."; return; }
+    if (row.embarque < row.fechamento) { erro.hidden = false; erro.textContent = "A data de chegada está antes da data de fechamento. Confira as datas."; return; }
+    if (row.retorno && row.retorno < row.embarque) { erro.hidden = false; erro.textContent = "A data de volta está antes da chegada. Confira as datas."; return; }
     const btn = form.querySelector("[type=submit]"); btn.disabled = true;
     try {
       const ref = v ? col("vendas").doc(v.id) : col("vendas").doc();
