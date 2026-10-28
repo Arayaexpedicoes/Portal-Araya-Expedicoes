@@ -137,6 +137,10 @@ input.cell{width:84px;text-align:right;padding:5px 8px}
 /* Passeios */
 .tour{display:grid;grid-template-columns:minmax(220px,300px) 1fr;gap:16px;align-items:start}
 @media (max-width:760px){.tour{grid-template-columns:1fr}}
+.subnav{display:inline-flex;gap:4px;background:var(--surface-2);border-radius:99px;padding:4px;justify-self:start;max-width:100%;overflow-x:auto}
+.subnav button{border:0;background:none;padding:7px 18px;border-radius:99px;font:inherit;font-weight:600;font-size:.88rem;color:var(--muted);cursor:pointer;white-space:nowrap}
+.subnav button:hover{color:var(--fg)}
+.subnav button[aria-current="true"]{background:var(--surface);color:var(--fg);box-shadow:var(--shadow)}
 .chips{display:flex;gap:8px;flex-wrap:wrap}
 .chip{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:6px 14px 6px 10px;font-weight:600;font-size:.86rem;cursor:pointer}
 .chip::before{content:"";width:10px;height:10px;border-radius:50%;background:var(--dc,var(--d-outro))}
@@ -482,7 +486,7 @@ document.addEventListener("focusout", () => { if (S.pendingRender) { S.pendingRe
 function setMain(html) { $("#main").innerHTML = html; if (html.includes("data-midia")) carregarFotos(); }
 function centerMsg(t, p, extra = "") { $("#tabs").innerHTML = ""; setMain(`<div class="center"><div class="box"><h2>${esc(t)}</h2><p class="muted">${p}</p>${extra}</div></div>`); }
 
-function ownerTabs() { return [["painel", "Visão geral"], ["comercial", "Comercial"], ["vendas", "Vendas"], ["comissoes", "Comissões"], ["atendimentos", "Atendimentos"], ["agenda", "Disponibilidade"], ["acessos", "Equipe e acessos"], ["passeios", "Passeios"], ["tickets", "Tickets"]]; }
+function ownerTabs() { return [["painel", "Visão geral"], ["comercial", "Comercial"], ["comissoes", "Comissões"], ["atendimentos", "Atendimentos"], ["agenda", "Disponibilidade"], ["acessos", "Equipe e acessos"], ["passeios", "Passeios"], ["tickets", "Tickets"]]; }
 function memberTabs(data) { const ab = { ...ABAS_PADRAO, ...((data && data.abas) || {}) }; const t = ABAS.filter(([k]) => ab[k]); if (data && data.supervisor) t.splice(1, 0, ["comercial", "Comercial da equipe"]); return t; }
 
 function render() {
@@ -968,12 +972,16 @@ function agendaView(email) {
   return intro + `<div class="grid2">${semana}${prox}</div>` + agendaEquipe(email);
 }
 
+function comSubnav() {
+  const sub = S.filtros.comSub === "vendas" ? "vendas" : "resumo";
+  return `<nav class="subnav" aria-label="Seções do Comercial">${[["resumo", "Resumo"], ["vendas", "Vendas"]].map(([k, t]) => `<button type="button" data-comsub="${k}" aria-current="${k === sub}">${t}</button>`).join("")}</nav>`;
+}
 function renderOwner() {
+  if (S.tab === "vendas") { S.tab = "comercial"; S.filtros.comSub = "vendas"; } // aba antiga, agora dentro do Comercial
   renderTabs(ownerTabs());
   let html = "";
   if (S.tab === "painel") html = ownerPainel();
-  else if (S.tab === "comercial") html = ownerComercial();
-  else if (S.tab === "vendas") html = ownerVendas();
+  else if (S.tab === "comercial") html = comSubnav() + (S.filtros.comSub === "vendas" ? ownerVendas() : ownerComercial());
   else if (S.tab === "comissoes") html = ownerComissoes();
   else if (S.tab === "atendimentos") html = ownerAtendimentos();
   else if (S.tab === "agenda") html = agendaView(null);
@@ -1362,6 +1370,7 @@ document.addEventListener("keydown", (e) => { if (e.key === "Escape" && $("#laye
 async function run(p, okMsg) { await p; await reload(okMsg); }
 $("#main").addEventListener("click", async (e) => {
   const go = e.target.closest("[data-tab-go]"); if (go) { S.tab = go.dataset.tabGo; render(); return; }
+  const cs = e.target.closest("[data-comsub]"); if (cs) { S.filtros.comSub = cs.dataset.comsub; try { localStorage.setItem("araya-comsub", S.filtros.comSub); } catch (_) {} render(); return; }
   const dest = e.target.closest("[data-dest]"); if (dest) { S.filtros.destino = dest.dataset.dest; S.filtros.passeio = "__geral"; render(); return; }
   const tour = e.target.closest("[data-tourid]"); if (tour) { S.filtros.passeio = tour.dataset.tourid; render(); return; }
   const tkd = e.target.closest("[data-tkdest]"); if (tkd) { S.filtros.tkDest = tkd.dataset.tkdest; S.filtros.tkItem = null; render(); return; }
@@ -1669,7 +1678,7 @@ async function start(user) {
   try {
     try { await col("config").doc("admin").get(); S.isAdmin = true; } catch (_) { S.isAdmin = false; }
     await loadAll();
-    try { S.tab = localStorage.getItem("araya-tab-" + (S.isAdmin ? "o" : "m")); } catch (_) {}
+    try { S.tab = localStorage.getItem("araya-tab-" + (S.isAdmin ? "o" : "m")); S.filtros.comSub = localStorage.getItem("araya-comsub") || "resumo"; } catch (_) {}
     S.ready = true; render();
     talvezSincronizarTrevor();
   } catch (e) { centerMsg("O portal não carregou", "Recarregue a página. Se continuar, avise a Letícia.", `<button class="btn" data-act="sair">Sair</button>`); }
