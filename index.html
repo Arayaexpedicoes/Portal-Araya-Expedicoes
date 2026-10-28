@@ -356,7 +356,7 @@ function enrich(v) {
   // Só gera comissão o roteiro com status "Programado" no CRM (vendas lançadas à mão contam normalmente)
   const naoProgramado = v.origem === "crm" && !v.pagaEm && !semAcento(v.statusCrm).startsWith("programad");
   const prevista = round2(valor * pct / 100);
-  return { ...v, valor, pct, comissaoPrevista: prevista, naoProgramado, comissao: naoProgramado ? 0 : prevista, mesPagamento: (v.retorno || v.embarque) ? addM(ymOf(v.retorno || v.embarque), 1) : "" };
+  return { ...v, valor, pct, comissaoPrevista: prevista, naoProgramado, comissao: naoProgramado ? 0 : prevista, mesRef: ymOf(v.retorno || v.embarque), mesPagamento: (v.retorno || v.embarque) ? addM(ymOf(v.retorno || v.embarque), 1) : "" };
 }
 function comCel(v) {
   return v.naoProgramado ? `<span class="muted">${money(v.comissaoPrevista)}</span><div class="muted small">conta quando estiver Programado</div>` : money(v.comissao);
@@ -638,11 +638,11 @@ function memberInicio(data, vendas, hoje, viewingAs) {
   const doMes = ativas.filter(v => ymOf(v.fechamento) === hoje);
   const atend = data.atendimentos ? data.atendimentos[hoje] : null;
   const conv = atend ? doMes.length / atend * 100 : null;
-  const receberMes = ativas.filter(v => v.mesPagamento === hoje).reduce((s, v) => s + v.comissao, 0);
-  const prox = ativas.filter(v => v.mesPagamento === addM(hoje, 1)).reduce((s, v) => s + v.comissao, 0);
+  const comMes = ativas.filter(v => v.mesRef === hoje).reduce((s, v) => s + v.comissao, 0);
+  const comAnt = ativas.filter(v => v.mesRef === addM(hoje, -1)).reduce((s, v) => s + v.comissao, 0);
   const nome = data.apelido || "";
-  const meses = Array.from({ length: 6 }, (_, i) => addM(hoje, i));
-  const linhas = meses.map(m => { const vs = ativas.filter(v => v.mesPagamento === m); return [m, vs.length, vs.reduce((s, v) => s + v.comissao, 0)]; });
+  const meses = Array.from({ length: 6 }, (_, i) => addM(hoje, i - 1));
+  const linhas = meses.map(m => { const vs = ativas.filter(v => v.mesRef === m); return [m, vs.length, vs.reduce((s, v) => s + v.comissao, 0)]; });
   const maxL = Math.max(0, ...linhas.map(l => l[2]));
   const ult = [...vendas].sort((a, b) => (b.fechamento || "").localeCompare(a.fechamento || "")).slice(0, 5);
   let bonusHtml = "";
@@ -663,14 +663,14 @@ function memberInicio(data, vendas, hoje, viewingAs) {
     <div class="tile"><span class="k">Atendimentos no mês</span><span class="v">${atend ?? "—"}</span><span class="d">${atend == null ? "Ainda não lançados" : "Lançados pela Letícia"}</span></div>
     <div class="tile"><span class="k">Vendas fechadas</span><span class="v">${doMes.length}</span><span class="d">${money(doMes.reduce((s, v) => s + v.valor, 0))} em vendas</span></div>
     <div class="tile"><span class="k">Conversão</span><span class="v">${conv == null ? "—" : conv.toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + "%"}</span><span class="d">Vendas ÷ atendimentos do mês</span></div>
-    <div class="tile feature"><span class="k">Comissão em ${MESES[+hoje.slice(5) - 1]}</span><span class="v">${money(receberMes)}</span><span class="d">Próximo mês: ${money(prox)}</span></div>
+    <div class="tile feature"><span class="k">Comissão de ${MESES_L[+hoje.slice(5) - 1]}</span><span class="v">${money(comMes)}</span><span class="d">Paga em ${MESES_L[+addM(hoje, 1).slice(5) - 1]} · ${MESES_L[+addM(hoje, -1).slice(5) - 1]}: ${money(comAnt)}</span></div>
   </div>
   ${bonusHtml}
   <div class="grid2">
-    <section class="panel"><h3>Próximos pagamentos de comissão</h3>
-      <div class="tablewrap"><table><thead><tr><th>Mês de pagamento</th><th class="n">Vendas</th><th class="n">Comissão</th><th style="width:28%"></th></tr></thead>
-      <tbody>${linhas.map(([m, q, t]) => `<tr><td>${ymLabel(m)}${m === hoje ? ' <span class="pill warn">este mês</span>' : ""}</td><td class="n">${q}</td><td class="n">${money(t)}</td><td><div class="bar"><i style="width:${maxL ? Math.round(t / maxL * 100) : 0}%"></i></div></td></tr>`).join("")}</tbody></table></div>
-      <p class="muted small" style="margin:0">A comissão é paga no mês seguinte ao fim da viagem do cliente, quando o roteiro está como “Programado” no CRM. Quem volta em julho gera comissão paga em agosto. Se a viagem começa em julho e termina em agosto, a comissão sai em setembro.</p>
+    <section class="panel"><h3>Comissões por mês</h3>
+      <div class="tablewrap"><table><thead><tr><th>Comissão de</th><th>Paga em</th><th class="n">Vendas</th><th class="n">Comissão</th><th style="width:22%"></th></tr></thead>
+      <tbody>${linhas.map(([m, q, t]) => `<tr><td>${ymLabel(m)}${m === hoje ? ' <span class="pill info">este mês</span>' : ""}</td><td class="muted">${ymLabel(addM(m, 1))}</td><td class="n">${q}</td><td class="n">${money(t)}</td><td><div class="bar"><i style="width:${maxL ? Math.round(t / maxL * 100) : 0}%"></i></div></td></tr>`).join("")}</tbody></table></div>
+      <p class="muted small" style="margin:0">A comissão de cada mês é de quem foi embora naquele mês, com o roteiro como “Programado” no CRM, e é paga no início do mês seguinte. Ex.: chegou 25/10 e foi embora 01/11 → comissão de novembro, paga em dezembro.</p>
     </section>
     <section class="panel"><h3>Últimas vendas</h3>
       ${ult.length ? `<div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Fechada em</th><th class="n">Valor</th></tr></thead><tbody>${ult.map(v => `<tr><td>${esc(v.cliente)}<div>${destTag(v.destino)}</div></td><td>${dLabel(v.fechamento)}</td><td class="n">${money(v.valor)}</td></tr>`).join("")}</tbody></table></div>` : `<div class="empty"><strong>Nenhuma venda registrada ainda</strong><span>Suas vendas aparecem aqui assim que forem lançadas.</span></div>`}
@@ -680,7 +680,7 @@ function memberInicio(data, vendas, hoje, viewingAs) {
 
 function memberComissoes(data, vendas, hoje) {
   const ativas = vendas.filter(v => v.status !== "cancelada" && v.mesPagamento);
-  const meses = [...new Set(ativas.map(v => v.mesPagamento))].sort().reverse();
+  const meses = [...new Set(ativas.map(v => v.mesRef))].sort().reverse();
   const soma = (st) => ativas.filter(v => statusOf(v, hoje) === st).reduce((s, v) => s + v.comissao, 0);
   return `
   <div class="section-head"><div><h2>Minhas comissões</h2><p>Seu percentual atual é <strong>${pctFmt(data.pct)}</strong> sobre o valor da venda. Cada venda guarda o percentual do dia em que foi lançada.</p></div></div>
@@ -690,8 +690,8 @@ function memberComissoes(data, vendas, hoje) {
     <div class="tile"><span class="k">Já recebido</span><span class="v">${money(soma("paga"))}</span><span class="d">Nos últimos 24 meses</span></div>
   </div>
   ${meses.length ? meses.map(m => {
-    const vs = ativas.filter(v => v.mesPagamento === m);
-    return `<section class="panel"><div class="section-head"><h3>Pagamento em ${ymLong(m)}</h3><strong>${money(vs.reduce((s, v) => s + v.comissao, 0))}</strong></div>
+    const vs = ativas.filter(v => v.mesRef === m);
+    return `<section class="panel"><div class="section-head"><h3>Comissão de ${ymLong(m)} · paga em ${ymLong(addM(m, 1))}</h3><strong>${money(vs.reduce((s, v) => s + v.comissao, 0))}</strong></div>
     <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Viagem</th><th class="n">Venda</th><th class="n">%</th><th class="n">Comissão</th><th>Situação</th></tr></thead>
     <tbody>${vs.map(v => `<tr><td>${esc(v.cliente)}<div>${destTag(v.destino)}</div></td><td>${viagemCel(v)}</td><td class="n">${money(v.valor)}</td><td class="n">${pctFmt(v.pct)}</td><td class="n">${comCel(v)}</td><td>${pill(statusOf(v, hoje))}</td></tr>`).join("")}</tbody></table></div></section>`;
   }).join("") : `<div class="empty"><strong>Nenhuma comissão por enquanto</strong><span>Quando uma venda sua for lançada, a comissão aparece aqui no mês em que será paga.</span></div>`}`;
@@ -985,7 +985,7 @@ function renderOwner() {
 
 function monthOptions(sel, back = 12, fwd = 2, withAll = false) {
   const hoje = ymNow();
-  const set = new Set(allVendas().flatMap(v => [ymOf(v.fechamento), v.mesPagamento]).filter(Boolean));
+  const set = new Set(allVendas().flatMap(v => [ymOf(v.fechamento), v.mesRef]).filter(Boolean));
   for (let i = -back; i <= fwd; i++) set.add(addM(hoje, i));
   return (withAll ? `<option value="">Todos</option>` : "") + [...set].sort().reverse().map(m => `<option value="${m}" ${m === sel ? "selected" : ""}>${ymLabel(m)}</option>`).join("");
 }
@@ -998,8 +998,8 @@ function ownerPainel() {
   const rows = ids.map(u => {
     const fech = ativas.filter(v => v.vendedor === u && ymOf(v.fechamento) === M);
     const at = S.atend[M] && S.atend[M].porPessoa ? S.atend[M].porPessoa[u] : undefined;
-    const com = ativas.filter(v => v.vendedor === u && v.mesPagamento === M);
-    const prev = ativas.filter(v => v.vendedor === u && v.mesPagamento > M);
+    const com = ativas.filter(v => v.vendedor === u && v.mesRef === M);
+    const prev = ativas.filter(v => v.vendedor === u && v.mesRef > M);
     return { u, q: fech.length, val: fech.reduce((s, v) => s + v.valor, 0), at: at ?? null, com: com.reduce((s, v) => s + v.comissao, 0), comPend: com.filter(v => !v.pagaEm).length, prev: prev.reduce((s, v) => s + v.comissao, 0) };
   });
   const tot = rows.reduce((a, r) => ({ q: a.q + r.q, val: a.val + r.val, at: a.at + (r.at || 0), com: a.com + r.com, prev: a.prev + r.prev }), { q: 0, val: 0, at: 0, com: 0, prev: 0 });
@@ -1007,7 +1007,7 @@ function ownerPainel() {
   const semNome = mem.filter(u => !S.members[u].apelido);
   const maxV = Math.max(0, ...rows.map(r => r.val));
   return `
-  <div class="section-head"><div><h2>Visão geral</h2><p>Resultado da equipe no mês escolhido. Vendas pela data de fechamento; comissões pelo mês de pagamento.</p></div>
+  <div class="section-head"><div><h2>Visão geral</h2><p>Resultado da equipe no mês escolhido. Vendas pela data de fechamento; comissões pelo mês em que o cliente foi embora (pagas no mês seguinte).</p></div>
     <div class="field"><label for="f-painel-mes">Mês</label><select id="f-painel-mes" data-filter="painelMes">${monthOptions(M)}</select></div></div>
   ${!mem.length ? `<div class="banner"><span>Ninguém da equipe tem acesso ainda. Comece por <strong>Equipe e acessos</strong>.</span><button class="btn sm primary" data-tab-go="acessos">Cadastrar a equipe</button></div>` : ""}
   ${pend.length ? `<div class="banner"><span>Falta definir o percentual de comissão de ${pend.map(u => `<strong>${esc(label(u))}</strong>`).join(", ")}.</span><button class="btn sm" data-tab-go="acessos">Definir agora</button></div>` : ""}
@@ -1015,7 +1015,7 @@ function ownerPainel() {
   <div class="tiles">
     <div class="tile"><span class="k">Vendas fechadas</span><span class="v">${tot.q}</span><span class="d">${money(tot.val)}</span></div>
     <div class="tile"><span class="k">Atendimentos</span><span class="v">${tot.at || "—"}</span><span class="d">${tot.at ? "Conversão de " + (tot.q / tot.at * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + "%" : "Ainda não lançados"}</span></div>
-    <div class="tile feature"><span class="k">Comissões de ${MESES[+M.slice(5) - 1]}</span><span class="v">${money(tot.com)}</span><span class="d">${M <= hoje ? "Viagens que terminaram no mês anterior" : "Prevista"}</span></div>
+    <div class="tile feature"><span class="k">Comissões de ${MESES[+M.slice(5) - 1]}</span><span class="v">${money(tot.com)}</span><span class="d">Clientes que foram embora em ${ymLabel(M)} · paga em ${ymLabel(addM(M, 1))}</span></div>
     <div class="tile"><span class="k">Comissões futuras</span><span class="v">${money(tot.prev)}</span><span class="d">Após ${ymLabel(M)}</span></div>
   </div>
   <section class="panel"><h3>Por pessoa</h3>
@@ -1176,24 +1176,24 @@ function ownerVendas() {
 function ownerComissoes() {
   const M = S.filtros.comMes; const hoje = ymNow();
   const vs = allVendas().filter(v => v.status !== "cancelada" && v.vendedor && !v.casa);
-  const doMes = vs.filter(v => v.mesPagamento === M);
+  const doMes = vs.filter(v => v.mesRef === M), pagoEm = addM(M, 1);
   const pessoas = [...new Set(doMes.map(v => v.vendedor))].sort((a, b) => label(a).localeCompare(label(b), "pt-BR"));
-  const futuros = Array.from({ length: 6 }, (_, i) => addM(hoje, i + 1));
+  const futuros = Array.from({ length: 6 }, (_, i) => addM(hoje, i));
   const ids = [...new Set(vs.map(v => v.vendedor))];
   return `
-  <div class="section-head"><div><h2>Comissões</h2><p>Cada comissão é paga no mês seguinte ao fim da viagem (data de volta do cliente), e só conta quando o roteiro está como “Programado” no CRM. Marque como paga quando fizer o pagamento: a pessoa vê a mudança no próximo acesso.</p></div>
-    <div class="field"><label for="f-com-mes">Mês de pagamento</label><select id="f-com-mes" data-filter="comMes">${monthOptions(M, 12, 6)}</select></div></div>
+  <div class="section-head"><div><h2>Comissões</h2><p>A comissão de cada mês é de quem foi embora naquele mês, com o roteiro como “Programado” no CRM, e é paga no início do mês seguinte. Marque como paga quando fizer o pagamento: a pessoa vê a mudança no próximo acesso.</p></div>
+    <div class="field"><label for="f-com-mes">Comissão de</label><select id="f-com-mes" data-filter="comMes">${monthOptions(M, 12, 6)}</select></div></div>
   ${pessoas.length ? pessoas.map(u => {
     const lista = doMes.filter(v => v.vendedor === u);
     const total = lista.reduce((s, v) => s + v.comissao, 0); const aberto = lista.filter(v => !v.pagaEm);
-    return `<section class="panel"><div class="section-head"><div><h3>${esc(label(u))}</h3><span class="muted small">${lista.length} ${lista.length === 1 ? "venda" : "vendas"} · ${money(total)}</span></div>
-      ${aberto.length && M <= hoje ? `<button class="btn sm primary" data-act="pagar-todas" data-uid="${esc(u)}">Marcar ${aberto.length === 1 ? "como paga" : "as " + aberto.length + " como pagas"}</button>` : ""}</div>
+    return `<section class="panel"><div class="section-head"><div><h3>${esc(label(u))}</h3><span class="muted small">${lista.length} ${lista.length === 1 ? "venda" : "vendas"} · ${money(total)} · paga em ${ymLong(pagoEm)}</span></div>
+      ${aberto.length && pagoEm <= hoje ? `<button class="btn sm primary" data-act="pagar-todas" data-uid="${esc(u)}">Marcar ${aberto.length === 1 ? "como paga" : "as " + aberto.length + " como pagas"}</button>` : ""}</div>
       <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Viagem</th><th class="n">Venda</th><th class="n">%</th><th class="n">Comissão</th><th>Situação</th><th></th></tr></thead>
       <tbody>${lista.map(v => { const st = statusOf(v); return `<tr><td>${esc(v.cliente)}<div>${destTag(v.destino)}</div></td><td>${viagemCel(v)}</td><td class="n">${money(v.valor)}</td><td class="n">${pctFmt(v.pct)}</td><td class="n">${comCel(v)}</td><td>${pill(st)}</td><td>${st === "paga" ? `<button class="btn sm ghost" data-act="despagar" data-id="${esc(v.id)}">Desfazer</button>` : st === "a-pagar" ? `<button class="btn sm" data-act="pagar" data-id="${esc(v.id)}">Marcar paga</button>` : ""}</td></tr>`; }).join("")}</tbody></table></div></section>`;
-  }).join("") : `<div class="empty"><strong>Nenhuma comissão com pagamento em ${ymLong(M)}</strong><span>Comissões de ${ymLong(M)} vêm de clientes que embarcaram em ${ymLong(addM(M, -1))}.</span></div>`}
-  <section class="panel"><h3>Previsão dos próximos meses</h3>
+  }).join("") : `<div class="empty"><strong>Nenhuma comissão de ${ymLong(M)}</strong><span>A comissão de ${ymLong(M)} vem de clientes que foram embora em ${ymLong(M)} e é paga em ${ymLong(pagoEm)}.</span></div>`}
+  <section class="panel"><h3>Previsão dos próximos meses</h3><span class="muted small" style="margin-top:-8px">Comissão de cada mês (paga no mês seguinte).</span>
     ${ids.length ? `<div class="tablewrap"><table><thead><tr><th>Pessoa</th>${futuros.map(m => `<th class="n">${ymLabel(m)}</th>`).join("")}</tr></thead>
-    <tbody>${ids.map(u => `<tr><td>${esc(label(u))}</td>${futuros.map(m => `<td class="n">${money(vs.filter(v => v.vendedor === u && v.mesPagamento === m).reduce((s, v) => s + v.comissao, 0))}</td>`).join("")}</tr>`).join("")}</tbody></table></div>` : `<div class="empty"><strong>Sem previsões ainda</strong></div>`}
+    <tbody>${ids.map(u => `<tr><td>${esc(label(u))}</td>${futuros.map(m => `<td class="n">${money(vs.filter(v => v.vendedor === u && v.mesRef === m).reduce((s, v) => s + v.comissao, 0))}</td>`).join("")}</tr>`).join("")}</tbody></table></div>` : `<div class="empty"><strong>Sem previsões ainda</strong></div>`}
   </section>`;
 }
 
@@ -1397,7 +1397,7 @@ $("#main").addEventListener("click", async (e) => {
     else if (act === "despagar") await run(col("vendas").doc(id).update({ pagaEm: null }), "Pagamento desfeito");
     else if (act === "pagar-todas") {
       b.disabled = true;
-      const lista = allVendas().filter(v => v.vendedor === uid && v.mesPagamento === S.filtros.comMes && v.status !== "cancelada" && !v.pagaEm && !v.naoProgramado).map(v => v.id);
+      const lista = allVendas().filter(v => v.vendedor === uid && v.mesRef === S.filtros.comMes && v.status !== "cancelada" && !v.pagaEm && !v.naoProgramado).map(v => v.id);
       const batch = S.db.batch(); lista.forEach(i => batch.update(col("vendas").doc(i), { pagaEm: ymNow() }));
       await run(batch.commit(), "Comissões marcadas como pagas");
     }
