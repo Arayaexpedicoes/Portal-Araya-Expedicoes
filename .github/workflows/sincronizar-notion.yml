@@ -1,6 +1,7 @@
 # Portal da Equipe Araya · robô que copia as fichas do Notion para o portal.
 # Roda sozinho a cada 20 minutos (renova os links dos vídeos guardados no Notion) e também pelo botão "Run workflow" (aba Actions).
-# Também conta os atendimentos do Helena (mês atual e anterior) pela API.
+# Também conta os atendimentos e as campanhas do Helena (mês atual e anterior) pela API
+# e lê as planilhas de vendas e de orçamentos do Trevor ligadas no portal.
 # As chaves ficam nos segredos do GitHub (NOTION_TOKEN, ROBO_SENHA e HELENA_TOKEN),
 # nunca neste arquivo. O registro da execução mostra só contagens, sem conteúdo.
 name: Sincronizar fichas do Notion
@@ -45,7 +46,7 @@ jobs:
           // Não imprime nenhum conteúdo das fichas: só contagens.
           const { initializeApp } = require("firebase/app");
           const { getAuth, signInWithEmailAndPassword } = require("firebase/auth");
-          const { getFirestore, collection, doc, getDocs, writeBatch, setDoc, deleteDoc, terminate } = require("firebase/firestore");
+          const { getFirestore, collection, doc, getDoc, getDocs, writeBatch, setDoc, deleteDoc, terminate } = require("firebase/firestore");
           const sharp = require("sharp");
           const heicConvert = require("heic-convert");
 
@@ -348,16 +349,25 @@ jobs:
           }
           async function contarMesHelena(ym) {
             const ini = ym + "-01T00:00:00-03:00", fim = addMes(ym, 1) + "-01T00:00:00-03:00";
-            const porAgente = {}; let total = 0, semAtendente = 0, pagina = 1;
+            const porAgente = {}, campanhas = {}; let total = 0, semAtendente = 0, semCampanha = 0, pagina = 1;
             while (pagina <= 300) {
               const p = new URLSearchParams();
               p.set("CreatedAt.After", ini); p.set("CreatedAt.Before", fim); p.set("Type", "INDIVIDUAL");
-              p.append("IncludeDetails", "AgentDetails"); p.set("PageSize", "100"); p.set("PageNumber", String(pagina));
+              p.append("IncludeDetails", "AgentDetails"); p.append("IncludeDetails", "ContactDetails"); p.set("PageSize", "100"); p.set("PageNumber", String(pagina));
               const r = await helena(p);
               const itens = (r && r.items) || [];
               for (const sessao of itens) {
                 if (sessao.type === "GROUP") continue;
                 total++;
+                // campanha (UTM): guarda só a contagem e uma "chave" do nome do contato (primeiro + último nome, sem acento) para cruzar com as vendas
+                const u = sessao.utm || null;
+                if (u && (u.campaign || u.clid || u.content || u.headline || (u.source && !/^(organic|direct|direto)$/i.test(u.source)))) {
+                  const k = [u.source || "", u.campaign || "", u.content || u.headline || ""].join("|");
+                  if (!campanhas[k]) campanhas[k] = { source: u.source || "", medium: u.medium || "", campaign: u.campaign || "", content: u.content || "", headline: u.headline || "", n: 0, nomes: [] };
+                  campanhas[k].n++;
+                  const cd = sessao.contactDetails || {}, nk = chaveNome(cd.name || cd.displayName || cd.fullName || sessao.title || "");
+                  if (nk && campanhas[k].nomes.length < 3000 && !campanhas[k].nomes.includes(nk)) campanhas[k].nomes.push(nk);
+                } else semCampanha++;
                 const a = sessao.agentDetails || null;
                 const id = sessao.userId || (a && (a.userId || a.id));
                 if (!id) { semAtendente++; continue; }
@@ -369,7 +379,7 @@ jobs:
               if (!r.hasMorePages || !itens.length) break;
               pagina++; await sleep(200);
             }
-            return { mes: ym, total, semAtendente, porAgente, atualizadoEm: new Date().toISOString() };
+            return { mes: ym, total, semAtendente, porAgente, campanhas: Object.values(campanhas).sort((x, y) => y.n - x.n), semCampanha, atualizadoEm: new Date().toISOString() };
           }
           async function sincronizarHelena(db) {
             if (!process.env.HELENA_TOKEN) { console.log("Helena: sem o segredo HELENA_TOKEN no GitHub, pulado."); return; }
@@ -378,11 +388,222 @@ jobs:
               for (const ym of [addMes(agora, -1), agora]) {
                 const d = await contarMesHelena(ym);
                 await setDoc(doc(db, "helena", "mes_" + ym), d);
-                console.log("Helena " + ym + ": " + d.total + " atendimentos novos, " + Object.keys(d.porAgente).length + " atendentes, " + d.semAtendente + " sem atendente.");
+                console.log("Helena " + ym + ": " + d.total + " atendimentos novos, " + Object.keys(d.porAgente).length + " atendentes, " + d.semAtendente + " sem atendente; " + (d.total - d.semCampanha) + " vindos de campanhas (" + d.campanhas.length + " campanhas/anúncios).");
               }
             } catch (e) {
               console.log("Helena: não atualizado — " + ((e && e.message) || e) + ". O resto do portal segue normalmente.");
             }
+          }
+
+          // ---------- Trevor (planilhas de vendas e de orçamentos ligadas no portal) ----------
+          // A leitura é a mesma do portal (bloco COMUM-TREVOR, copiado do index.html). Só grava quando a planilha mudou,
+          // para não gastar as leituras do plano gratuito do Firebase.
+          const round2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
+          const ymOf = (d) => (d || "").slice(0, 7);
+          const semAcento = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+          // >>> COMUM-TREVOR · este bloco é copiado igualzinho para o robô do GitHub (não use S, col nem nada do navegador aqui).
+          // Precisa de: round2, ymOf e semAcento definidos antes.
+          function lerCSV(txt) {
+            const linhas = []; let linha = [], campo = "", aspas = false;
+            for (let i = 0; i < txt.length; i++) {
+              const c = txt[i];
+              if (aspas) { if (c === '"') { if (txt[i + 1] === '"') { campo += '"'; i++; } else aspas = false; } else campo += c; }
+              else if (c === '"') aspas = true;
+              else if (c === ",") { linha.push(campo); campo = ""; }
+              else if (c === "\n") { linha.push(campo.replace(/\r$/, "")); linhas.push(linha); linha = []; campo = ""; }
+              else campo += c;
+            }
+            if (campo || linha.length) { linha.push(campo.replace(/\r$/, "")); linhas.push(linha); }
+            return linhas.filter(l => l.some(x => x.trim()));
+          }
+          function lerMoeda(t) {
+            let x = String(t || "").replace(/R\$|US\$|\$|\s| /g, "");
+            if (!x) return 0;
+            const neg = x.includes("-"); x = x.replace(/-/g, "");
+            if (x.includes(",")) x = x.replace(/\./g, "").replace(",", ".");
+            else if ((x.match(/\./g) || []).length > 1 || /\.\d{3}$/.test(x)) x = x.replace(/\./g, "");
+            const n = Number(x); return isNaN(n) ? 0 : round2(neg ? -n : n);
+          }
+          function lerData(t) {
+            const x = String(t || "").trim(); let m;
+            if ((m = x.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/))) return `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
+            if ((m = x.match(/^(\d{4})-(\d{2})-(\d{2})/))) return `${m[1]}-${m[2]}-${m[3]}`;
+            return "";
+          }
+          const DEST_CRM = (d) => { const n = semAcento(d); if (n.includes("cusco") || n.includes("machu") || n.includes("peru")) return n.includes("+") ? d : "Cusco e Machu Picchu"; if (n === "patagonia") return "Patagônia"; if (n === "japao") return "Japão"; if (n.startsWith("egito")) return "Egito e Jordânia"; if (n === "ushuaia") return "Ushuaia"; if (n === "mendoza") return "Mendoza"; if (n.includes("atacama") || n.includes("uyuni")) return "Atacama e Uyuni"; return d; };
+          function acharVendedor(nome, membros) {
+            const n = semAcento(nome); if (!n) return "";
+            if (/^programac/.test(n) || n.includes("expedicoes")) return "__casa";
+            const ids = Object.keys(membros || {});
+            let u = ids.find(id => membros[id].nomeCrm && semAcento(membros[id].nomeCrm) === n);
+            if (!u) u = ids.find(id => { const a = semAcento(membros[id].apelido); return a && (n === a || n.startsWith(a + " ")); });
+            return u || "";
+          }
+          function urlPlanilha(link) {
+            const id = (String(link).match(/\/d\/([A-Za-z0-9_-]{20,})/) || [])[1]; if (!id) return null;
+            const gid = (String(link).match(/[#&?]gid=(\d+)/) || [])[1];
+            return `https://docs.google.com/spreadsheets/d/${id}/export?format=csv${gid ? "&gid=" + gid : ""}`;
+          }
+          const CAMPOS_CRM = ["cliente", "destino", "vendedor", "vendedorNome", "casa", "valorBRL", "valorUSD", "cotacao", "semCotacao", "valor", "fechamento", "embarque", "retorno", "pax", "statusCrm", "pagoBRL", "saldoBRL", "pagoUSD", "saldoUSD", "origemLead", "conferir", "roteiro", "reembolsoBRL", "reembolsoUSD", "reembolsoDetalhe", "descontoBRL", "moedaCrm"];
+          // Chave para cruzar pessoas entre sistemas pelo nome: primeiro + último nome, sem acento (nomes de uma palavra só não contam)
+          function chaveNome(nome) {
+            const t = semAcento(nome).replace(/[^a-z ]+/g, " ").split(" ").filter(x => x.length > 1 && !["de", "da", "do", "das", "dos", "e"].includes(x));
+            return t.length > 1 ? t[0] + " " + t[t.length - 1] : "";
+          }
+          function checarCSV(txt, nome) {
+            if (/^\s*<!doctype html|<html/i.test(txt)) throw new Error(`A planilha de ${nome} não abriu. Confira se ela está compartilhada como “Qualquer pessoa com o link: Leitor”.`);
+            if (/^\s*"?carregando/i.test(txt)) throw new Error(`A planilha de ${nome} ainda está carregando os dados do Trevor. Tente de novo em alguns minutos.`);
+          }
+          // Vendas: transforma o CSV em registros. ctx = { antigas: {id: venda}, membros: {email: pessoa}, cotacoes: {AAAA-MM: n}, agora: ISO }
+          function prepararVendas(txt, ctx) {
+            checarCSV(txt, "vendas");
+            const antigas = ctx.antigas || {}, membros = ctx.membros || {}, cotacoes = ctx.cotacoes || {};
+            const linhas = lerCSV(txt); if (linhas.length < 2) throw new Error("A planilha de vendas está vazia.");
+            const cab = linhas[0].map(semAcento), col_ = (nome) => cab.findIndex(h => h === nome || h.startsWith(nome));
+            const ix = { data: col_("data da venda"), dest: col_("destino"), rot: col_("roteiro"), cli: col_("cliente"), vend: col_("vendedor"), st: col_("status"), pax: col_("pax"), cheg: col_("chegada"), part: col_("partida"), tot: col_("valor final r$") >= 0 ? col_("valor final r$") : col_("total r$"), pago: col_("pago r$"), saldo: col_("saldo r$"), totU: col_("valor final us$") >= 0 ? col_("valor final us$") : col_("total us$"), subU: col_("subtotal us$"), adicU: col_("adicionais us$"), descU: col_("descontos us$"), reemb: col_("reembolsos r$"), reembU: col_("reembolsos us$"), reembD: col_("detalhe dos reembolsos"), desc: col_("descontos r$"), moeda: col_("moeda do preco"), pagoU: col_("pago us$"), saldoU: col_("saldo us$"), orig: col_("origem"), conf: col_("conferir"), conta: col_("conta no total"), cot: cab.findIndex(h => /^(cotacao|cambio|taxa de cambio)/.test(h)) };
+            if (ix.data < 0 || ix.cli < 0 || ix.tot < 0) throw new Error("Não reconheci as colunas da planilha de vendas (faltam Data da venda, Cliente ou Valor final R$).");
+            const v_ = (l, k) => ix[k] >= 0 ? (l[ix[k]] || "").trim() : "";
+            const vistos = {}; let novas = 0, alteradas = 0, ignoradas = 0; const escritas = [];
+            for (const l of linhas.slice(1)) {
+              if (ix.conta >= 0 && v_(l, "conta") === "0") { ignoradas++; continue; }
+              const fechamento = lerData(v_(l, "data")); const cliente = v_(l, "cli");
+              if (!fechamento || !cliente) { ignoradas++; continue; }
+              let id = "crm_" + (v_(l, "rot").replace(/[^A-Za-z0-9_-]/g, "") || (fechamento + "_" + semAcento(cliente).replace(/[^a-z0-9]+/g, "-")).slice(0, 80));
+              vistos[id] = (vistos[id] || 0) + 1; if (vistos[id] > 1) id += "_" + vistos[id];
+              const antigo = antigas[id];
+              const achado = acharVendedor(v_(l, "vend"), membros);
+              const casa = achado === "__casa";
+              let vendedor = casa ? "" : achado;
+              if (!vendedor && !casa && antigo && antigo.vendedor) vendedor = antigo.vendedor; // mantém quem foi atribuído à mão
+              // "Valor final R$" já vem com o dólar convertido e sem os reembolsos; a parte em dólar é recalculada pelas colunas
+              const valorBRL = lerMoeda(v_(l, "tot"));
+              const usdCel = (k) => /R\$/.test(v_(l, k)) ? 0 : lerMoeda(v_(l, k));
+              const valorUSD = ix.subU >= 0 ? Math.max(0, round2(usdCel("subU") + usdCel("adicU") - usdCel("descU") - usdCel("reembU"))) : lerMoeda(v_(l, "totU"));
+              const pagoBRL = lerMoeda(v_(l, "pago")), pagoUSD = usdCel("pagoU");
+              const saldoBRL = ix.subU >= 0 ? round2(valorBRL - pagoBRL) : lerMoeda(v_(l, "saldo"));
+              const saldoUSD = ix.subU >= 0 ? round2(valorUSD - pagoUSD) : lerMoeda(v_(l, "saldoU"));
+              // cotação: a digitada no portal > coluna de cotação da planilha > cotação antiga do mês
+              const cot = Number(antigo && antigo.cotacaoVenda) || lerMoeda(v_(l, "cot")) || Number(cotacoes[ymOf(fechamento)]) || 0;
+              const d = {
+                cliente, destino: DEST_CRM(v_(l, "dest")), vendedor, vendedorNome: v_(l, "vend"), casa,
+                valorBRL, valorUSD, cotacao: valorUSD ? (cot || null) : null, semCotacao: !!(valorUSD && !cot),
+                valor: round2(valorBRL + (valorUSD && cot ? valorUSD * cot : 0)),
+                fechamento, embarque: lerData(v_(l, "cheg")), retorno: lerData(v_(l, "part")), pax: Number(v_(l, "pax")) || null,
+                statusCrm: v_(l, "st"), pagoBRL, saldoBRL, pagoUSD, saldoUSD,
+                origemLead: v_(l, "orig"), conferir: v_(l, "conf"), roteiro: v_(l, "rot"),
+                reembolsoBRL: lerMoeda(v_(l, "reemb")), reembolsoUSD: usdCel("reembU"), reembolsoDetalhe: v_(l, "reembD"), descontoBRL: lerMoeda(v_(l, "desc")), moedaCrm: v_(l, "moeda")
+              };
+              const mudou = !antigo || CAMPOS_CRM.some(k => JSON.stringify(antigo[k] ?? null) !== JSON.stringify(d[k] ?? null));
+              if (!mudou) continue;
+              const extra = { origem: "crm", atualizadoEm: ctx.agora || new Date().toISOString() };
+              if (!antigo) { extra.status = "ativa"; extra.pagaEm = null; novas++; } else alteradas++;
+              if (!antigo || antigo.vendedor !== vendedor || antigo.pct == null) extra.pct = casa || !vendedor ? 0 : (Number((membros[vendedor] || {}).pct) || 0);
+              escritas.push([id, { ...d, ...extra }]);
+            }
+            return { linhas: linhas.length - 1, novas, alteradas, ignoradas, escritas, idsPlanilha: Object.keys(vistos).sort() };
+          }
+          // Nomes de coluna aceitos (sem acento, minúsculas). A primeira coluna "name" é o destino e a segunda, o vendedor.
+          const ALIAS_ORC = {
+            id: ["id", "roteiro", "orcamento", "numero", "numero do orcamento"],
+            status: ["status", "situacao"],
+            criado: ["sent_at", "enviado em", "data de envio", "data do envio", "created_at", "criado em", "data de criacao", "data do orcamento", "data"],
+            cheg: ["arrival_date", "chegada", "data de chegada"],
+            part: ["departure_date", "partida", "data de partida"],
+            pax: ["number_of_people", "pax", "pessoas", "numero de pessoas"],
+            total: ["total", "valor", "valor total", "valor r$", "total r$"],
+            destino: ["destino", "destination"],
+            vend: ["vendedor", "vendedor(a)", "vendedora", "seller", "responsavel"],
+            cliente: ["cliente", "nome do cliente", "client", "client_name", "customer", "customer_name"],
+            link: ["link", "link do orcamento", "url", "uuid"],
+            telefone: ["telefone", "telefone do cliente", "celular", "whatsapp", "phone", "phone_number", "mobile"]
+          };
+          // Orçamentos: ctx = { antigos: {id: orçamento}, membros, hojeD: "AAAA-MM-DD" }
+          function prepararOrcamentos(txt, ctx) {
+            checarCSV(txt, "orçamentos");
+            const antigos = ctx.antigos || {}, membros = ctx.membros || {};
+            const linhas = lerCSV(txt); if (linhas.length < 2) throw new Error("A planilha de orçamentos está vazia.");
+            const cab = linhas[0].map(semAcento);
+            const ix = {}; for (const [k, nomes] of Object.entries(ALIAS_ORC)) { ix[k] = -1; for (const n of nomes) { const i = cab.indexOf(n); if (i >= 0) { ix[k] = i; break; } } }
+            const names = cab.map((h, i) => h === "name" ? i : -1).filter(i => i >= 0);
+            if (ix.destino < 0 && names.length) ix.destino = names[0];
+            if (ix.vend < 0 && names.length > 1) ix.vend = names[1];
+            if (ix.cliente < 0 && names.length > 2) ix.cliente = names[2]; // 3ª coluna "name" = cliente
+            if (ix.id < 0 || ix.total < 0) throw new Error("Não reconheci as colunas da planilha de orçamentos (faltam id ou total).");
+            const v_ = (l, k) => ix[k] >= 0 ? (l[ix[k]] || "").trim() : "";
+            const vistos = new Set(), escritas = []; let novos = 0, alterados = 0;
+            const semHistorico = Object.keys(antigos).length === 0; // primeira leitura: o que já existe fica como "anterior ao registro"
+            for (const l of linhas.slice(1)) {
+              const idv = v_(l, "id").replace(/[^A-Za-z0-9_-]/g, ""); if (!idv) continue;
+              const id = "orc_" + idv; if (vistos.has(id)) continue; vistos.add(id);
+              const achado = acharVendedor(v_(l, "vend"), membros), casa = achado === "__casa", antigo = antigos[id];
+              let vendedor = casa ? "" : achado; if (!vendedor && !casa && antigo && antigo.vendedor) vendedor = antigo.vendedor;
+              const lk = v_(l, "link"), link = /^https?:\/\//.test(lk) ? lk : /^[0-9a-f-]{20,}$/i.test(lk) ? "https://araya-mari.akceli.tech/orcamentos/" + lk : "";
+              const cli = v_(l, "cliente"), cliente = /^~.*~$/.test(cli) || /^\+?[\d\s()-]{8,}$/.test(cli) ? "" : cli; // ignora "~ sem nome ~" e telefone no lugar do nome
+              const d = { roteiro: idv, cliente, telefone: v_(l, "telefone").replace(/[^\d+]/g, ""), link, status: v_(l, "status"), criado: lerData(v_(l, "criado")), chegada: lerData(v_(l, "cheg")), partida: lerData(v_(l, "part")), pax: Number(v_(l, "pax")) || null, valor: lerMoeda(v_(l, "total")), destino: DEST_CRM(v_(l, "destino")), vendedor, vendedorNome: v_(l, "vend"), casa, naPlanilha: true };
+              if (antigo && !d.criado && antigo.criado) d.criado = antigo.criado;
+              const mudou = !antigo || Object.keys(d).some(k => JSON.stringify(antigo[k] ?? null) !== JSON.stringify(d[k] ?? null));
+              if (!mudou) continue;
+              if (!antigo) { d.vistoEm = ctx.hojeD; d.base = semHistorico; novos++; } else alterados++;
+              escritas.push([id, d]);
+            }
+            // saíram da planilha (viraram venda, foram cancelados ou apagados): ficam no histórico, mas não contam como "em aberto"
+            for (const [id, o] of Object.entries(antigos)) if (!vistos.has(id) && o.naPlanilha !== false) escritas.push([id, { naPlanilha: false }]);
+            return { linhas: linhas.length - 1, novos, alterados, escritas, temData: ix.criado >= 0 };
+          }
+          // <<< COMUM-TREVOR
+          const hojeSP = () => new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 10);
+          const resumo = (t) => require("crypto").createHash("sha1").update(t).digest("hex");
+          async function baixarCSV(link, nome) {
+            const url = urlPlanilha(link); if (!url) return null;
+            for (let tentativa = 1; tentativa <= 3; tentativa++) {
+              try { const r = await fetch(url, { redirect: "follow" }); const txt = await r.text(); if (r.ok) return txt; } catch (_) {}
+              await sleep(tentativa * 3000);
+            }
+            throw new Falha("a planilha de " + nome + " não abriu (confira se está compartilhada como qualquer pessoa com o link)");
+          }
+          async function gravarLotes(db, colecao, escritas) {
+            for (let i = 0; i < escritas.length; i += 400) {
+              const lote = writeBatch(db);
+              for (const [id, d] of escritas.slice(i, i + 400)) lote.set(doc(db, colecao, id), d, { merge: true });
+              await lote.commit();
+            }
+          }
+          async function sincronizarTrevor(db) {
+            let cfg = null, membros = null;
+            try {
+              const s = await getDoc(doc(db, "config", "comercial")); cfg = s.exists() ? s.data() : null;
+              membros = Object.fromEntries((await getDocs(collection(db, "equipe"))).docs.map((d) => [d.id, d.data()]));
+            } catch (_) { console.log("Trevor: o robô ainda não tem permissão para ler o portal (publique as regras novas do Firestore). Pulado."); return; }
+            if (!cfg || (!cfg.planilha && !cfg.planilhaOrc)) { console.log("Trevor: nenhuma planilha ligada no portal, pulado."); return; }
+            const agora = new Date().toISOString(), upd = { ultimaImportacao: agora, ultimaVerificacaoRobo: agora };
+            // se alguém mudar o nome no CRM, o apelido ou o percentual de uma pessoa, a leitura é refeita
+            const marcaEquipe = JSON.stringify(Object.keys(membros).sort().map((k) => [k, membros[k].nomeCrm || "", membros[k].apelido || "", membros[k].pct ?? null, membros[k].ativo !== false]));
+            try {
+              if (cfg.planilha) {
+                const txt = await baixarCSV(cfg.planilha, "vendas"), h = resumo(txt + marcaEquipe + JSON.stringify(cfg.cotacoes || {}));
+                if (h !== cfg.hashVendas) {
+                  const antigas = Object.fromEntries((await getDocs(collection(db, "vendas"))).docs.map((d) => [d.id, d.data()]));
+                  const rv = prepararVendas(txt, { antigas, membros, cotacoes: cfg.cotacoes || {}, agora });
+                  await gravarLotes(db, "vendas", rv.escritas);
+                  Object.assign(upd, { hashVendas: h, idsPlanilha: rv.idsPlanilha, ultimoResultado: { linhas: rv.linhas, novas: rv.novas, alteradas: rv.alteradas, ignoradas: rv.ignoradas, em: agora } });
+                  console.log("Trevor vendas: " + rv.linhas + " linhas, " + rv.novas + " novas, " + rv.alteradas + " atualizadas.");
+                } else console.log("Trevor vendas: sem mudança.");
+              }
+              if (cfg.planilhaOrc) {
+                const txt = await baixarCSV(cfg.planilhaOrc, "orçamentos"), h = resumo(txt + marcaEquipe);
+                if (h !== cfg.hashOrc) {
+                  const antigos = Object.fromEntries((await getDocs(collection(db, "orcamentos"))).docs.map((d) => [d.id, d.data()]));
+                  const ro = prepararOrcamentos(txt, { antigos, membros, hojeD: hojeSP() });
+                  await gravarLotes(db, "orcamentos", ro.escritas);
+                  Object.assign(upd, { hashOrc: h, ultimaImportacaoOrc: agora, orcTemData: ro.temData });
+                  if (!cfg.orcBase) upd.orcBase = hojeSP();
+                  console.log("Trevor orçamentos: " + ro.linhas + " linhas, " + ro.novos + " novos, " + ro.alterados + " atualizados.");
+                } else console.log("Trevor orçamentos: sem mudança.");
+              }
+            } catch (e) {
+              console.log("Trevor: não atualizado — " + String((e && e.message) || e).slice(0, 200) + ". O resto do portal segue normalmente.");
+            }
+            try { await setDoc(doc(db, "config", "comercial"), upd, { merge: true }); } catch (_) {}
           }
 
           // ---------- principal ----------
@@ -402,8 +623,9 @@ jobs:
             }
             const db = getFirestore(app);
 
-            // 0. atendimentos do Helena (se falhar, não atrapalha as fichas)
+            // 0. atendimentos do Helena e planilhas do Trevor (se falharem, não atrapalham as fichas)
             await sincronizarHelena(db);
+            await sincronizarTrevor(db);
 
             // 1. fichas publicadas
             const paginas = [];
