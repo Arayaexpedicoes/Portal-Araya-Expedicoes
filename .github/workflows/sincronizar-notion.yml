@@ -428,6 +428,8 @@ jobs:
             const x = String(t || "").trim(); let m;
             if ((m = x.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/))) return `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
             if ((m = x.match(/^(\d{4})-(\d{2})-(\d{2})/))) return `${m[1]}-${m[2]}-${m[3]}`;
+            // número de série de data do Google Planilhas (ex.: 46284,59 = 19/09/2026)
+            if ((m = x.match(/^(\d{5})(?:[.,]\d+)?$/)) && +m[1] > 30000 && +m[1] < 80000) return new Date(Date.UTC(1899, 11, 30) + (+m[1]) * 864e5).toISOString().slice(0, 10);
             return "";
           }
           const DEST_CRM = (d) => { const n = semAcento(d); if (n.includes("cusco") || n.includes("machu") || n.includes("peru")) return n.includes("+") ? d : "Cusco e Machu Picchu"; if (n === "patagonia") return "Patagônia"; if (n === "japao") return "Japão"; if (n.startsWith("egito")) return "Egito e Jordânia"; if (n === "ushuaia") return "Ushuaia"; if (n === "mendoza") return "Mendoza"; if (n.includes("atacama") || n.includes("uyuni")) return "Atacama e Uyuni"; return d; };
