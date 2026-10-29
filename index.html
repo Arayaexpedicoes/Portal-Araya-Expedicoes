@@ -132,7 +132,9 @@ details.mescom[open] > summary .t::before{transform:rotate(45deg)}
 details.mescom > summary .v{display:flex;gap:6px 10px;align-items:center;flex-wrap:wrap;white-space:nowrap}
 details.mescom .tablewrap{padding:0 0 12px}
 .mescom .so-cel,.orclista .so-cel{display:none}
-@media (max-width:640px){ .orclista .px,.orclista .lk,.orclista .vd{display:none} .orclista .so-cel{display:block;margin-top:4px} .orclista td.n{white-space:nowrap} }
+.orclista .acoes{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
+.orclista .so-cel.acoes{display:none}
+@media (max-width:640px){ .orclista .px,.orclista .lk,.orclista .vd,.orclista .ac,.orclista .vg{display:none} .orclista .so-cel.acoes{display:flex;justify-content:flex-end;margin-top:6px} .orclista .so-cel{display:block;margin-top:4px} .orclista td.n{white-space:nowrap} }
 @media (max-width:640px){ .mescom .vg,.mescom .st{display:none} .mescom .so-cel{display:block;margin-top:4px} .mescom td.n{white-space:nowrap} }
 tbody tr.sel td{background:color-mix(in srgb, var(--accent-soft) 60%, transparent)}
 input.cell[readonly]{background:transparent;border-color:transparent;box-shadow:none;cursor:default}
@@ -400,12 +402,12 @@ const pill = (st) => { const [c, t] = STATUS_PILL[st] || ["neutral", st]; return
 const S = {
   auth: null, db: null, session: null, resumoAtual: "", email: "", isAdmin: false, ready: false, authMode: "entrar", authMsg: null, recovery: false,
   members: {}, vendas: {}, notas: {}, atend: {}, destinos: [], passeios: [], tickets: [], equipeRes: null,
-  comercial: { planilha: "", cotacoes: {}, metas: {}, ultimaImportacao: "", ultimoResultado: null }, importando: false, vendasEquipe: null, bonus: {}, disp: {}, dispErro: false, helena: [], orc: {},
+  comercial: { planilha: "", cotacoes: {}, metas: {}, ultimaImportacao: "", ultimoResultado: null }, importando: false, vendasEquipe: null, bonus: {}, disp: {}, dispErro: false, helena: [], orc: {}, retornos: {},
   tab: null, previewUid: null,
   filtros: { vend: "", mes: "", busca: "", comMes: ymNow(), painelMes: ymNow(), destino: null, passeio: null, tourBusca: "", minhasMes: "", tkDest: null, tkItem: null, tkBusca: "", comMesC: ymNow() },
   pendingRender: false
 };
-let toastTimer;
+let toastTimer, _orcCache = { t: 0, v: null };
 function toast(msg) {
   const el = document.createElement("div"); el.className = "toast"; el.textContent = msg;
   document.querySelectorAll(".toast").forEach(t => t.remove());
@@ -495,6 +497,7 @@ async function loadAll() {
     if (rs.exists) { const d = rs.data(); S.resumoAtual = JSON.stringify({ meses: d.meses, pessoas: d.pessoas }); }
     try { S.helena = docsOf(await col("helena").get()); } catch (_) { S.helena = []; }
     try { S.orc = Object.fromEntries(docsOf(await col("orcamentos").get()).map(d => [d.id, d])); } catch (_) { S.orc = {}; }
+    try { S.retornos = Object.fromEntries(docsOf(await col("retornos").get()).map(d => [d.id, d])); } catch (_) { S.retornos = {}; }
     try { await syncAtendHelena(); } catch (_) { /* tenta de novo no próximo carregamento */ }
     try { await syncResumo(); } catch (_) { /* tenta de novo no próximo carregamento */ }
     return;
@@ -510,6 +513,7 @@ async function loadAll() {
   try { S.bonus = Object.fromEntries(docsOf(await (souSup ? col("bonus") : col("bonus").where("email", "==", me)).get()).map(b => [b.id, b])); } catch (_) { S.bonus = {}; }
   S.vendasEquipe = null;
   try { S.orc = Object.fromEntries(docsOf(await (souSup ? col("orcamentos") : col("orcamentos").where("vendedor", "==", me)).get()).map(d => [d.id, d])); } catch (_) { S.orc = {}; }
+  try { S.retornos = Object.fromEntries(docsOf(await (souSup ? col("retornos") : col("retornos").where("email", "==", me)).get()).map(d => [d.id, d])); } catch (_) { S.retornos = {}; }
   if (souSup) {
     try { S.vendasEquipe = docsOf(await col("vendas").get()); } catch (_) { S.vendasEquipe = null; }
     try { const c = await col("config").doc("comercial").get(); if (c.exists) S.comercial = { ...S.comercial, cotacoes: {}, metas: {}, ...c.data() }; } catch (_) {}
@@ -548,6 +552,7 @@ function ownerTabs() { return [["painel", "Visão geral"], ["comercial", "Comerc
 function memberTabs(data) { const ab = { ...ABAS_PADRAO, ...((data && data.abas) || {}) }; const t = ABAS.filter(([k]) => ab[k]); if (data && data.supervisor) t.splice(1, 0, ["comercial", "Comercial da equipe"]); return t; }
 
 function render() {
+  _orcCache.v = null;
   renderWho();
   if (!S.auth) return;
   if (!S.session) return renderAuth(S.authMode);
@@ -1048,7 +1053,7 @@ function agendaView(email) {
 }
 
 function comSubnav(semVendas) {
-  const itens = [["resumo", "Resumo"], ["funil", "Atendimentos e orçamentos"], ...(semVendas ? [] : [["vendas", "Vendas"]])];
+  const itens = [["resumo", "Resumo"], ["funil", "Atendimentos e orçamentos"], ...(semVendas ? [] : [["campanhas", "Campanhas"], ["vendas", "Vendas"]])];
   const sub = itens.some(([k]) => k === S.filtros.comSub) ? S.filtros.comSub : "resumo";
   return `<nav class="subnav" aria-label="Seções do Comercial">${itens.map(([k, t]) => `<button type="button" data-comsub="${k}" aria-current="${k === sub}">${t}</button>`).join("")}</nav>`;
 }
@@ -1057,7 +1062,7 @@ function renderOwner() {
   renderTabs(ownerTabs());
   let html = "";
   if (S.tab === "painel") html = ownerPainel();
-  else if (S.tab === "comercial") html = comSubnav() + (S.filtros.comSub === "vendas" ? ownerVendas() : S.filtros.comSub === "funil" ? ownerFunil() : ownerComercial());
+  else if (S.tab === "comercial") html = comSubnav() + (S.filtros.comSub === "vendas" ? ownerVendas() : S.filtros.comSub === "funil" ? ownerFunil() : S.filtros.comSub === "campanhas" ? ownerCampanhas() : ownerComercial());
   else if (S.tab === "comissoes") html = ownerComissoes();
   else if (S.tab === "atendimentos") html = ownerAtendimentos();
   else if (S.tab === "agenda") html = agendaView(null);
@@ -1192,10 +1197,26 @@ function reembolsosPainel(ativas, admin) {
 // ---------- atendimentos, orçamentos e conversão ----------
 // Orçamento válido: com data de viagem e valor. Conta no mês da data do orçamento (coluna de data do relatório do Trevor).
 const orcValido = (o) => !!o.chegada && (Number(o.valor) || 0) > 0;
-const orcAberto = (o, hojeD) => orcValido(o) && o.naPlanilha !== false && semAcento(o.status).startsWith("orcamento") && (o.chegada || "") >= hojeD;
+const orcAberto = (o, hojeD) => orcValido(o) && !o.venda && o.naPlanilha !== false && semAcento(o.status).startsWith("orcamento") && (o.chegada || "") >= hojeD;
 // Data do orçamento: a da planilha, se existir; senão, o dia em que o portal viu o orçamento pela primeira vez
 // (só para os que surgiram depois que o portal começou a registrar; os anteriores ficam sem data).
-function orcLista() { return Object.entries(S.orc || {}).map(([id, o]) => ({ id, ...o, criado: o.criado || (o.base === false ? o.vistoEm || "" : "") })).filter(orcValido); }
+// Cada orçamento é ligado à venda de mesmo número de roteiro (quando vira venda, o roteiro é o mesmo no CRM).
+const vendasVisiveis = () => S.isAdmin ? allVendas() : S.vendasEquipe ? listaEquipe() : allVendas();
+function orcLista() {
+  const agora = Date.now(); if (_orcCache.v && agora - _orcCache.t < 300) return _orcCache.v;
+  const vr = {}; vendasVisiveis().forEach(v => { if (v.roteiro && v.status !== "cancelada") vr[String(v.roteiro)] = v; });
+  const v = Object.entries(S.orc || {}).map(([id, o]) => ({ id, ...o, criado: o.criado || (o.base === false ? o.vistoEm || "" : ""), venda: vr[String(o.roteiro)] || null })).filter(orcValido);
+  _orcCache = { t: agora, v }; return v;
+}
+const diasEntre = (a, b) => Math.round((Date.parse(b + "T12:00:00") - Date.parse(a + "T12:00:00")) / 864e5);
+function waLink(tel) { let d = String(tel || "").replace(/\D/g, ""); if (!d) return ""; if (d.length <= 11) d = "55" + d; return "https://wa.me/" + d; }
+function acompHtml(o, hojeD) {
+  const r = (S.retornos || {})[o.id];
+  const ret = r ? `<span class="pill ok">Retomado ${dLabel((r.em || "").slice(0, 10)).slice(0, 5)}</span>` : "";
+  if (!o.criado) return ret || `<span class="muted small">antes de ${S.comercial.orcBase ? dLabel(S.comercial.orcBase).slice(0, 5) : "29/10"}</span>`;
+  const d = diasEntre(o.criado, hojeD);
+  return (ret ? ret + " " : "") + (d > 7 && !r ? `<span class="pill warn">esfriando · ${d} dias</span>` : `<span class="muted small">há ${d} ${d === 1 ? "dia" : "dias"}</span>`);
+}
 function funilDados(M, pessoas, semData) {
   const orcs = orcLista(), vendas = listaEquipe().filter(v => v.status !== "cancelada"), hojeD = new Date().toISOString().slice(0, 10);
   const pp = (S.atend[M] && S.atend[M].porPessoa) || {};
@@ -1207,9 +1228,12 @@ function funilDados(M, pessoas, semData) {
   return linhas;
 }
 const pctTxt = (n) => n == null ? "—" : n.toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + "%";
-function listaOrcHtml(lista, comVendedor) {
+function listaOrcHtml(lista, comVendedor, podeMarcar) {
+  const hojeD = isoDia(new Date());
   const l = lista.slice().sort((a, b) => (a.chegada || "").localeCompare(b.chegada || ""));
-  return `<div class="tablewrap"><table class="orclista"><thead><tr><th>Cliente</th>${comVendedor ? '<th class="vd">Vendedor</th>' : ""}<th>Viagem</th><th class="n px">Pessoas</th><th class="n">Valor</th><th class="lk"></th></tr></thead><tbody>${l.map(o => `<tr><td>${o.cliente ? esc(o.cliente) : `Orçamento #${esc(o.roteiro)}`}<div>${destTag(o.destino)}${o.cliente ? ` <span class="muted small">#${esc(o.roteiro)}</span>` : ""}</div></td>${comVendedor ? `<td class="vd">${esc(o.vendedor ? label(o.vendedor) : o.vendedorNome || "—")}</td>` : ""}<td>${dLabel(o.chegada)}${o.partida ? `<div class="muted small">volta ${dLabel(o.partida)}</div>` : ""}${comVendedor ? `<div class="so-cel muted small">${esc(o.vendedor ? label(o.vendedor) : o.vendedorNome || "")}</div>` : ""}</td><td class="n px">${o.pax || "—"}</td><td class="n">${money(o.valor)}<div class="so-cel muted small">${o.pax ? o.pax + (o.pax === 1 ? " pessoa" : " pessoas") : ""}</div>${o.link ? `<div class="so-cel"><a class="btn sm ghost" href="${esc(o.link)}" target="_blank" rel="noopener">Abrir ↗</a></div>` : ""}</td><td class="lk">${o.link ? `<a class="btn sm ghost" href="${esc(o.link)}" target="_blank" rel="noopener">Abrir ↗</a>` : ""}</td></tr>`).join("")}</tbody></table></div>`;
+  const acoes = (o) => [o.telefone ? `<a class="btn sm" href="${esc(waLink(o.telefone))}" target="_blank" rel="noopener">WhatsApp</a>` : "", o.link ? `<a class="btn sm ghost" href="${esc(o.link)}" target="_blank" rel="noopener">Abrir ↗</a>` : "", podeMarcar ? `<button type="button" class="btn sm ghost" data-act="retomei" data-id="${esc(o.id)}">${(S.retornos || {})[o.id] ? "Desmarcar" : "Já retomei"}</button>` : ""].filter(Boolean).join(" ");
+  const vend = (o) => esc(o.vendedor ? label(o.vendedor) : o.vendedorNome || "—");
+  return `<div class="tablewrap"><table class="orclista"><thead><tr><th>Cliente</th>${comVendedor ? '<th class="vd">Vendedor</th>' : ""}<th class="vg">Viagem</th><th class="n px">Pessoas</th><th class="n">Valor</th><th class="ac">Acompanhamento</th><th class="lk"></th></tr></thead><tbody>${l.map(o => `<tr><td>${o.cliente ? esc(o.cliente) : `Orçamento #${esc(o.roteiro)}`}<div>${destTag(o.destino)}${o.cliente ? ` <span class="muted small">#${esc(o.roteiro)}</span>` : ""}</div><div class="so-cel muted small">Viagem ${dLabel(o.chegada)}${comVendedor ? " · " + vend(o) : ""}</div><div class="so-cel">${acompHtml(o, hojeD)}</div></td>${comVendedor ? `<td class="vd">${vend(o)}</td>` : ""}<td class="vg">${dLabel(o.chegada)}${o.partida ? `<div class="muted small">volta ${dLabel(o.partida)}</div>` : ""}</td><td class="n px">${o.pax || "—"}</td><td class="n">${money(o.valor)}<div class="so-cel muted small">${o.pax ? o.pax + (o.pax === 1 ? " pessoa" : " pessoas") : ""}</div>${acoes(o) ? `<div class="so-cel acoes">${acoes(o)}</div>` : ""}</td><td class="ac">${acompHtml(o, hojeD)}</td><td class="lk"><div class="acoes">${acoes(o)}</div></td></tr>`).join("")}</tbody></table></div>`;
 }
 function chipsDestino(abertos) {
   const porDest = {}; abertos.forEach(o => { const k = o.destino || "—"; porDest[k] = (porDest[k] || 0) + 1; });
@@ -1218,11 +1242,34 @@ function chipsDestino(abertos) {
 }
 const filtraDestino = (lista) => { const d = S.filtros.orcDest; return d && lista.some(o => (o.destino || "—") === d) ? lista.filter(o => (o.destino || "—") === d) : lista; };
 function meusOrcamentosPainel(meusOrc) {
-  const hojeD = new Date().toISOString().slice(0, 10);
+  const hojeD = isoDia(new Date());
   const abertos = meusOrc.filter(o => orcAberto(o, hojeD));
   if (!meusOrc.length) return "";
+  const conv = meusOrc.filter(o => o.venda), oculta = !!S.filtros.ocultarRetomados;
+  const visiveis = filtraDestino(abertos).filter(o => !oculta || !(S.retornos || {})[o.id]);
+  const nRet = abertos.filter(o => (S.retornos || {})[o.id]).length;
   return `<section class="panel"><div class="section-head"><div><h3>Meus orçamentos em aberto</h3><span class="muted small">Clientes com orçamento enviado e viagem daqui para frente, dos mais próximos para os mais distantes. Bom ponto de partida para retomar a conversa.</span></div><span class="pill info">${filtraDestino(abertos).length} · ${money(filtraDestino(abertos).reduce((s, o) => s + (Number(o.valor) || 0), 0))}</span></div>
-    ${abertos.length ? `${chipsDestino(abertos)}${listaOrcHtml(filtraDestino(abertos), false)}` : `<div class="empty"><strong>Nenhum orçamento em aberto</strong></div>`}
+    ${conv.length ? `<p class="small" style="margin:0">🎉 <strong>${conv.length}</strong> ${conv.length === 1 ? "orçamento seu já virou venda" : "orçamentos seus já viraram venda"} desde que o portal começou a acompanhar (${pctTxt(conv.length / meusOrc.length * 100)} dos acompanhados).</p>` : ""}
+    ${abertos.length ? `${chipsDestino(abertos)}
+      ${nRet ? `<label class="toggle" style="justify-self:start"><input type="checkbox" data-ocultar-ret ${oculta ? "checked" : ""}>Esconder os ${nRet} que já retomei</label>` : ""}
+      ${visiveis.length ? listaOrcHtml(visiveis, false, true) : `<div class="empty"><strong>Todos os orçamentos deste filtro já foram retomados</strong></div>`}` : `<div class="empty"><strong>Nenhum orçamento em aberto</strong></div>`}
+  </section>`;
+}
+function conversaoPainel(orcs, nomeDe) {
+  const acomp = orcs.filter(o => o.naPlanilha !== false || o.venda);
+  if (!acomp.length) return "";
+  const conv = acomp.filter(o => o.venda);
+  const dias = conv.filter(o => o.criado && o.venda.fechamento).map(o => Math.max(0, diasEntre(o.criado, o.venda.fechamento)));
+  const media = dias.length ? Math.round(dias.reduce((a, b) => a + b, 0) / dias.length) : null;
+  const agrupa = (fn) => { const g = {}; acomp.forEach(o => { const k = fn(o) || "—"; (g[k] ||= { q: 0, c: 0, v: 0 }); g[k].q++; if (o.venda) { g[k].c++; g[k].v += Number(o.venda.valor) || 0; } }); return Object.entries(g).sort((a, b) => b[1].c - a[1].c || b[1].q - a[1].q); };
+  const tab = (titulo, linhas, rot) => `<div><h4 style="margin:0 0 6px">${titulo}</h4><div class="tablewrap"><table><thead><tr><th></th><th class="n">Orçamentos</th><th class="n">Viraram venda</th><th class="n">Taxa</th><th class="n">Valor vendido</th></tr></thead><tbody>${linhas.map(([k, x]) => `<tr><td>${rot(k)}</td><td class="n">${x.q}</td><td class="n">${x.c}</td><td class="n">${pctTxt(x.q ? x.c / x.q * 100 : null)}</td><td class="n">${money(x.v)}</td></tr>`).join("")}</tbody></table></div></div>`;
+  return `<section class="panel"><div class="section-head"><div><h3>Orçamentos que viraram venda</h3><span class="muted small">Orçamentos acompanhados pelo portal desde ${S.comercial.orcBase ? dLabel(S.comercial.orcBase) : "o início do registro"}, ligados à venda pelo número do roteiro.</span></div><span class="pill ok">${conv.length} de ${acomp.length} · ${pctTxt(conv.length / acomp.length * 100)}</span></div>
+    <div class="tiles">
+      <div class="tile"><span class="k">Viraram venda</span><span class="v">${conv.length}</span><span class="d">${money(conv.reduce((s, o) => s + (Number(o.venda.valor) || 0), 0))} vendidos</span></div>
+      <div class="tile"><span class="k">Taxa de conversão</span><span class="v">${pctTxt(conv.length / acomp.length * 100)}</span><span class="d">dos orçamentos acompanhados</span></div>
+      <div class="tile"><span class="k">Tempo até fechar</span><span class="v">${media == null ? "—" : media + (media === 1 ? " dia" : " dias")}</span><span class="d">${media == null ? "Aparece quando os orçamentos novos começarem a fechar" : "Em média, do orçamento à venda"}</span></div>
+    </div>
+    <div class="grid2">${tab("Por pessoa", agrupa(o => o.vendedor ? o.vendedor : o.vendedorNome ? "nome:" + o.vendedorNome : ""), k => esc(k === "—" ? "Sem vendedor" : k.startsWith("nome:") ? k.slice(5) : nomeDe(k)))}${tab("Por destino", agrupa(o => o.destino), k => destTag(k) || "—")}</div>
   </section>`;
 }
 function ownerFunil() {
@@ -1271,7 +1318,51 @@ function ownerFunil() {
       <tbody>${porMes.map(x => `<tr${x.m === M ? ' class="sel"' : ""}><td>${ymLabel(x.m)}</td><td class="n">${x.at || "—"}</td><td class="n">${semData ? "—" : x.orc || "—"}</td><td class="n">${semData || !x.orcV ? "—" : money(x.orcV)}</td><td class="n">${x.vq || "—"}</td><td class="n">${pctTxt(x.at ? x.vq / x.at * 100 : null)}</td></tr>`).join("")}</tbody></table></div>
     </section>
   </div>
+  ${conversaoPainel(orcs, nomeDe)}
   ${abertos.length ? `<section class="panel"><details id="orc-todos" ${S.orcTodosAberto ? "open" : ""}><summary style="cursor:pointer"><strong>Ver todos os orçamentos em aberto</strong> <span class="muted small">(${abertos.length})</span></summary><div style="display:grid;gap:12px;margin-top:12px">${chipsDestino(abertos)}${listaOrcHtml(filtraDestino(abertos), true)}</div></details></section>` : ""}`;
+}
+// ---------- campanhas (UTM do Helena) ----------
+function destinoDaCampanha(c) {
+  const n = semAcento([c.campaign, c.content, c.headline].join(" "));
+  if (/cusco|machu|peru|inca/.test(n)) return "Cusco e Machu Picchu";
+  if (/patag|torres|calafate|chalten/.test(n)) return "Patagônia";
+  if (/ushuaia/.test(n)) return "Ushuaia";
+  if (/egito|egypt|jordan|cairo/.test(n)) return "Egito e Jordânia";
+  if (/japao|japan|toquio|tokyo|kyoto/.test(n)) return "Japão";
+  if (/mendoza/.test(n)) return "Mendoza";
+  if (/atacama|uyuni/.test(n)) return "Atacama e Uyuni";
+  return "Geral / outros";
+}
+function ownerCampanhas() {
+  const M = S.filtros.comMesC || ymNow();
+  const h = (S.helena || []).find(x => x.mes === M);
+  const meses = (S.helena || []).map(x => x.mes).filter(Boolean).sort().reverse();
+  const head = `<div class="section-head"><div><h2>Campanhas</h2><p>Leads que chegaram pelo Helena vindos de anúncios (UTM) e as vendas que geraram. Conta como venda da campanha o lead que chegou no mês e fechou no mesmo mês, cruzado pelo nome do cliente, mesmo que tenha fechado outro destino.</p></div>
+    <div class="field"><label for="f-camp-mes">Mês</label><select id="f-camp-mes" data-filter="comMesC">${(meses.includes(M) ? meses : [M, ...meses]).map(m => `<option value="${m}" ${m === M ? "selected" : ""}>${ymLabel(m)}</option>`).join("")}</select></div></div>`;
+  if (!h || !h.campanhas) return head + `<div class="empty"><strong>Sem dados de campanha em ${ymLabel(M)}</strong><span>O robô do Helena guarda as campanhas do mês atual e do anterior a partir da próxima execução.</span></div>`;
+  const vendas = vendasVisiveis().filter(v => v.status !== "cancelada" && ymOf(v.fechamento) === M);
+  const orcs = orcLista().filter(o => o.cliente && ymOf(o.criado) === M);
+  const porChave = (lista, campo) => { const m = {}; lista.forEach(x => { const k = chaveNome(x[campo]); if (k) (m[k] ||= []).push(x); }); return m; };
+  const vChave = porChave(vendas, "cliente"), oChave = porChave(orcs, "cliente");
+  const linhas = h.campanhas.map(c => { const nomes = new Set(c.nomes || []); const vs = [...nomes].flatMap(k => vChave[k] || []); const os = [...nomes].flatMap(k => oChave[k] || []); return { ...c, dest: destinoDaCampanha(c), vs, os, vV: vs.reduce((a, v) => a + (Number(v.valor) || 0), 0) }; });
+  const grupos = {}; linhas.forEach(l => (grupos[l.dest] ||= []).push(l));
+  const ordem = Object.entries(grupos).map(([d, ls]) => [d, ls, ls.reduce((a, l) => a + l.n, 0), ls.reduce((a, l) => a + l.vs.length, 0), ls.reduce((a, l) => a + l.vV, 0)]).sort((a, b) => b[4] - a[4] || b[2] - a[2]);
+  const leads = linhas.reduce((a, l) => a + l.n, 0), vendidas = new Set(linhas.flatMap(l => l.vs.map(v => v.id))), valor = vendas.filter(v => vendidas.has(v.id)).reduce((a, v) => a + (Number(v.valor) || 0), 0);
+  const temOrc = orcs.length > 0;
+  const nomeAnuncio = (l) => esc(l.content || l.headline || "(sem nome do anúncio)");
+  return head + `
+  <div class="tiles">
+    <div class="tile"><span class="k">Leads de campanhas</span><span class="v">${leads.toLocaleString("pt-BR")}</span><span class="d">${(h.semCampanha || 0).toLocaleString("pt-BR")} chegaram sem campanha (orgânico, indicação, direto)</span></div>
+    <div class="tile"><span class="k">Vendas das campanhas</span><span class="v">${vendidas.size}</span><span class="d">${money(valor)} vendidos em ${ymLabel(M)}</span></div>
+    <div class="tile feature"><span class="k">Conversão</span><span class="v">${pctTxt(leads ? vendidas.size / leads * 100 : null)}</span><span class="d">Vendas ÷ leads de campanhas</span></div>
+  </div>
+  ${ordem.map(([d, ls, n, q, v]) => `<section class="panel"><div class="section-head"><div><h3>${d === "Geral / outros" ? esc(d) : `<span class="dest" style="${dc(d)};font-size:inherit;font-weight:inherit;color:inherit">${esc(d)}</span>`}</h3><span class="muted small">${n.toLocaleString("pt-BR")} leads · ${q} ${q === 1 ? "venda" : "vendas"} · ${money(v)}</span></div><span class="pill ${q ? "ok" : "neutral"}">${pctTxt(n ? q / n * 100 : null)}</span></div>
+    <div class="tablewrap"><table><thead><tr><th>Campanha · anúncio</th><th>Origem</th><th class="n">Leads</th>${temOrc ? '<th class="n">Orçamentos</th>' : ""}<th class="n">Vendas</th><th class="n">Conversão</th><th class="n">Valor vendido</th></tr></thead>
+    <tbody>${ls.sort((a, b) => b.vV - a.vV || b.n - a.n).map(l => `<tr><td><strong>${esc(l.campaign || "(sem campanha)")}</strong><div class="muted small">${nomeAnuncio(l)}</div>${l.vs.length ? `<div class="muted small">Fechou: ${[...new Set(l.vs.map(v => v.destino))].map(x => esc(x)).join(", ")}</div>` : ""}</td><td class="small">${esc(l.source || "—")}${l.medium ? `<div class="muted small">${esc(l.medium)}</div>` : ""}</td><td class="n">${l.n}</td>${temOrc ? `<td class="n">${l.os.length}</td>` : ""}<td class="n">${l.vs.length}</td><td class="n">${pctTxt(l.n ? l.vs.length / l.n * 100 : null)}</td><td class="n">${money(l.vV)}</td></tr>`).join("")}</tbody></table></div>
+  </section>`).join("")}
+  ${vendidas.size ? `<section class="panel"><details><summary style="cursor:pointer"><strong>Ver as vendas atribuídas às campanhas</strong> <span class="muted small">(${vendidas.size})</span></summary>
+    <div class="tablewrap" style="margin-top:10px"><table><thead><tr><th>Cliente</th><th>Vendedor</th><th>Fechada em</th><th>Campanha · anúncio</th><th class="n">Valor</th></tr></thead><tbody>${vendas.filter(v => vendidas.has(v.id)).map(v => { const l = linhas.find(x => x.vs.some(y => y.id === v.id)); return `<tr><td>${esc(v.cliente)}<div>${destTag(v.destino)}</div></td><td>${esc(vendLabel(v))}</td><td>${dLabel(v.fechamento)}</td><td class="small">${esc((l && l.campaign) || "")}<div class="muted small">${l ? nomeAnuncio(l) : ""}</div></td><td class="n">${money(v.valor)}</td></tr>`; }).join("")}</tbody></table></div>
+    <p class="muted small" style="margin:8px 0 0">O cruzamento é pelo primeiro e último nome do cliente. Nomes muito comuns podem gerar uma ou outra ligação errada; confira na lista acima.</p></details></section>` : ""}`;
 }
 function abrirConfigTrevor() {
   const c = S.comercial;
@@ -1560,6 +1651,11 @@ $("#main").addEventListener("click", async (e) => {
     else if (act === "ver-conferir") abrirConferir();
     else if (act === "ver-fora") abrirFora();
     else if (act === "editar-venda") openVenda(id);
+    else if (act === "retomei") {
+      const ref = col("retornos").doc(id), dono = S.previewUid || S.email;
+      if (S.retornos[id]) { delete S.retornos[id]; render(); await ref.delete(); }
+      else { const r = { email: dono, orc: id, em: new Date().toISOString() }; S.retornos[id] = r; render(); await ref.set(r); }
+    }
     else if (act === "disp-semana") {
       const d = dispDe(uid), w = b.dataset.dia, k = b.dataset.p;
       const semana = { ...(d.semana || {}), [w]: { ...((d.semana || {})[w] || {}), [k]: b.getAttribute("aria-pressed") !== "true" } };
@@ -1628,6 +1724,7 @@ $("#main").addEventListener("change", async (e) => {
   const t = e.target;
   if (t.id === "n-semail") { $("#n-senha-box").hidden = !t.checked; if (t.checked && !$("#n-senha").value) $("#n-senha").value = gerarSenha(); return; }
   if (t.dataset.filter) { S.filtros[t.dataset.filter] = t.value; render(); return; }
+  if ("ocultarRet" in t.dataset) { S.filtros.ocultarRetomados = t.checked; render(); return; }
   if (t.dataset.dispObs) { const d = dispDe(t.dataset.dispObs), obs = t.value.trim(); if ((d.obs || "") !== obs) { await salvarDisp(t.dataset.dispObs, { ...d, obs }); toast("Recado salvo"); } return; }
   try {
     if (t.dataset.aba) {
@@ -1664,7 +1761,9 @@ $("#main").addEventListener("input", (e) => {
   buscaTimer = setTimeout(() => { const pos = t.selectionStart; render(); const n = $("#" + t.id); if (n) { n.focus(); n.setSelectionRange(pos, pos); } }, 250);
 });
 
-// ---------- planilha do Trevor (vendas do CRM) ----------
+// ---------- planilhas do Trevor (vendas e orçamentos) ----------
+// >>> COMUM-TREVOR · este bloco é copiado igualzinho para o robô do GitHub (não use S, col nem nada do navegador aqui).
+// Precisa de: round2, ymOf e semAcento definidos antes.
 function lerCSV(txt) {
   const linhas = []; let linha = [], campo = "", aspas = false;
   for (let i = 0; i < txt.length; i++) {
@@ -1693,12 +1792,12 @@ function lerData(t) {
   return "";
 }
 const DEST_CRM = (d) => { const n = semAcento(d); if (n.includes("cusco") || n.includes("machu") || n.includes("peru")) return n.includes("+") ? d : "Cusco e Machu Picchu"; if (n === "patagonia") return "Patagônia"; if (n === "japao") return "Japão"; if (n.startsWith("egito")) return "Egito e Jordânia"; if (n === "ushuaia") return "Ushuaia"; if (n === "mendoza") return "Mendoza"; if (n.includes("atacama") || n.includes("uyuni")) return "Atacama e Uyuni"; return d; };
-function acharVendedor(nome) {
+function acharVendedor(nome, membros) {
   const n = semAcento(nome); if (!n) return "";
   if (/^programac/.test(n) || n.includes("expedicoes")) return "__casa";
-  const ids = Object.keys(S.members);
-  let u = ids.find(id => S.members[id].nomeCrm && semAcento(S.members[id].nomeCrm) === n);
-  if (!u) u = ids.find(id => { const a = semAcento(S.members[id].apelido); return a && (n === a || n.startsWith(a + " ")); });
+  const ids = Object.keys(membros || {});
+  let u = ids.find(id => membros[id].nomeCrm && semAcento(membros[id].nomeCrm) === n);
+  if (!u) u = ids.find(id => { const a = semAcento(membros[id].apelido); return a && (n === a || n.startsWith(a + " ")); });
   return u || "";
 }
 function urlPlanilha(link) {
@@ -1707,79 +1806,63 @@ function urlPlanilha(link) {
   return `https://docs.google.com/spreadsheets/d/${id}/export?format=csv${gid ? "&gid=" + gid : ""}`;
 }
 const CAMPOS_CRM = ["cliente", "destino", "vendedor", "vendedorNome", "casa", "valorBRL", "valorUSD", "cotacao", "semCotacao", "valor", "fechamento", "embarque", "retorno", "pax", "statusCrm", "pagoBRL", "saldoBRL", "pagoUSD", "saldoUSD", "origemLead", "conferir", "roteiro", "reembolsoBRL", "reembolsoUSD", "reembolsoDetalhe", "descontoBRL", "moedaCrm"];
-async function importarTrevor(silencioso) {
-  const c = S.comercial, url = urlPlanilha(c.planilha);
-  if (!url) { if (!silencioso) toast("Cole o link da planilha do Trevor primeiro."); return; }
-  S.importando = true; if (!silencioso) render();
-  try {
-    let txt;
-    try { const r = await fetch(url); txt = await r.text(); if (!r.ok || /^\s*<!doctype html|<html/i.test(txt)) throw new Error("html"); }
-    catch (_) { throw new Error("A planilha não abriu. Confira se ela está compartilhada como “Qualquer pessoa com o link: Leitor”."); }
-    const linhas = lerCSV(txt); if (linhas.length < 2) throw new Error("A planilha está vazia.");
-    const cab = linhas[0].map(semAcento), col_ = (nome) => cab.findIndex(h => h === nome || h.startsWith(nome));
-    const ix = { data: col_("data da venda"), dest: col_("destino"), rot: col_("roteiro"), cli: col_("cliente"), vend: col_("vendedor"), st: col_("status"), pax: col_("pax"), cheg: col_("chegada"), part: col_("partida"), tot: col_("valor final r$") >= 0 ? col_("valor final r$") : col_("total r$"), pago: col_("pago r$"), saldo: col_("saldo r$"), totU: col_("valor final us$") >= 0 ? col_("valor final us$") : col_("total us$"), subU: col_("subtotal us$"), adicU: col_("adicionais us$"), descU: col_("descontos us$"), reemb: col_("reembolsos r$"), reembU: col_("reembolsos us$"), reembD: col_("detalhe dos reembolsos"), desc: col_("descontos r$"), moeda: col_("moeda do preco"), pagoU: col_("pago us$"), saldoU: col_("saldo us$"), orig: col_("origem"), conf: col_("conferir"), conta: col_("conta no total"), cot: cab.findIndex(h => /^(cotacao|cambio|taxa de cambio)/.test(h)) };
-    if (ix.data < 0 || ix.cli < 0 || ix.tot < 0) throw new Error("Não reconheci as colunas da planilha (faltam Data da venda, Cliente ou Valor final R$).");
-    const v_ = (l, k) => ix[k] >= 0 ? (l[ix[k]] || "").trim() : "";
-    const vistos = {}; let novas = 0, alteradas = 0, ignoradas = 0; const escritas = [];
-    for (const l of linhas.slice(1)) {
-      if (ix.conta >= 0 && v_(l, "conta") === "0") { ignoradas++; continue; }
-      const fechamento = lerData(v_(l, "data")); const cliente = v_(l, "cli");
-      if (!fechamento || !cliente) { ignoradas++; continue; }
-      let id = "crm_" + (v_(l, "rot").replace(/[^A-Za-z0-9_-]/g, "") || (fechamento + "_" + semAcento(cliente).replace(/[^a-z0-9]+/g, "-")).slice(0, 80));
-      vistos[id] = (vistos[id] || 0) + 1; if (vistos[id] > 1) id += "_" + vistos[id];
-      const antigo = S.vendas[id];
-      const achado = acharVendedor(v_(l, "vend"));
-      const casa = achado === "__casa";
-      let vendedor = casa ? "" : achado;
-      if (!vendedor && !casa && antigo && antigo.vendedor) vendedor = antigo.vendedor; // mantém quem você atribuiu à mão
-      // Planilha nova: "Valor final R$" já vem com o dólar convertido e sem os reembolsos.
-      // A parte em dólar é recalculada pelas colunas (algumas células de US$ às vezes vêm com texto em R$).
-      const valorBRL = lerMoeda(v_(l, "tot"));
-      const usdCel = (k) => /R\$/.test(v_(l, k)) ? 0 : lerMoeda(v_(l, k));
-      const valorUSD = ix.subU >= 0 ? Math.max(0, round2(usdCel("subU") + usdCel("adicU") - usdCel("descU") - usdCel("reembU"))) : lerMoeda(v_(l, "totU"));
-      const pagoBRL = lerMoeda(v_(l, "pago")), pagoUSD = usdCel("pagoU");
-      const saldoBRL = ix.subU >= 0 ? round2(valorBRL - pagoBRL) : lerMoeda(v_(l, "saldo"));
-      const saldoUSD = ix.subU >= 0 ? round2(valorUSD - pagoUSD) : lerMoeda(v_(l, "saldoU"));
-      // cotação da própria venda: a que você digitou no portal > coluna de cotação da planilha (se existir) > cotação antiga do mês
-      const cot = Number(antigo && antigo.cotacaoVenda) || lerMoeda(v_(l, "cot")) || Number((c.cotacoes || {})[ymOf(fechamento)]) || 0;
-      const d = {
-        cliente, destino: DEST_CRM(v_(l, "dest")), vendedor, vendedorNome: v_(l, "vend"), casa,
-        valorBRL, valorUSD, cotacao: valorUSD ? (cot || null) : null, semCotacao: !!(valorUSD && !cot),
-        valor: round2(valorBRL + (valorUSD && cot ? valorUSD * cot : 0)),
-        fechamento, embarque: lerData(v_(l, "cheg")), retorno: lerData(v_(l, "part")), pax: Number(v_(l, "pax")) || null,
-        statusCrm: v_(l, "st"), pagoBRL, saldoBRL, pagoUSD, saldoUSD,
-        origemLead: v_(l, "orig"), conferir: v_(l, "conf"), roteiro: v_(l, "rot"),
-        reembolsoBRL: lerMoeda(v_(l, "reemb")), reembolsoUSD: usdCel("reembU"), reembolsoDetalhe: v_(l, "reembD"), descontoBRL: lerMoeda(v_(l, "desc")), moedaCrm: v_(l, "moeda")
-      };
-      const mudou = !antigo || CAMPOS_CRM.some(k => JSON.stringify(antigo[k] ?? null) !== JSON.stringify(d[k] ?? null));
-      if (!mudou) continue;
-      const extra = { origem: "crm", atualizadoEm: new Date().toISOString() };
-      if (!antigo) { extra.status = "ativa"; extra.pagaEm = null; novas++; } else alteradas++;
-      if (!antigo || antigo.vendedor !== vendedor || antigo.pct == null) extra.pct = casa || !vendedor ? 0 : (Number((S.members[vendedor] || {}).pct) || 0);
-      escritas.push([id, { ...d, ...extra }]);
-    }
-    for (let i = 0; i < escritas.length; i += 400) {
-      const lote = S.db.batch();
-      escritas.slice(i, i + 400).forEach(([id, d]) => lote.set(col("vendas").doc(id), d, { merge: true }));
-      await lote.commit();
-    }
-    const resultado = { linhas: linhas.length - 1, novas, alteradas, ignoradas, em: new Date().toISOString() };
-    const idsPlanilha = Object.keys(vistos).sort();
-    S.comercial.ultimaImportacao = resultado.em; S.comercial.ultimoResultado = resultado; S.comercial.idsPlanilha = idsPlanilha;
-    await col("config").doc("comercial").set({ ultimaImportacao: resultado.em, ultimoResultado: resultado, idsPlanilha }, { merge: true });
-    let msgOrc = "";
-    if (c.planilhaOrc) {
-      try { const ro = await importarOrcamentos(); if (ro && (ro.novos || ro.alterados || !silencioso)) msgOrc = ` Orçamentos: ${ro.novos} ${ro.novos === 1 ? "novo" : "novos"}, ${ro.alterados} ${ro.alterados === 1 ? "atualizado" : "atualizados"}.`; }
-      catch (e) { msgOrc = " " + (e && e.message ? e.message : "A planilha de orçamentos não pôde ser lida."); }
-    }
-    S.importando = false;
-    await reload(silencioso && !novas && !alteradas && !msgOrc ? "" : `Planilha do Trevor lida: ${novas} ${novas === 1 ? "venda nova" : "vendas novas"}, ${alteradas} ${alteradas === 1 ? "atualizada" : "atualizadas"}.` + msgOrc);
-  } catch (e) {
-    S.importando = false;
-    if (!silencioso) { toast(e && e.message && !e.code ? e.message : errMsg(e)); render(); }
-  }
+// Chave para cruzar pessoas entre sistemas pelo nome: primeiro + último nome, sem acento (nomes de uma palavra só não contam)
+function chaveNome(nome) {
+  const t = semAcento(nome).replace(/[^a-z ]+/g, " ").split(" ").filter(x => x.length > 1 && !["de", "da", "do", "das", "dos", "e"].includes(x));
+  return t.length > 1 ? t[0] + " " + t[t.length - 1] : "";
 }
-// ---------- planilha de orçamentos (Trevor) ----------
+function checarCSV(txt, nome) {
+  if (/^\s*<!doctype html|<html/i.test(txt)) throw new Error(`A planilha de ${nome} não abriu. Confira se ela está compartilhada como “Qualquer pessoa com o link: Leitor”.`);
+  if (/^\s*"?carregando/i.test(txt)) throw new Error(`A planilha de ${nome} ainda está carregando os dados do Trevor. Tente de novo em alguns minutos.`);
+}
+// Vendas: transforma o CSV em registros. ctx = { antigas: {id: venda}, membros: {email: pessoa}, cotacoes: {AAAA-MM: n}, agora: ISO }
+function prepararVendas(txt, ctx) {
+  checarCSV(txt, "vendas");
+  const antigas = ctx.antigas || {}, membros = ctx.membros || {}, cotacoes = ctx.cotacoes || {};
+  const linhas = lerCSV(txt); if (linhas.length < 2) throw new Error("A planilha de vendas está vazia.");
+  const cab = linhas[0].map(semAcento), col_ = (nome) => cab.findIndex(h => h === nome || h.startsWith(nome));
+  const ix = { data: col_("data da venda"), dest: col_("destino"), rot: col_("roteiro"), cli: col_("cliente"), vend: col_("vendedor"), st: col_("status"), pax: col_("pax"), cheg: col_("chegada"), part: col_("partida"), tot: col_("valor final r$") >= 0 ? col_("valor final r$") : col_("total r$"), pago: col_("pago r$"), saldo: col_("saldo r$"), totU: col_("valor final us$") >= 0 ? col_("valor final us$") : col_("total us$"), subU: col_("subtotal us$"), adicU: col_("adicionais us$"), descU: col_("descontos us$"), reemb: col_("reembolsos r$"), reembU: col_("reembolsos us$"), reembD: col_("detalhe dos reembolsos"), desc: col_("descontos r$"), moeda: col_("moeda do preco"), pagoU: col_("pago us$"), saldoU: col_("saldo us$"), orig: col_("origem"), conf: col_("conferir"), conta: col_("conta no total"), cot: cab.findIndex(h => /^(cotacao|cambio|taxa de cambio)/.test(h)) };
+  if (ix.data < 0 || ix.cli < 0 || ix.tot < 0) throw new Error("Não reconheci as colunas da planilha de vendas (faltam Data da venda, Cliente ou Valor final R$).");
+  const v_ = (l, k) => ix[k] >= 0 ? (l[ix[k]] || "").trim() : "";
+  const vistos = {}; let novas = 0, alteradas = 0, ignoradas = 0; const escritas = [];
+  for (const l of linhas.slice(1)) {
+    if (ix.conta >= 0 && v_(l, "conta") === "0") { ignoradas++; continue; }
+    const fechamento = lerData(v_(l, "data")); const cliente = v_(l, "cli");
+    if (!fechamento || !cliente) { ignoradas++; continue; }
+    let id = "crm_" + (v_(l, "rot").replace(/[^A-Za-z0-9_-]/g, "") || (fechamento + "_" + semAcento(cliente).replace(/[^a-z0-9]+/g, "-")).slice(0, 80));
+    vistos[id] = (vistos[id] || 0) + 1; if (vistos[id] > 1) id += "_" + vistos[id];
+    const antigo = antigas[id];
+    const achado = acharVendedor(v_(l, "vend"), membros);
+    const casa = achado === "__casa";
+    let vendedor = casa ? "" : achado;
+    if (!vendedor && !casa && antigo && antigo.vendedor) vendedor = antigo.vendedor; // mantém quem foi atribuído à mão
+    // "Valor final R$" já vem com o dólar convertido e sem os reembolsos; a parte em dólar é recalculada pelas colunas
+    const valorBRL = lerMoeda(v_(l, "tot"));
+    const usdCel = (k) => /R\$/.test(v_(l, k)) ? 0 : lerMoeda(v_(l, k));
+    const valorUSD = ix.subU >= 0 ? Math.max(0, round2(usdCel("subU") + usdCel("adicU") - usdCel("descU") - usdCel("reembU"))) : lerMoeda(v_(l, "totU"));
+    const pagoBRL = lerMoeda(v_(l, "pago")), pagoUSD = usdCel("pagoU");
+    const saldoBRL = ix.subU >= 0 ? round2(valorBRL - pagoBRL) : lerMoeda(v_(l, "saldo"));
+    const saldoUSD = ix.subU >= 0 ? round2(valorUSD - pagoUSD) : lerMoeda(v_(l, "saldoU"));
+    // cotação: a digitada no portal > coluna de cotação da planilha > cotação antiga do mês
+    const cot = Number(antigo && antigo.cotacaoVenda) || lerMoeda(v_(l, "cot")) || Number(cotacoes[ymOf(fechamento)]) || 0;
+    const d = {
+      cliente, destino: DEST_CRM(v_(l, "dest")), vendedor, vendedorNome: v_(l, "vend"), casa,
+      valorBRL, valorUSD, cotacao: valorUSD ? (cot || null) : null, semCotacao: !!(valorUSD && !cot),
+      valor: round2(valorBRL + (valorUSD && cot ? valorUSD * cot : 0)),
+      fechamento, embarque: lerData(v_(l, "cheg")), retorno: lerData(v_(l, "part")), pax: Number(v_(l, "pax")) || null,
+      statusCrm: v_(l, "st"), pagoBRL, saldoBRL, pagoUSD, saldoUSD,
+      origemLead: v_(l, "orig"), conferir: v_(l, "conf"), roteiro: v_(l, "rot"),
+      reembolsoBRL: lerMoeda(v_(l, "reemb")), reembolsoUSD: usdCel("reembU"), reembolsoDetalhe: v_(l, "reembD"), descontoBRL: lerMoeda(v_(l, "desc")), moedaCrm: v_(l, "moeda")
+    };
+    const mudou = !antigo || CAMPOS_CRM.some(k => JSON.stringify(antigo[k] ?? null) !== JSON.stringify(d[k] ?? null));
+    if (!mudou) continue;
+    const extra = { origem: "crm", atualizadoEm: ctx.agora || new Date().toISOString() };
+    if (!antigo) { extra.status = "ativa"; extra.pagaEm = null; novas++; } else alteradas++;
+    if (!antigo || antigo.vendedor !== vendedor || antigo.pct == null) extra.pct = casa || !vendedor ? 0 : (Number((membros[vendedor] || {}).pct) || 0);
+    escritas.push([id, { ...d, ...extra }]);
+  }
+  return { linhas: linhas.length - 1, novas, alteradas, ignoradas, escritas, idsPlanilha: Object.keys(vistos).sort() };
+}
 // Nomes de coluna aceitos (sem acento, minúsculas). A primeira coluna "name" é o destino e a segunda, o vendedor.
 const ALIAS_ORC = {
   id: ["id", "roteiro", "orcamento", "numero", "numero do orcamento"],
@@ -1792,49 +1875,85 @@ const ALIAS_ORC = {
   destino: ["destino", "destination"],
   vend: ["vendedor", "vendedor(a)", "vendedora", "seller", "responsavel"],
   cliente: ["cliente", "nome do cliente", "client", "client_name", "customer", "customer_name"],
-  link: ["link", "link do orcamento", "url", "uuid"]
+  link: ["link", "link do orcamento", "url", "uuid"],
+  telefone: ["telefone", "telefone do cliente", "celular", "whatsapp", "phone", "phone_number", "mobile"]
 };
-async function importarOrcamentos() {
-  const url = urlPlanilha(S.comercial.planilhaOrc); if (!url) return null;
-  let txt;
-  try { const r = await fetch(url); txt = await r.text(); if (!r.ok || /^\s*<!doctype html|<html/i.test(txt)) throw new Error("html"); }
-  catch (_) { throw new Error("A planilha de orçamentos não abriu. Confira se ela está compartilhada como “Qualquer pessoa com o link: Leitor”."); }
-  if (/^\s*"?carregando/i.test(txt)) throw new Error("A planilha de orçamentos ainda está carregando os dados do Trevor. Tente de novo em alguns minutos.");
+// Orçamentos: ctx = { antigos: {id: orçamento}, membros, hojeD: "AAAA-MM-DD" }
+function prepararOrcamentos(txt, ctx) {
+  checarCSV(txt, "orçamentos");
+  const antigos = ctx.antigos || {}, membros = ctx.membros || {};
   const linhas = lerCSV(txt); if (linhas.length < 2) throw new Error("A planilha de orçamentos está vazia.");
   const cab = linhas[0].map(semAcento);
   const ix = {}; for (const [k, nomes] of Object.entries(ALIAS_ORC)) { ix[k] = -1; for (const n of nomes) { const i = cab.indexOf(n); if (i >= 0) { ix[k] = i; break; } } }
   const names = cab.map((h, i) => h === "name" ? i : -1).filter(i => i >= 0);
   if (ix.destino < 0 && names.length) ix.destino = names[0];
   if (ix.vend < 0 && names.length > 1) ix.vend = names[1];
+  if (ix.cliente < 0 && names.length > 2) ix.cliente = names[2]; // 3ª coluna "name" = cliente
   if (ix.id < 0 || ix.total < 0) throw new Error("Não reconheci as colunas da planilha de orçamentos (faltam id ou total).");
   const v_ = (l, k) => ix[k] >= 0 ? (l[ix[k]] || "").trim() : "";
   const vistos = new Set(), escritas = []; let novos = 0, alterados = 0;
-  const semHistorico = Object.keys(S.orc || {}).length === 0; // primeira leitura: tudo o que já existe fica como "anterior ao registro"
+  const semHistorico = Object.keys(antigos).length === 0; // primeira leitura: o que já existe fica como "anterior ao registro"
   for (const l of linhas.slice(1)) {
     const idv = v_(l, "id").replace(/[^A-Za-z0-9_-]/g, ""); if (!idv) continue;
     const id = "orc_" + idv; if (vistos.has(id)) continue; vistos.add(id);
-    const achado = acharVendedor(v_(l, "vend")), casa = achado === "__casa", antigo = S.orc[id];
+    const achado = acharVendedor(v_(l, "vend"), membros), casa = achado === "__casa", antigo = antigos[id];
     let vendedor = casa ? "" : achado; if (!vendedor && !casa && antigo && antigo.vendedor) vendedor = antigo.vendedor;
     const lk = v_(l, "link"), link = /^https?:\/\//.test(lk) ? lk : /^[0-9a-f-]{20,}$/i.test(lk) ? "https://araya-mari.akceli.tech/orcamentos/" + lk : "";
-    const d = { roteiro: idv, cliente: v_(l, "cliente"), link, status: v_(l, "status"), criado: lerData(v_(l, "criado")), chegada: lerData(v_(l, "cheg")), partida: lerData(v_(l, "part")), pax: Number(v_(l, "pax")) || null, valor: lerMoeda(v_(l, "total")), destino: DEST_CRM(v_(l, "destino")), vendedor, vendedorNome: v_(l, "vend"), casa, naPlanilha: true };
+    const cli = v_(l, "cliente"), cliente = /^~.*~$/.test(cli) || /^\+?[\d\s()-]{8,}$/.test(cli) ? "" : cli; // ignora "~ sem nome ~" e telefone no lugar do nome
+    const d = { roteiro: idv, cliente, telefone: v_(l, "telefone").replace(/[^\d+]/g, ""), link, status: v_(l, "status"), criado: lerData(v_(l, "criado")), chegada: lerData(v_(l, "cheg")), partida: lerData(v_(l, "part")), pax: Number(v_(l, "pax")) || null, valor: lerMoeda(v_(l, "total")), destino: DEST_CRM(v_(l, "destino")), vendedor, vendedorNome: v_(l, "vend"), casa, naPlanilha: true };
     if (antigo && !d.criado && antigo.criado) d.criado = antigo.criado;
     const mudou = !antigo || Object.keys(d).some(k => JSON.stringify(antigo[k] ?? null) !== JSON.stringify(d[k] ?? null));
     if (!mudou) continue;
-    if (!antigo) { d.vistoEm = isoDia(new Date()); d.base = semHistorico; novos++; } else alterados++;
+    if (!antigo) { d.vistoEm = ctx.hojeD; d.base = semHistorico; novos++; } else alterados++;
     escritas.push([id, d]);
   }
-  // orçamentos que saíram da planilha (viraram venda, foram cancelados ou apagados): ficam no histórico, mas não contam como "em aberto"
-  for (const [id, o] of Object.entries(S.orc)) if (!vistos.has(id) && o.naPlanilha !== false) escritas.push([id, { naPlanilha: false }]);
+  // saíram da planilha (viraram venda, foram cancelados ou apagados): ficam no histórico, mas não contam como "em aberto"
+  for (const [id, o] of Object.entries(antigos)) if (!vistos.has(id) && o.naPlanilha !== false) escritas.push([id, { naPlanilha: false }]);
+  return { linhas: linhas.length - 1, novos, alterados, escritas, temData: ix.criado >= 0 };
+}
+// <<< COMUM-TREVOR
+async function baixarPlanilha(link, nome) {
+  const url = urlPlanilha(link); if (!url) return null;
+  try { const r = await fetch(url); const txt = await r.text(); if (!r.ok) throw new Error("http"); return txt; }
+  catch (_) { throw new Error(`A planilha de ${nome} não abriu. Confira se ela está compartilhada como “Qualquer pessoa com o link: Leitor”.`); }
+}
+async function gravarLotes(colecao, escritas) {
   for (let i = 0; i < escritas.length; i += 400) {
     const lote = S.db.batch();
-    escritas.slice(i, i + 400).forEach(([id, d]) => lote.set(col("orcamentos").doc(id), d, { merge: true }));
+    escritas.slice(i, i + 400).forEach(([id, d]) => lote.set(col(colecao).doc(id), d, { merge: true }));
     await lote.commit();
   }
-  const temData = ix.criado >= 0;
+}
+async function importarTrevor(silencioso) {
+  const c = S.comercial;
+  if (!urlPlanilha(c.planilha)) { if (!silencioso) toast("Cole o link da planilha do Trevor primeiro."); return; }
+  S.importando = true; if (!silencioso) render();
+  try {
+    const rv = prepararVendas(await baixarPlanilha(c.planilha, "vendas"), { antigas: S.vendas, membros: S.members, cotacoes: c.cotacoes });
+    await gravarLotes("vendas", rv.escritas);
+    const resultado = { linhas: rv.linhas, novas: rv.novas, alteradas: rv.alteradas, ignoradas: rv.ignoradas, em: new Date().toISOString() };
+    S.comercial.ultimaImportacao = resultado.em; S.comercial.ultimoResultado = resultado; S.comercial.idsPlanilha = rv.idsPlanilha;
+    await col("config").doc("comercial").set({ ultimaImportacao: resultado.em, ultimoResultado: resultado, idsPlanilha: rv.idsPlanilha }, { merge: true });
+    let msgOrc = "";
+    if (c.planilhaOrc) {
+      try { const ro = await importarOrcamentos(); if (ro && (ro.novos || ro.alterados || !silencioso)) msgOrc = ` Orçamentos: ${ro.novos} ${ro.novos === 1 ? "novo" : "novos"}, ${ro.alterados} ${ro.alterados === 1 ? "atualizado" : "atualizados"}.`; }
+      catch (e) { msgOrc = " " + (e && e.message ? e.message : "A planilha de orçamentos não pôde ser lida."); }
+    }
+    S.importando = false;
+    await reload(silencioso && !rv.novas && !rv.alteradas && !msgOrc ? "" : `Planilha do Trevor lida: ${rv.novas} ${rv.novas === 1 ? "venda nova" : "vendas novas"}, ${rv.alteradas} ${rv.alteradas === 1 ? "atualizada" : "atualizadas"}.` + msgOrc);
+  } catch (e) {
+    S.importando = false;
+    if (!silencioso) { toast(e && e.message && !e.code ? e.message : errMsg(e)); render(); }
+  }
+}
+async function importarOrcamentos() {
+  const txt = await baixarPlanilha(S.comercial.planilhaOrc, "orçamentos"); if (txt == null) return null;
+  const ro = prepararOrcamentos(txt, { antigos: S.orc || {}, membros: S.members, hojeD: isoDia(new Date()) });
+  await gravarLotes("orcamentos", ro.escritas);
   const extra = S.comercial.orcBase ? {} : { orcBase: isoDia(new Date()) };
-  await col("config").doc("comercial").set({ ultimaImportacaoOrc: new Date().toISOString(), orcTemData: temData, ...extra }, { merge: true });
-  S.comercial.orcTemData = temData; Object.assign(S.comercial, extra);
-  return { linhas: linhas.length - 1, novos, alterados };
+  await col("config").doc("comercial").set({ ultimaImportacaoOrc: new Date().toISOString(), orcTemData: ro.temData, ...extra }, { merge: true });
+  S.comercial.orcTemData = ro.temData; Object.assign(S.comercial, extra);
+  return ro;
 }
 async function salvarComercial(campos, msg) {
   S.comercial = { ...S.comercial, ...campos };
