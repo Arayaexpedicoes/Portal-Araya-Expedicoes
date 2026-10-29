@@ -131,7 +131,8 @@ details.mescom > summary .t::before{content:"";width:7px;height:7px;border-right
 details.mescom[open] > summary .t::before{transform:rotate(45deg)}
 details.mescom > summary .v{display:flex;gap:6px 10px;align-items:center;flex-wrap:wrap;white-space:nowrap}
 details.mescom .tablewrap{padding:0 0 12px}
-.mescom .so-cel{display:none}
+.mescom .so-cel,.orclista .so-cel{display:none}
+@media (max-width:640px){ .orclista .px,.orclista .lk,.orclista .vd{display:none} .orclista .so-cel{display:block;margin-top:4px} .orclista td.n{white-space:nowrap} }
 @media (max-width:640px){ .mescom .vg,.mescom .st{display:none} .mescom .so-cel{display:block;margin-top:4px} .mescom td.n{white-space:nowrap} }
 tbody tr.sel td{background:color-mix(in srgb, var(--accent-soft) 60%, transparent)}
 input.cell[readonly]{background:transparent;border-color:transparent;box-shadow:none;cursor:default}
@@ -721,12 +722,15 @@ function memberInicio(data, vendas, hoje, viewingAs) {
   <div class="section-head"><div><h2>Olá${nome ? ", " + esc(nome.split(" ")[0]) : ""}</h2><p>Seus números de ${ymLong(hoje)}. Vendas contam pela data de fechamento.</p></div></div>
   <div class="tiles">
     <div class="tile"><span class="k">Atendimentos no mês</span><span class="v">${atend ?? "—"}</span><span class="d">${atend == null ? "Ainda não lançados" : "Conversas que você recebeu no mês"}</span></div>
-    <div class="tile"><span class="k">Orçamentos no mês</span><span class="v">${meusOrc.some(o => o.criado) ? orcMes.length : "—"}</span><span class="d">${meusOrc.some(o => o.criado) ? money(orcMes.reduce((s, o) => s + (Number(o.valor) || 0), 0)) + " orçados" : meusOrc.length ? meusOrc.filter(o => orcAberto(o, new Date().toISOString().slice(0, 10))).length + " em aberto" : "Ainda não ligados"}</span></div>
+    ${(() => { const temData = meusOrc.some(o => o.criado), ab = meusOrc.filter(o => orcAberto(o, new Date().toISOString().slice(0, 10))); return temData
+      ? `<div class="tile"><span class="k">Orçamentos no mês</span><span class="v">${orcMes.length}</span><span class="d">${money(orcMes.reduce((s, o) => s + (Number(o.valor) || 0), 0))} orçados · ${ab.length} em aberto</span></div>`
+      : `<div class="tile"><span class="k">Orçamentos em aberto</span><span class="v">${meusOrc.length ? ab.length : "—"}</span><span class="d">${meusOrc.length ? money(ab.reduce((s, o) => s + (Number(o.valor) || 0), 0)) + " em orçamentos" : "Ainda não ligados"}</span></div>`; })()}
     <div class="tile"><span class="k">Vendas fechadas</span><span class="v">${doMes.length}</span><span class="d">${money(doMes.reduce((s, v) => s + v.valor, 0))} em vendas</span></div>
     <div class="tile"><span class="k">Conversão</span><span class="v">${conv == null ? "—" : conv.toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + "%"}</span><span class="d">Vendas ÷ atendimentos do mês</span></div>
     <div class="tile feature"><span class="k">Comissão de ${MESES_L[+hoje.slice(5) - 1]}</span><span class="v">${money(comMes)}</span><span class="d">Paga em ${MESES_L[+addM(hoje, 1).slice(5) - 1]} · ${MESES_L[+addM(hoje, -1).slice(5) - 1]}: ${money(comAnt)}</span></div>
   </div>
   ${bonusHtml}
+  ${meusOrcamentosPainel(meusOrc)}
   ${comissoesPorMesPainel(ativas, hoje)}
   <div class="grid2">
     <section class="panel"><h3>Últimas vendas</h3>
@@ -1187,26 +1191,42 @@ function reembolsosPainel(ativas, admin) {
 // Orçamento válido: com data de viagem e valor. Conta no mês da data do orçamento (coluna de data do relatório do Trevor).
 const orcValido = (o) => !!o.chegada && (Number(o.valor) || 0) > 0;
 const orcAberto = (o, hojeD) => orcValido(o) && o.naPlanilha !== false && semAcento(o.status).startsWith("orcamento") && (o.chegada || "") >= hojeD;
-function orcLista() { return Object.entries(S.orc || {}).map(([id, o]) => ({ id, ...o })).filter(orcValido); }
-function funilDados(M, pessoas) {
-  const orcs = orcLista(), vendas = listaEquipe().filter(v => v.status !== "cancelada");
+// Data do orçamento: a da planilha, se existir; senão, o dia em que o portal viu o orçamento pela primeira vez
+// (só para os que surgiram depois que o portal começou a registrar; os anteriores ficam sem data).
+function orcLista() { return Object.entries(S.orc || {}).map(([id, o]) => ({ id, ...o, criado: o.criado || (o.base === false ? o.vistoEm || "" : "") })).filter(orcValido); }
+function funilDados(M, pessoas, semData) {
+  const orcs = orcLista(), vendas = listaEquipe().filter(v => v.status !== "cancelada"), hojeD = new Date().toISOString().slice(0, 10);
   const pp = (S.atend[M] && S.atend[M].porPessoa) || {};
   const linhas = pessoas.map(u => {
-    const o = orcs.filter(x => x.vendedor === u && ymOf(x.criado) === M), v = vendas.filter(x => x.vendedor === u && ymOf(x.fechamento) === M);
+    const o = orcs.filter(x => x.vendedor === u && (semData ? orcAberto(x, hojeD) : ymOf(x.criado) === M)), v = vendas.filter(x => x.vendedor === u && ymOf(x.fechamento) === M);
     const at = pp[u] ?? null;
     return { u, at, orc: o.length, orcV: o.reduce((s, x) => s + (Number(x.valor) || 0), 0), vq: v.length, vV: v.reduce((s, x) => s + (Number(x.valor) || 0), 0), conv: at ? v.length / at * 100 : null };
   });
   return linhas;
 }
 const pctTxt = (n) => n == null ? "—" : n.toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + "%";
+function listaOrcHtml(lista, comVendedor) {
+  const l = lista.slice().sort((a, b) => (a.chegada || "").localeCompare(b.chegada || ""));
+  return `<div class="tablewrap"><table class="orclista"><thead><tr><th>Cliente</th>${comVendedor ? '<th class="vd">Vendedor</th>' : ""}<th>Viagem</th><th class="n px">Pessoas</th><th class="n">Valor</th><th class="lk"></th></tr></thead><tbody>${l.map(o => `<tr><td>${o.cliente ? esc(o.cliente) : `Orçamento #${esc(o.roteiro)}`}<div>${destTag(o.destino)}${o.cliente ? ` <span class="muted small">#${esc(o.roteiro)}</span>` : ""}</div></td>${comVendedor ? `<td class="vd">${esc(o.vendedor ? label(o.vendedor) : o.vendedorNome || "—")}</td>` : ""}<td>${dLabel(o.chegada)}${o.partida ? `<div class="muted small">volta ${dLabel(o.partida)}</div>` : ""}${comVendedor ? `<div class="so-cel muted small">${esc(o.vendedor ? label(o.vendedor) : o.vendedorNome || "")}</div>` : ""}</td><td class="n px">${o.pax || "—"}</td><td class="n">${money(o.valor)}<div class="so-cel muted small">${o.pax ? o.pax + (o.pax === 1 ? " pessoa" : " pessoas") : ""}</div>${o.link ? `<div class="so-cel"><a class="btn sm ghost" href="${esc(o.link)}" target="_blank" rel="noopener">Abrir ↗</a></div>` : ""}</td><td class="lk">${o.link ? `<a class="btn sm ghost" href="${esc(o.link)}" target="_blank" rel="noopener">Abrir ↗</a>` : ""}</td></tr>`).join("")}</tbody></table></div>`;
+}
+function meusOrcamentosPainel(meusOrc) {
+  const hojeD = new Date().toISOString().slice(0, 10);
+  const abertos = meusOrc.filter(o => orcAberto(o, hojeD));
+  if (!meusOrc.length) return "";
+  const porDest = {}; abertos.forEach(o => { const k = o.destino || "—"; porDest[k] = (porDest[k] || 0) + 1; });
+  return `<section class="panel"><div class="section-head"><div><h3>Meus orçamentos em aberto</h3><span class="muted small">Clientes com orçamento enviado e viagem daqui para frente, dos mais próximos para os mais distantes. Bom ponto de partida para retomar a conversa.</span></div><span class="pill info">${abertos.length} · ${money(abertos.reduce((s, o) => s + (Number(o.valor) || 0), 0))}</span></div>
+    ${abertos.length ? `<div class="chips">${Object.entries(porDest).sort((a, b) => b[1] - a[1]).map(([k, n]) => `<span class="dest" style="${dc(k)}">${esc(k)} · ${n}</span>`).join("")}</div>${listaOrcHtml(abertos, false)}` : `<div class="empty"><strong>Nenhum orçamento em aberto</strong></div>`}
+  </section>`;
+}
 function ownerFunil() {
   const M = S.filtros.comMesC || ymNow(), hoje = ymNow(), hojeD = new Date().toISOString().slice(0, 10);
   const admin = S.isAdmin && !S.previewUid;
   const orcs = orcLista(), vendas = listaEquipe().filter(v => v.status !== "cancelada");
   const pessoas = [...new Set([...(admin ? activeMembers() : []), ...orcs.map(o => o.vendedor), ...vendas.filter(v => ymOf(v.fechamento) === M).map(v => v.vendedor), ...Object.keys(((S.atend[M] || {}).porPessoa) || {})])].filter(u => u && (admin ? S.members[u] : true));
   const nomeDe = (u) => u === "__outros" ? "Outros (sem cadastro no portal ou venda da casa)" : (S.members[u] && S.members[u].apelido) || ((orcs.find(o => o.vendedor === u) || vendas.find(v => v.vendedor === u) || {}).vendedorNome) || u;
-  const linhas = funilDados(M, pessoas).filter(l => l.at || l.orc || l.vq).sort((a, b) => (b.vV - a.vV) || (b.orc - a.orc));
-  { const oo = orcs.filter(o => !o.vendedor && ymOf(o.criado) === M), vo = vendas.filter(v => !v.vendedor && ymOf(v.fechamento) === M);
+  const semPlanilha = !S.comercial.planilhaOrc && !orcs.length, semData = orcs.length > 0 && !orcs.some(o => o.criado);
+  const linhas = funilDados(M, pessoas, semData).filter(l => l.at || l.orc || l.vq).sort((a, b) => (b.vV - a.vV) || (b.orc - a.orc));
+  { const oo = orcs.filter(o => !o.vendedor && (semData ? orcAberto(o, hojeD) : ymOf(o.criado) === M)), vo = vendas.filter(v => !v.vendedor && ymOf(v.fechamento) === M);
     if (oo.length || vo.length) linhas.push({ u: "__outros", at: null, orc: oo.length, orcV: oo.reduce((s, x) => s + (Number(x.valor) || 0), 0), vq: vo.length, vV: vo.reduce((s, x) => s + (Number(x.valor) || 0), 0), conv: null }); }
   const hp = admin ? helenaPorMes() : {};
   const atTot = linhas.reduce((s, l) => s + (l.at || 0), 0);
@@ -1215,33 +1235,36 @@ function ownerFunil() {
   const porPessoaAberto = {}; abertos.forEach(o => { const k = o.vendedor || (o.vendedorNome ? "nome:" + o.vendedorNome : "—"); (porPessoaAberto[k] ||= { q: 0, v: 0 }); porPessoaAberto[k].q++; porPessoaAberto[k].v += Number(o.valor) || 0; });
   const meses = Array.from({ length: 12 }, (_, i) => addM(M, i - 11)).reverse();
   const porMes = meses.map(m => { const o = orcs.filter(x => ymOf(x.criado) === m), v = vendas.filter(x => ymOf(x.fechamento) === m); const at = Object.values(((S.atend[m] || {}).porPessoa) || {}).reduce((s, n) => s + (Number(n) || 0), 0); return { m, at, orc: o.length, orcV: o.reduce((s, x) => s + (Number(x.valor) || 0), 0), vq: v.length, vV: v.reduce((s, x) => s + (Number(x.valor) || 0), 0) }; });
-  const semPlanilha = !S.comercial.planilhaOrc && !orcs.length, semData = orcs.length && !orcs.some(o => o.criado);
+  const porDestAberto = {}; abertos.forEach(o => { const k = o.destino || "—"; (porDestAberto[k] ||= { q: 0, v: 0 }); porDestAberto[k].q++; porDestAberto[k].v += Number(o.valor) || 0; });
+  const lOrc = semData ? "Em aberto" : "Orçamentos", lOrcV = semData ? "Valor em aberto" : "Valor orçado";
   return `
   <div class="section-head"><div><h2>Atendimentos e orçamentos</h2><p>Atendimentos do Helena, orçamentos do Trevor (com data de viagem e valor) e vendas pela data de fechamento. Conversão = vendas ÷ atendimentos.</p></div>
     <div class="row"><div class="field"><label for="f-funil-mes">Mês</label><select id="f-funil-mes" data-filter="comMesC">${monthOptions(M, 12, 0)}</select></div>
     ${admin ? `<button class="btn" data-act="atualizar-trevor" ${S.importando ? "disabled" : ""}>${S.importando ? "Lendo planilhas…" : "Atualizar do Trevor"}</button>` : ""}</div></div>
   ${semPlanilha ? (admin ? `<div class="banner"><span>Ligue a planilha de orçamentos do Trevor para ver orçamentos e valores.</span><button class="btn sm primary" data-act="abrir-config-trevor">Ligar planilha</button></div>` : `<div class="banner"><span>Os orçamentos ainda não foram ligados ao portal.</span></div>`) : ""}
-  ${semData ? `<div class="banner warn-b"><span>A planilha de orçamentos ainda não tem a <strong>data do orçamento</strong>. Sem ela, não dá para separar os orçamentos por mês. Os orçamentos em aberto já aparecem abaixo.${admin ? " Inclua a coluna de data (ex.: created_at) no relatório do Trevor." : ""}</span></div>` : ""}
+  ${semData ? `<div class="banner warn-b"><span>Por enquanto, os números de orçamento são dos <strong>orçamentos em aberto</strong> (com data de viagem daqui para frente). A partir de agora, cada orçamento novo que aparecer na planilha passa a contar no mês em que surgiu.</span></div>` : ""}
   <div class="tiles">
     <div class="tile"><span class="k">Atendimentos</span><span class="v">${atTot ? atTot.toLocaleString("pt-BR") : "—"}</span><span class="d">Equipe de vendas em ${ymLabel(M)}${hp[M] ? ` · ${hp[M].total.toLocaleString("pt-BR")} no Helena (com bot e outras atendentes)` : ""}</span></div>
-    <div class="tile"><span class="k">Orçamentos enviados</span><span class="v">${semData ? "—" : tot.orc}</span><span class="d">${semData ? "Falta a data no relatório" : money(tot.orcV) + " em orçamentos"}</span></div>
+    <div class="tile"><span class="k">${semData ? "Orçamentos em aberto" : "Orçamentos enviados"}</span><span class="v">${tot.orc}</span><span class="d">${semData ? money(tot.orcV) + " em aberto (viagens futuras)" : money(tot.orcV) + " em orçamentos" + (S.comercial.orcBase && !S.comercial.orcTemData && ymOf(S.comercial.orcBase) === M ? ` · contando desde ${dLabel(S.comercial.orcBase).slice(0, 5)}` : "")}</span></div>
     <div class="tile"><span class="k">Vendas</span><span class="v">${tot.vq}</span><span class="d">${money(tot.vV)}</span></div>
     <div class="tile feature"><span class="k">Conversão</span><span class="v">${pctTxt(tot.at ? tot.vq / tot.at * 100 : null)}</span><span class="d">Vendas ÷ atendimentos da equipe</span></div>
   </div>
   <section class="panel"><h3>Por pessoa · ${ymLong(M)}</h3>
-    ${linhas.length ? `<div class="tablewrap"><table><thead><tr><th>Pessoa</th><th class="n">Atendimentos</th><th class="n">Orçamentos</th><th class="n">Valor orçado</th><th class="n">Vendas</th><th class="n">Valor vendido</th><th class="n">Conversão</th></tr></thead>
-    <tbody>${linhas.map(l => `<tr><td>${esc(nomeDe(l.u))}</td><td class="n">${l.at ?? "—"}</td><td class="n">${semData ? "—" : l.orc}</td><td class="n">${semData ? "—" : money(l.orcV)}</td><td class="n">${l.vq}</td><td class="n">${money(l.vV)}</td><td class="n">${pctTxt(l.conv)}</td></tr>`).join("")}</tbody>
-    <tfoot><tr><td>Equipe</td><td class="n">${tot.at || "—"}</td><td class="n">${semData ? "—" : tot.orc}</td><td class="n">${semData ? "—" : money(tot.orcV)}</td><td class="n">${tot.vq}</td><td class="n">${money(tot.vV)}</td><td class="n">${pctTxt(tot.at ? tot.vq / tot.at * 100 : null)}</td></tr></tfoot></table></div>` : `<div class="empty"><strong>Sem dados em ${ymLabel(M)}</strong></div>`}
+    ${linhas.length ? `<div class="tablewrap"><table><thead><tr><th>Pessoa</th><th class="n">Atendimentos</th><th class="n">${lOrc}</th><th class="n">${lOrcV}</th><th class="n">Vendas</th><th class="n">Valor vendido</th><th class="n">Conversão</th></tr></thead>
+    <tbody>${linhas.map(l => `<tr><td>${esc(nomeDe(l.u))}</td><td class="n">${l.at ?? "—"}</td><td class="n">${l.orc}</td><td class="n">${money(l.orcV)}</td><td class="n">${l.vq}</td><td class="n">${money(l.vV)}</td><td class="n">${pctTxt(l.conv)}</td></tr>`).join("")}</tbody>
+    <tfoot><tr><td>Equipe</td><td class="n">${tot.at || "—"}</td><td class="n">${tot.orc}</td><td class="n">${money(tot.orcV)}</td><td class="n">${tot.vq}</td><td class="n">${money(tot.vV)}</td><td class="n">${pctTxt(tot.at ? tot.vq / tot.at * 100 : null)}</td></tr></tfoot></table></div>` : `<div class="empty"><strong>Sem dados em ${ymLabel(M)}</strong></div>`}
   </section>
   <div class="grid2">
     <section class="panel"><div class="section-head"><div><h3>Orçamentos em aberto</h3><span class="muted small">Status “Orçamento”, com viagem a partir de hoje.</span></div><span class="pill info">${abertos.length} · ${money(abertos.reduce((s, o) => s + (Number(o.valor) || 0), 0))}</span></div>
+      ${abertos.length ? `<div class="chips">${Object.entries(porDestAberto).sort((a, b) => b[1].q - a[1].q).map(([k, x]) => `<span class="dest" style="${dc(k)}">${esc(k)} · ${x.q}</span>`).join("")}</div>` : ""}
       ${abertos.length ? `<div class="tablewrap"><table><thead><tr><th>Pessoa</th><th class="n">Orçamentos</th><th class="n">Valor</th></tr></thead><tbody>${Object.entries(porPessoaAberto).sort((a, b) => b[1].v - a[1].v).map(([u, x]) => `<tr><td>${esc(u === "—" ? "Sem vendedor" : u.startsWith("nome:") ? u.slice(5) + " (sem cadastro)" : nomeDe(u))}</td><td class="n">${x.q}</td><td class="n">${money(x.v)}</td></tr>`).join("")}</tbody></table></div>` : `<div class="empty"><strong>Nenhum orçamento em aberto</strong></div>`}
     </section>
     <section class="panel"><h3>Mês a mês</h3>
       <div class="tablewrap"><table><thead><tr><th>Mês</th><th class="n">Atend.</th><th class="n">Orçam.</th><th class="n">Valor orçado</th><th class="n">Vendas</th><th class="n">Conv.</th></tr></thead>
       <tbody>${porMes.map(x => `<tr${x.m === M ? ' class="sel"' : ""}><td>${ymLabel(x.m)}</td><td class="n">${x.at || "—"}</td><td class="n">${semData ? "—" : x.orc || "—"}</td><td class="n">${semData || !x.orcV ? "—" : money(x.orcV)}</td><td class="n">${x.vq || "—"}</td><td class="n">${pctTxt(x.at ? x.vq / x.at * 100 : null)}</td></tr>`).join("")}</tbody></table></div>
     </section>
-  </div>`;
+  </div>
+  ${abertos.length ? `<section class="panel"><details><summary style="cursor:pointer"><strong>Ver todos os orçamentos em aberto</strong> <span class="muted small">(${abertos.length})</span></summary>${listaOrcHtml(abertos, true)}</details></section>` : ""}`;
 }
 function abrirConfigTrevor() {
   const c = S.comercial;
@@ -1759,7 +1782,9 @@ const ALIAS_ORC = {
   pax: ["number_of_people", "pax", "pessoas", "numero de pessoas"],
   total: ["total", "valor", "valor total", "valor r$", "total r$"],
   destino: ["destino", "destination"],
-  vend: ["vendedor", "vendedor(a)", "vendedora", "seller", "responsavel"]
+  vend: ["vendedor", "vendedor(a)", "vendedora", "seller", "responsavel"],
+  cliente: ["cliente", "nome do cliente", "client", "client_name", "customer", "customer_name"],
+  link: ["link", "link do orcamento", "url", "uuid"]
 };
 async function importarOrcamentos() {
   const url = urlPlanilha(S.comercial.planilhaOrc); if (!url) return null;
@@ -1776,16 +1801,18 @@ async function importarOrcamentos() {
   if (ix.id < 0 || ix.total < 0) throw new Error("Não reconheci as colunas da planilha de orçamentos (faltam id ou total).");
   const v_ = (l, k) => ix[k] >= 0 ? (l[ix[k]] || "").trim() : "";
   const vistos = new Set(), escritas = []; let novos = 0, alterados = 0;
+  const semHistorico = Object.keys(S.orc || {}).length === 0; // primeira leitura: tudo o que já existe fica como "anterior ao registro"
   for (const l of linhas.slice(1)) {
     const idv = v_(l, "id").replace(/[^A-Za-z0-9_-]/g, ""); if (!idv) continue;
     const id = "orc_" + idv; if (vistos.has(id)) continue; vistos.add(id);
     const achado = acharVendedor(v_(l, "vend")), casa = achado === "__casa", antigo = S.orc[id];
     let vendedor = casa ? "" : achado; if (!vendedor && !casa && antigo && antigo.vendedor) vendedor = antigo.vendedor;
-    const d = { roteiro: idv, status: v_(l, "status"), criado: lerData(v_(l, "criado")), chegada: lerData(v_(l, "cheg")), partida: lerData(v_(l, "part")), pax: Number(v_(l, "pax")) || null, valor: lerMoeda(v_(l, "total")), destino: DEST_CRM(v_(l, "destino")), vendedor, vendedorNome: v_(l, "vend"), casa, naPlanilha: true };
+    const lk = v_(l, "link"), link = /^https?:\/\//.test(lk) ? lk : /^[0-9a-f-]{20,}$/i.test(lk) ? "https://araya-mari.akceli.tech/orcamentos/" + lk : "";
+    const d = { roteiro: idv, cliente: v_(l, "cliente"), link, status: v_(l, "status"), criado: lerData(v_(l, "criado")), chegada: lerData(v_(l, "cheg")), partida: lerData(v_(l, "part")), pax: Number(v_(l, "pax")) || null, valor: lerMoeda(v_(l, "total")), destino: DEST_CRM(v_(l, "destino")), vendedor, vendedorNome: v_(l, "vend"), casa, naPlanilha: true };
     if (antigo && !d.criado && antigo.criado) d.criado = antigo.criado;
     const mudou = !antigo || Object.keys(d).some(k => JSON.stringify(antigo[k] ?? null) !== JSON.stringify(d[k] ?? null));
     if (!mudou) continue;
-    if (!antigo) { d.vistoEm = new Date().toISOString().slice(0, 10); novos++; } else alterados++;
+    if (!antigo) { d.vistoEm = isoDia(new Date()); d.base = semHistorico; novos++; } else alterados++;
     escritas.push([id, d]);
   }
   // orçamentos que saíram da planilha (viraram venda, foram cancelados ou apagados): ficam no histórico, mas não contam como "em aberto"
@@ -1796,8 +1823,9 @@ async function importarOrcamentos() {
     await lote.commit();
   }
   const temData = ix.criado >= 0;
-  await col("config").doc("comercial").set({ ultimaImportacaoOrc: new Date().toISOString(), orcTemData: temData }, { merge: true });
-  S.comercial.orcTemData = temData;
+  const extra = S.comercial.orcBase ? {} : { orcBase: isoDia(new Date()) };
+  await col("config").doc("comercial").set({ ultimaImportacaoOrc: new Date().toISOString(), orcTemData: temData, ...extra }, { merge: true });
+  S.comercial.orcTemData = temData; Object.assign(S.comercial, extra);
   return { linhas: linhas.length - 1, novos, alterados };
 }
 async function salvarComercial(campos, msg) {
