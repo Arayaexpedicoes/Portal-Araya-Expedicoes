@@ -120,6 +120,20 @@ tfoot td{font-weight:700;border-top:1px solid var(--line)}
 input[type=text],input[type=number],input[type=date],input[type=search],select,textarea{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 11px;min-width:0;width:100%}
 .section-head select,.section-head input[type=search]{background:var(--surface);box-shadow:var(--shadow);border-color:transparent}
 input.cell{width:84px;text-align:right;padding:5px 8px}
+.mescoms{min-width:0}
+details.mescom{border-top:1px solid var(--line);min-width:0;max-width:100%}
+details.mescom:first-of-type{border-top:0}
+details.mescom > summary{list-style:none;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:12px 4px;cursor:pointer;border-radius:8px}
+details.mescom > summary::-webkit-details-marker{display:none}
+details.mescom > summary:hover{background:color-mix(in srgb, var(--surface-2) 50%, transparent)}
+details.mescom > summary .t{display:flex;gap:10px;align-items:center;min-width:0}
+details.mescom > summary .t::before{content:"";width:7px;height:7px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);transition:transform .15s;flex:none;margin-right:2px}
+details.mescom[open] > summary .t::before{transform:rotate(45deg)}
+details.mescom > summary .v{display:flex;gap:6px 10px;align-items:center;flex-wrap:wrap;white-space:nowrap}
+details.mescom .tablewrap{padding:0 0 12px}
+.mescom .so-cel{display:none}
+@media (max-width:640px){ .mescom .vg,.mescom .st{display:none} .mescom .so-cel{display:block;margin-top:4px} .mescom td.n{white-space:nowrap} }
+input.cell[readonly]{background:transparent;border-color:transparent;box-shadow:none;cursor:default}
 .formgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
 .empty{border:1px dashed var(--line);border-radius:var(--r);padding:28px 18px;text-align:center;color:var(--muted);display:grid;gap:6px;justify-items:center}
 .empty strong{color:var(--fg);font-family:var(--display);font-weight:600;font-size:1.02rem}
@@ -382,7 +396,7 @@ const pill = (st) => { const [c, t] = STATUS_PILL[st] || ["neutral", st]; return
 const S = {
   auth: null, db: null, session: null, resumoAtual: "", email: "", isAdmin: false, ready: false, authMode: "entrar", authMsg: null, recovery: false,
   members: {}, vendas: {}, notas: {}, atend: {}, destinos: [], passeios: [], tickets: [], equipeRes: null,
-  comercial: { planilha: "", cotacoes: {}, metas: {}, ultimaImportacao: "", ultimoResultado: null }, importando: false, vendasEquipe: null, bonus: {}, disp: {}, dispErro: false,
+  comercial: { planilha: "", cotacoes: {}, metas: {}, ultimaImportacao: "", ultimoResultado: null }, importando: false, vendasEquipe: null, bonus: {}, disp: {}, dispErro: false, helena: [],
   tab: null, previewUid: null,
   filtros: { vend: "", mes: "", busca: "", comMes: ymNow(), painelMes: ymNow(), destino: null, passeio: null, tourBusca: "", minhasMes: "", tkDest: null, tkItem: null, tkBusca: "", comMesC: ymNow() },
   pendingRender: false
@@ -414,13 +428,49 @@ const vendidoNoMes = (lista, uid, ym) => lista.filter(v => v.vendedor === uid &&
 // ---------- dados ----------
 const col = (n) => S.db.collection(n);
 const docsOf = (snap) => snap.docs.map(d => ({ id: d.id, ...d.data() }));
-function setMembers(rows) { S.members = Object.fromEntries(rows.map(r => [r.id, { apelido: r.apelido || "", nomeCrm: r.nomeCrm || "", supervisor: r.supervisor === true, bonus: r.bonus !== false, semEmail: r.semEmail === true, pct: r.pct == null ? null : Number(r.pct), abas: r.abas || {}, ativo: r.ativo !== false, uid: r.uid || null }])); }
+function setMembers(rows) { S.members = Object.fromEntries(rows.map(r => [r.id, { apelido: r.apelido || "", nomeCrm: r.nomeCrm || "", nomeHelena: r.nomeHelena || "", supervisor: r.supervisor === true, bonus: r.bonus !== false, semEmail: r.semEmail === true, pct: r.pct == null ? null : Number(r.pct), abas: r.abas || {}, ativo: r.ativo !== false, uid: r.uid || null }])); }
 function setVendas(rows) { S.vendas = Object.fromEntries(rows.map(r => [r.id, { ...r, cliente: r.cliente || "", vendedor: r.vendedor, destino: r.destino || "", valor: Number(r.valor) || 0, pct: Number(r.pct) || 0, fechamento: r.fechamento || "", embarque: r.embarque || "", status: r.status || "ativa", pagaEm: r.pagaEm || null, origem: r.origem || "manual" }])); }
 function setAtend(rows) { S.atend = {}; for (const r of rows) (S.atend[r.mes] ||= { porPessoa: {} }).porPessoa[r.email] = r.n; }
 function computeEquipe() {
   const hoje = ymNow(); const meses = [hoje, addM(hoje, -1), addM(hoje, -2)];
   const ativas = allVendas().filter(v => v.status !== "cancelada");
   return { meses, pessoas: activeMembers().map(u => ({ uid: u, apelido: S.members[u].apelido || "", meses: Object.fromEntries(meses.map(m => { const vs = ativas.filter(v => v.vendedor === u && ymOf(v.fechamento) === m); return [m, { q: vs.length, v: round2(vs.reduce((s, v) => s + v.valor, 0)) }]; })) })) };
+}
+// ---------- Helena: o robô grava as contagens por atendente; aqui ligamos cada atendente a uma pessoa da equipe ----------
+function membroDoAgente(a) {
+  const ids = Object.keys(S.members).filter(id => S.members[id].ativo !== false);
+  const em = String(a.email || "").toLowerCase(), n = semAcento(a.nome);
+  return (em && ids.find(id => id === em))
+    || ids.find(id => S.members[id].nomeHelena && semAcento(S.members[id].nomeHelena) === n)
+    || ids.find(id => S.members[id].nomeCrm && semAcento(S.members[id].nomeCrm) === n)
+    || ids.find(id => { const ap = semAcento(S.members[id].apelido); return ap && n && (n === ap || n.startsWith(ap + " ")); })
+    || "";
+}
+function helenaPorMes() {
+  const out = {};
+  for (const h of S.helena || []) {
+    if (!h.mes) continue;
+    const r = { porPessoa: {}, semLigacao: [], total: h.total || 0, semAtendente: h.semAtendente || 0, em: h.atualizadoEm || "" };
+    for (const a of Object.values(h.porAgente || {})) {
+      const u = membroDoAgente(a);
+      if (u) r.porPessoa[u] = (r.porPessoa[u] || 0) + (Number(a.n) || 0);
+      else r.semLigacao.push({ nome: a.nome || a.email || "Atendente sem nome", n: Number(a.n) || 0 });
+    }
+    r.semLigacao.sort((x, y) => y.n - x.n);
+    out[h.mes] = r;
+  }
+  return out;
+}
+async function syncAtendHelena() {
+  if (!S.isAdmin || S.previewUid) return;
+  const hp = helenaPorMes(); const lote = S.db.batch(); let n = 0;
+  for (const [mes, r] of Object.entries(hp)) for (const u of activeMembers()) {
+    const v = r.porPessoa[u] || 0, atual = S.atend[mes] && S.atend[mes].porPessoa ? S.atend[mes].porPessoa[u] : undefined;
+    if (atual === v || (!v && atual == null)) continue;
+    lote.set(col("atendimentos").doc(mes + "__" + u), { mes, email: u, n: v, origem: "helena" }); n++;
+    (S.atend[mes] ||= { porPessoa: {} }).porPessoa[u] = v;
+  }
+  if (n) await lote.commit();
 }
 async function syncResumo() {
   const r = computeEquipe(); const j = JSON.stringify(r);
@@ -439,6 +489,8 @@ async function loadAll() {
     try { const c = await col("config").doc("comercial").get(); if (c.exists) S.comercial = { ...S.comercial, cotacoes: {}, metas: {}, ...c.data() }; } catch (_) {}
     try { S.bonus = Object.fromEntries(docsOf(await col("bonus").get()).map(b => [b.id, b])); } catch (_) { S.bonus = {}; }
     if (rs.exists) { const d = rs.data(); S.resumoAtual = JSON.stringify({ meses: d.meses, pessoas: d.pessoas }); }
+    try { S.helena = docsOf(await col("helena").get()); } catch (_) { S.helena = []; }
+    try { await syncAtendHelena(); } catch (_) { /* tenta de novo no próximo carregamento */ }
     try { await syncResumo(); } catch (_) { /* tenta de novo no próximo carregamento */ }
     return;
   }
@@ -670,18 +722,30 @@ function memberInicio(data, vendas, hoje, viewingAs) {
     <div class="tile feature"><span class="k">Comissão de ${MESES_L[+hoje.slice(5) - 1]}</span><span class="v">${money(comMes)}</span><span class="d">Paga em ${MESES_L[+addM(hoje, 1).slice(5) - 1]} · ${MESES_L[+addM(hoje, -1).slice(5) - 1]}: ${money(comAnt)}</span></div>
   </div>
   ${bonusHtml}
+  ${comissoesPorMesPainel(ativas, hoje)}
   <div class="grid2">
-    <section class="panel"><h3>Comissões por mês</h3>
-      <div class="tablewrap"><table><thead><tr><th>Comissão de</th><th>Paga em</th><th class="n">Vendas</th><th class="n">Comissão</th><th style="width:22%"></th></tr></thead>
-      <tbody>${linhas.map(([m, q, t]) => `<tr><td>${ymLabel(m)}${m === hoje ? ' <span class="pill info">este mês</span>' : ""}</td><td class="muted">${ymLabel(addM(m, 1))}</td><td class="n">${q}</td><td class="n">${money(t)}</td><td><div class="bar"><i style="width:${maxL ? Math.round(t / maxL * 100) : 0}%"></i></div></td></tr>`).join("")}</tbody></table></div>
-      <p class="muted small" style="margin:0">A comissão de cada mês é de quem foi embora naquele mês, com o roteiro como “Programado” no CRM, e é paga no início do mês seguinte. Ex.: chegou 25/10 e foi embora 01/11 → comissão de novembro, paga em dezembro.</p>
-    </section>
     <section class="panel"><h3>Últimas vendas</h3>
       ${ult.length ? `<div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Fechada em</th><th class="n">Valor</th></tr></thead><tbody>${ult.map(v => `<tr><td>${esc(v.cliente)}<div>${destTag(v.destino)}</div></td><td>${dLabel(v.fechamento)}</td><td class="n">${money(v.valor)}</td></tr>`).join("")}</tbody></table></div>` : `<div class="empty"><strong>Nenhuma venda registrada ainda</strong><span>Suas vendas aparecem aqui assim que forem lançadas.</span></div>`}
     </section>
   </div>`;
 }
 
+function comissoesPorMesPainel(ativas, hoje) {
+  const meses = Array.from({ length: 7 }, (_, i) => addM(hoje, i - 2));
+  const blocos = meses.map(m => {
+    const vs = ativas.filter(v => v.mesRef === m).sort((a, b) => (a.retorno || a.embarque || "").localeCompare(b.retorno || b.embarque || ""));
+    const conta = vs.filter(v => !v.naoProgramado), total = conta.reduce((s, v) => s + v.comissao, 0), pagoEm = addM(m, 1);
+    const st = !vs.length ? "" : conta.length && conta.every(v => v.pagaEm) ? '<span class="pill ok">Paga</span>' : pagoEm <= hoje ? '<span class="pill warn">A receber</span>' : m === hoje ? '<span class="pill info">Em andamento</span>' : '<span class="pill neutral">Prevista</span>';
+    const aguard = vs.length - conta.length;
+    return `<details class="mescom" ${m === hoje && vs.length ? "open" : ""}><summary><span class="t"><strong>${MESES_L[+m.slice(5) - 1][0].toUpperCase() + MESES_L[+m.slice(5) - 1].slice(1)} ${m.slice(0, 4)}</strong><span class="muted small">paga em ${ymLabel(pagoEm)}</span></span><span class="v"><span class="muted small">${conta.length} ${conta.length === 1 ? "venda" : "vendas"}${aguard ? ` + ${aguard} aguardando` : ""}</span><strong>${money(total)}</strong>${st}</span></summary>
+      ${vs.length ? `<div class="tablewrap"><table><thead><tr><th>Cliente</th><th class="vg">Viagem</th><th class="n">Comissão</th><th class="st">Situação</th></tr></thead><tbody>${vs.map(v => `<tr><td>${esc(v.cliente)}<div>${destTag(v.destino)}</div><div class="so-cel muted small">foi embora ${dLabel(v.retorno || v.embarque).slice(0, 5)}</div></td><td class="vg">${viagemCel(v)}</td><td class="n">${comCel(v)}<div class="muted small">${pctFmt(v.pct)} de ${money(v.valor)}</div>${reembNota(v)}<div class="so-cel">${pill(statusOf(v, hoje))}</div></td><td class="st">${pill(statusOf(v, hoje))}</td></tr>`).join("")}</tbody></table></div>` : '<p class="muted small" style="margin:0 0 12px 22px">Nenhum cliente seu vai embora neste mês.</p>'}
+    </details>`;
+  }).join("");
+  return `<section class="panel"><div><h3>Comissões por mês</h3><span class="muted small">Toque no mês para ver quais vendas formam a comissão.</span></div>
+    <div class="mescoms">${blocos}</div>
+    <p class="muted small" style="margin:0">A comissão de cada mês é de quem foi embora naquele mês, com o roteiro como “Programado” no CRM, e é paga no início do mês seguinte. Ex.: chegou 25/10 e foi embora 01/11 → comissão de novembro, paga em dezembro.</p>
+  </section>`;
+}
 function memberComissoes(data, vendas, hoje) {
   const ativas = vendas.filter(v => v.status !== "cancelada" && v.mesPagamento);
   const meses = [...new Set(ativas.map(v => v.mesRef))].sort().reverse();
@@ -1205,13 +1269,22 @@ function ownerComissoes() {
   </section>`;
 }
 
+function helenaPainel(hp, hoje) {
+  const r = hp[hoje] || hp[addM(hoje, -1)]; if (!r) return "";
+  const mes = hp[hoje] ? hoje : addM(hoje, -1);
+  return `<section class="panel"><div class="section-head"><div><h3>Helena · ${ymLong(mes)}</h3><span class="muted small">Conversas que chegaram no mês, pelo atendente responsável. Atualizado em ${r.em ? new Date(r.em).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—"}.</span></div><span class="pill info">${r.total.toLocaleString("pt-BR")} no total</span></div>
+    <p class="small" style="margin:0">${r.semAtendente ? `<strong>${r.semAtendente.toLocaleString("pt-BR")}</strong> sem atendente (bot ou fila). ` : ""}${r.semLigacao.length ? `Atendentes do Helena que não estão ligados a ninguém do portal: ${r.semLigacao.map(x => `<strong>${esc(x.nome)}</strong> (${x.n})`).join(", ")}. Se algum for da equipe de vendas, preencha “Nome no Helena” em Equipe e acessos.` : "Todos os atendentes do Helena estão ligados a alguém do portal."}</p>
+  </section>`;
+}
 function ownerAtendimentos() {
   const mem = activeMembers(); const hoje = ymNow();
   const meses = Array.from({ length: 12 }, (_, i) => addM(hoje, -i));
+  const hp = helenaPorMes(), temHelena = Object.keys(hp).length > 0;
   return `
-  <div class="section-head"><div><h2>Atendimentos</h2><p>Número de atendimentos de cada pessoa por mês. Enquanto o Helena não estiver conectado, preencha aqui. Salva ao sair do campo.</p></div></div>
+  <div class="section-head"><div><h2>Atendimentos</h2><p>${temHelena ? "Os meses marcados com <strong>Helena</strong> vêm sozinhos do Helena (conversas que chegaram no mês, por atendente) e não podem ser editados aqui. Os outros meses você pode preencher à mão; salva ao sair do campo." : "Número de atendimentos de cada pessoa por mês. Enquanto o Helena não estiver ligado, preencha aqui. Salva ao sair do campo."}</p></div></div>
+  ${helenaPainel(hp, hoje)}
   <section class="panel">${mem.length ? `<div class="tablewrap"><table><thead><tr><th>Mês</th>${mem.map(u => `<th class="n">${esc(label(u))}</th>`).join("")}<th class="n">Total</th></tr></thead>
-  <tbody>${meses.map(m => { const pp = (S.atend[m] && S.atend[m].porPessoa) || {}; return `<tr><td>${ymLabel(m)}</td>${mem.map(u => `<td class="n"><input class="cell" type="number" min="0" step="1" inputmode="numeric" id="at-${m}-${esc(u)}" data-atend="${m}" data-uid="${esc(u)}" value="${pp[u] ?? ""}" aria-label="Atendimentos de ${esc(label(u))} em ${ymLabel(m)}"></td>`).join("")}<td class="n">${mem.reduce((s, u) => s + (Number(pp[u]) || 0), 0) || "—"}</td></tr>`; }).join("")}</tbody></table></div>`
+  <tbody>${meses.map(m => { const pp = (S.atend[m] && S.atend[m].porPessoa) || {}, h = hp[m]; return `<tr><td>${ymLabel(m)}${h ? ' <span class="pill info">Helena</span>' : ""}</td>${mem.map(u => `<td class="n"><input class="cell" type="number" min="0" step="1" inputmode="numeric" id="at-${m}-${esc(u)}" data-atend="${m}" data-uid="${esc(u)}" value="${pp[u] ?? ""}" ${h ? 'readonly title="Vem do Helena"' : ""} aria-label="Atendimentos de ${esc(label(u))} em ${ymLabel(m)}"></td>`).join("")}<td class="n">${mem.reduce((s, u) => s + (Number(pp[u]) || 0), 0) || "—"}</td></tr>`; }).join("")}</tbody></table></div>`
     : `<div class="empty"><strong>Cadastre a equipe primeiro</strong><span>Cada coluna é uma pessoa da equipe.</span></div>`}</section>`;
 }
 
@@ -1240,6 +1313,7 @@ function ownerAcessos() {
       <div class="formgrid">
         <div class="field"><label for="ap-${esc(u)}">Nome no portal</label><input type="text" id="ap-${esc(u)}" data-cfg="apelido" data-uid="${esc(u)}" value="${esc(m.apelido || "")}" placeholder="Ex.: Júlia"></div>
         <div class="field"><label for="crm-${esc(u)}">Nome no CRM (planilha do Trevor)</label><input type="text" id="crm-${esc(u)}" data-cfg="nomeCrm" data-uid="${esc(u)}" value="${esc(m.nomeCrm || "")}" placeholder="Ex.: Júlia Faedo"></div>
+        <div class="field"><label for="hel-${esc(u)}">Nome no Helena (se for diferente)</label><input type="text" id="hel-${esc(u)}" data-cfg="nomeHelena" data-uid="${esc(u)}" value="${esc(m.nomeHelena || "")}" placeholder="Como aparece no Helena"></div>
         <div class="field"><label for="pc-${esc(u)}">Comissão (% sobre a venda)</label><input type="number" min="0" max="100" step="0.1" id="pc-${esc(u)}" data-cfg="pct" data-uid="${esc(u)}" value="${m.pct ?? ""}" placeholder="Ex.: 3"></div>
       </div>
       <div><div class="field"><label>O que essa pessoa vê</label></div><div class="toggles">${ABAS.map(([k, t]) => `<label class="toggle"><input type="checkbox" data-aba="${k}" data-uid="${esc(u)}" ${ab[k] ? "checked" : ""}>${t}</label>`).join("")}</div></div>
