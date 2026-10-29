@@ -162,6 +162,8 @@ input.cell[readonly]{background:transparent;border-color:transparent;box-shadow:
 .chip::before{content:"";width:10px;height:10px;border-radius:50%;background:var(--dc,var(--d-outro))}
 .chip[aria-pressed="true"]{background:var(--dc,var(--accent));border-color:var(--dc,var(--accent));color:var(--surface)}
 .chip[aria-pressed="true"]::before{background:var(--surface)}
+.chip.todos{padding-left:14px}
+.chip.todos::before{display:none}
 .tourlist{display:grid;gap:2px;max-height:70vh;overflow:auto;padding:4px}
 .tourlist button{text-align:left;border:0;background:none;padding:8px 10px;border-radius:8px;cursor:pointer;line-height:1.35}
 .tourlist button:hover{background:var(--surface-2)}
@@ -1209,13 +1211,18 @@ function listaOrcHtml(lista, comVendedor) {
   const l = lista.slice().sort((a, b) => (a.chegada || "").localeCompare(b.chegada || ""));
   return `<div class="tablewrap"><table class="orclista"><thead><tr><th>Cliente</th>${comVendedor ? '<th class="vd">Vendedor</th>' : ""}<th>Viagem</th><th class="n px">Pessoas</th><th class="n">Valor</th><th class="lk"></th></tr></thead><tbody>${l.map(o => `<tr><td>${o.cliente ? esc(o.cliente) : `Orçamento #${esc(o.roteiro)}`}<div>${destTag(o.destino)}${o.cliente ? ` <span class="muted small">#${esc(o.roteiro)}</span>` : ""}</div></td>${comVendedor ? `<td class="vd">${esc(o.vendedor ? label(o.vendedor) : o.vendedorNome || "—")}</td>` : ""}<td>${dLabel(o.chegada)}${o.partida ? `<div class="muted small">volta ${dLabel(o.partida)}</div>` : ""}${comVendedor ? `<div class="so-cel muted small">${esc(o.vendedor ? label(o.vendedor) : o.vendedorNome || "")}</div>` : ""}</td><td class="n px">${o.pax || "—"}</td><td class="n">${money(o.valor)}<div class="so-cel muted small">${o.pax ? o.pax + (o.pax === 1 ? " pessoa" : " pessoas") : ""}</div>${o.link ? `<div class="so-cel"><a class="btn sm ghost" href="${esc(o.link)}" target="_blank" rel="noopener">Abrir ↗</a></div>` : ""}</td><td class="lk">${o.link ? `<a class="btn sm ghost" href="${esc(o.link)}" target="_blank" rel="noopener">Abrir ↗</a>` : ""}</td></tr>`).join("")}</tbody></table></div>`;
 }
+function chipsDestino(abertos) {
+  const porDest = {}; abertos.forEach(o => { const k = o.destino || "—"; porDest[k] = (porDest[k] || 0) + 1; });
+  const sel = S.filtros.orcDest && porDest[S.filtros.orcDest] ? S.filtros.orcDest : "";
+  return `<div class="chips" role="group" aria-label="Filtrar por destino"><button type="button" class="chip todos" data-orcdest="" aria-pressed="${!sel}">Todos · ${abertos.length}</button>${Object.entries(porDest).sort((a, b) => b[1] - a[1]).map(([k, n]) => `<button type="button" class="chip" style="${dc(k)}" data-orcdest="${esc(k)}" aria-pressed="${k === sel}">${esc(k)} · ${n}</button>`).join("")}</div>`;
+}
+const filtraDestino = (lista) => { const d = S.filtros.orcDest; return d && lista.some(o => (o.destino || "—") === d) ? lista.filter(o => (o.destino || "—") === d) : lista; };
 function meusOrcamentosPainel(meusOrc) {
   const hojeD = new Date().toISOString().slice(0, 10);
   const abertos = meusOrc.filter(o => orcAberto(o, hojeD));
   if (!meusOrc.length) return "";
-  const porDest = {}; abertos.forEach(o => { const k = o.destino || "—"; porDest[k] = (porDest[k] || 0) + 1; });
-  return `<section class="panel"><div class="section-head"><div><h3>Meus orçamentos em aberto</h3><span class="muted small">Clientes com orçamento enviado e viagem daqui para frente, dos mais próximos para os mais distantes. Bom ponto de partida para retomar a conversa.</span></div><span class="pill info">${abertos.length} · ${money(abertos.reduce((s, o) => s + (Number(o.valor) || 0), 0))}</span></div>
-    ${abertos.length ? `<div class="chips">${Object.entries(porDest).sort((a, b) => b[1] - a[1]).map(([k, n]) => `<span class="dest" style="${dc(k)}">${esc(k)} · ${n}</span>`).join("")}</div>${listaOrcHtml(abertos, false)}` : `<div class="empty"><strong>Nenhum orçamento em aberto</strong></div>`}
+  return `<section class="panel"><div class="section-head"><div><h3>Meus orçamentos em aberto</h3><span class="muted small">Clientes com orçamento enviado e viagem daqui para frente, dos mais próximos para os mais distantes. Bom ponto de partida para retomar a conversa.</span></div><span class="pill info">${filtraDestino(abertos).length} · ${money(filtraDestino(abertos).reduce((s, o) => s + (Number(o.valor) || 0), 0))}</span></div>
+    ${abertos.length ? `${chipsDestino(abertos)}${listaOrcHtml(filtraDestino(abertos), false)}` : `<div class="empty"><strong>Nenhum orçamento em aberto</strong></div>`}
   </section>`;
 }
 function ownerFunil() {
@@ -1264,7 +1271,7 @@ function ownerFunil() {
       <tbody>${porMes.map(x => `<tr${x.m === M ? ' class="sel"' : ""}><td>${ymLabel(x.m)}</td><td class="n">${x.at || "—"}</td><td class="n">${semData ? "—" : x.orc || "—"}</td><td class="n">${semData || !x.orcV ? "—" : money(x.orcV)}</td><td class="n">${x.vq || "—"}</td><td class="n">${pctTxt(x.at ? x.vq / x.at * 100 : null)}</td></tr>`).join("")}</tbody></table></div>
     </section>
   </div>
-  ${abertos.length ? `<section class="panel"><details><summary style="cursor:pointer"><strong>Ver todos os orçamentos em aberto</strong> <span class="muted small">(${abertos.length})</span></summary>${listaOrcHtml(abertos, true)}</details></section>` : ""}`;
+  ${abertos.length ? `<section class="panel"><details id="orc-todos" ${S.orcTodosAberto ? "open" : ""}><summary style="cursor:pointer"><strong>Ver todos os orçamentos em aberto</strong> <span class="muted small">(${abertos.length})</span></summary><div style="display:grid;gap:12px;margin-top:12px">${chipsDestino(abertos)}${listaOrcHtml(filtraDestino(abertos), true)}</div></details></section>` : ""}`;
 }
 function abrirConfigTrevor() {
   const c = S.comercial;
@@ -1534,6 +1541,7 @@ document.addEventListener("keydown", (e) => { if (e.key === "Escape" && $("#laye
 async function run(p, okMsg) { await p; await reload(okMsg); }
 $("#main").addEventListener("click", async (e) => {
   const go = e.target.closest("[data-tab-go]"); if (go) { S.tab = go.dataset.tabGo; render(); return; }
+  const od = e.target.closest("[data-orcdest]"); if (od) { const k = od.dataset.orcdest; S.filtros.orcDest = S.filtros.orcDest === k ? "" : k; S.orcTodosAberto = !!(document.getElementById("orc-todos") || {}).open; render(); return; }
   const cs = e.target.closest("[data-comsub]"); if (cs) { S.filtros.comSub = cs.dataset.comsub; try { localStorage.setItem("araya-comsub", S.filtros.comSub); } catch (_) {} render(); return; }
   const dest = e.target.closest("[data-dest]"); if (dest) { S.filtros.destino = dest.dataset.dest; S.filtros.passeio = "__geral"; render(); return; }
   const tour = e.target.closest("[data-tourid]"); if (tour) { S.filtros.passeio = tour.dataset.tourid; render(); return; }
