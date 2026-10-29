@@ -1209,6 +1209,7 @@ function orcLista() {
   _orcCache = { t: agora, v }; return v;
 }
 const diasEntre = (a, b) => Math.round((Date.parse(b + "T12:00:00") - Date.parse(a + "T12:00:00")) / 864e5);
+function telNacional(tel) { let d = String(tel || "").replace(/\D/g, ""); if (d.length >= 12 && d.startsWith("55")) d = d.slice(2); return d; }
 function waLink(tel) { let d = String(tel || "").replace(/\D/g, ""); if (!d) return ""; if (d.length <= 11) d = "55" + d; return "https://wa.me/" + d; }
 function acompHtml(o, hojeD) {
   const r = (S.retornos || {})[o.id];
@@ -1231,7 +1232,7 @@ const pctTxt = (n) => n == null ? "—" : n.toLocaleString("pt-BR", { maximumFra
 function listaOrcHtml(lista, comVendedor, podeMarcar) {
   const hojeD = isoDia(new Date());
   const l = lista.slice().sort((a, b) => (a.chegada || "").localeCompare(b.chegada || ""));
-  const acoes = (o) => [o.telefone ? `<a class="btn sm" href="${esc(waLink(o.telefone))}" target="_blank" rel="noopener">WhatsApp</a>` : "", o.link ? `<a class="btn sm ghost" href="${esc(o.link)}" target="_blank" rel="noopener">Abrir ↗</a>` : "", podeMarcar ? `<button type="button" class="btn sm ghost" data-act="retomei" data-id="${esc(o.id)}">${(S.retornos || {})[o.id] ? "Desmarcar" : "Já retomei"}</button>` : ""].filter(Boolean).join(" ");
+  const acoes = (o) => [o.helenaSessao ? `<a class="btn sm" href="https://web.helena.run/chat2/sessions/${encodeURIComponent(o.helenaSessao)}" target="_blank" rel="noopener">Abrir no Helena</a>` : o.telefone ? `<button type="button" class="btn sm" data-act="helena-tel" data-tel="${esc(telNacional(o.telefone))}" title="Copia o telefone e abre o Helena">Helena</button>` : "", o.link ? `<a class="btn sm ghost" href="${esc(o.link)}" target="_blank" rel="noopener">Abrir ↗</a>` : "", podeMarcar ? `<button type="button" class="btn sm ghost" data-act="retomei" data-id="${esc(o.id)}">${(S.retornos || {})[o.id] ? "Desmarcar" : "Já retomei"}</button>` : ""].filter(Boolean).join(" ");
   const vend = (o) => esc(o.vendedor ? label(o.vendedor) : o.vendedorNome || "—");
   return `<div class="tablewrap"><table class="orclista"><thead><tr><th>Cliente</th>${comVendedor ? '<th class="vd">Vendedor</th>' : ""}<th class="vg">Viagem</th><th class="n px">Pessoas</th><th class="n">Valor</th><th class="ac">Acompanhamento</th><th class="lk"></th></tr></thead><tbody>${l.map(o => `<tr><td>${o.cliente ? esc(o.cliente) : `Orçamento #${esc(o.roteiro)}`}<div>${destTag(o.destino)}${o.cliente ? ` <span class="muted small">#${esc(o.roteiro)}</span>` : ""}</div><div class="so-cel muted small">Viagem ${dLabel(o.chegada)}${comVendedor ? " · " + vend(o) : ""}</div><div class="so-cel">${acompHtml(o, hojeD)}</div></td>${comVendedor ? `<td class="vd">${vend(o)}</td>` : ""}<td class="vg">${dLabel(o.chegada)}${o.partida ? `<div class="muted small">volta ${dLabel(o.partida)}</div>` : ""}</td><td class="n px">${o.pax || "—"}</td><td class="n">${money(o.valor)}<div class="so-cel muted small">${o.pax ? o.pax + (o.pax === 1 ? " pessoa" : " pessoas") : ""}</div>${acoes(o) ? `<div class="so-cel acoes">${acoes(o)}</div>` : ""}</td><td class="ac">${acompHtml(o, hojeD)}</td><td class="lk"><div class="acoes">${acoes(o)}</div></td></tr>`).join("")}</tbody></table></div>`;
 }
@@ -1349,7 +1350,13 @@ function ownerCampanhas() {
   const ordem = Object.entries(grupos).map(([d, ls]) => [d, ls, ls.reduce((a, l) => a + l.n, 0), ls.reduce((a, l) => a + l.vs.length, 0), ls.reduce((a, l) => a + l.vV, 0)]).sort((a, b) => b[4] - a[4] || b[2] - a[2]);
   const leads = linhas.reduce((a, l) => a + l.n, 0), vendidas = new Set(linhas.flatMap(l => l.vs.map(v => v.id))), valor = vendas.filter(v => vendidas.has(v.id)).reduce((a, v) => a + (Number(v.valor) || 0), 0);
   const temOrc = orcs.length > 0;
-  const nomeAnuncio = (l) => esc(l.content || l.headline || "(sem nome do anúncio)");
+  const corta = (t, n) => { t = String(t || "").replace(/\s+/g, " ").trim(); return t.length > n ? t.slice(0, n - 1).trimEnd() + "…" : t; };
+  const tituloUtil = (l) => l.headline && !/^(fale conosco|saiba mais|enviar mensagem|araya expedi[cç][oõ]es)$/i.test(String(l.headline).trim());
+  const partesTexto = (t) => { t = String(t || "").replace(/\s+/g, " ").trim(); const m = t.match(/^(.{15,130}?[.!?])\s+(.*)$/); if (m) return [m[1], m[2]]; if (t.length <= 90) return [t, ""]; const k = t.lastIndexOf(" ", 85); return [t.slice(0, k) + "…", "…" + t.slice(k + 1)]; };
+  const tituloAnuncio = (l) => esc(corta(tituloUtil(l) ? l.headline : (l.content ? partesTexto(l.content)[0] : l.headline || l.campaign || "Anúncio sem nome"), 135));
+  const nomeAnuncio = tituloAnuncio;
+  const detalheAnuncio = (l) => { const t = !l.content ? "" : tituloUtil(l) ? l.content : partesTexto(l.content)[1]; return t ? `<div class="muted small" title="${esc(String(l.content || "").slice(0, 600))}">${esc(corta(t, 110))}</div>` : ""; };
+  const codigo = (l) => /^\d{8,}$/.test(String(l.campaign || "")) ? `código ${esc(String(l.campaign).slice(-6))}` : esc(l.campaign || "");
   return head + `
   <div class="tiles">
     <div class="tile"><span class="k">Leads de campanhas</span><span class="v">${leads.toLocaleString("pt-BR")}</span><span class="d">${(h.semCampanha || 0).toLocaleString("pt-BR")} chegaram sem campanha (orgânico, indicação, direto)</span></div>
@@ -1357,11 +1364,11 @@ function ownerCampanhas() {
     <div class="tile feature"><span class="k">Conversão</span><span class="v">${pctTxt(leads ? vendidas.size / leads * 100 : null)}</span><span class="d">Vendas ÷ leads de campanhas</span></div>
   </div>
   ${ordem.map(([d, ls, n, q, v]) => `<section class="panel"><div class="section-head"><div><h3>${d === "Geral / outros" ? esc(d) : `<span class="dest" style="${dc(d)};font-size:inherit;font-weight:inherit;color:inherit">${esc(d)}</span>`}</h3><span class="muted small">${n.toLocaleString("pt-BR")} leads · ${q} ${q === 1 ? "venda" : "vendas"} · ${money(v)}</span></div><span class="pill ${q ? "ok" : "neutral"}">${pctTxt(n ? q / n * 100 : null)}</span></div>
-    <div class="tablewrap"><table><thead><tr><th>Campanha · anúncio</th><th>Origem</th><th class="n">Leads</th>${temOrc ? '<th class="n">Orçamentos</th>' : ""}<th class="n">Vendas</th><th class="n">Conversão</th><th class="n">Valor vendido</th></tr></thead>
-    <tbody>${ls.sort((a, b) => b.vV - a.vV || b.n - a.n).map(l => `<tr><td><strong>${esc(l.campaign || "(sem campanha)")}</strong><div class="muted small">${nomeAnuncio(l)}</div>${l.vs.length ? `<div class="muted small">Fechou: ${[...new Set(l.vs.map(v => v.destino))].map(x => esc(x)).join(", ")}</div>` : ""}</td><td class="small">${esc(l.source || "—")}${l.medium ? `<div class="muted small">${esc(l.medium)}</div>` : ""}</td><td class="n">${l.n}</td>${temOrc ? `<td class="n">${l.os.length}</td>` : ""}<td class="n">${l.vs.length}</td><td class="n">${pctTxt(l.n ? l.vs.length / l.n * 100 : null)}</td><td class="n">${money(l.vV)}</td></tr>`).join("")}</tbody></table></div>
+    <div class="tablewrap"><table><thead><tr><th>Anúncio</th><th>Origem</th><th class="n">Leads</th>${temOrc ? '<th class="n">Orçamentos</th>' : ""}<th class="n">Vendas</th><th class="n">Conversão</th><th class="n">Valor vendido</th></tr></thead>
+    <tbody>${ls.sort((a, b) => b.vV - a.vV || b.n - a.n).map(l => `<tr><td><strong>${tituloAnuncio(l)}</strong>${detalheAnuncio(l)}${l.vs.length ? `<div class="muted small">Fechou: ${[...new Set(l.vs.map(v => v.destino))].map(x => esc(x)).join(", ")}</div>` : ""}</td><td class="small">${esc(String(l.source || "—").toLowerCase().replace(/^./, c => c.toUpperCase()))}<div class="muted small">${codigo(l)}</div></td><td class="n">${l.n}</td>${temOrc ? `<td class="n">${l.os.length}</td>` : ""}<td class="n">${l.vs.length}</td><td class="n">${pctTxt(l.n ? l.vs.length / l.n * 100 : null)}</td><td class="n">${money(l.vV)}</td></tr>`).join("")}</tbody></table></div>
   </section>`).join("")}
   ${vendidas.size ? `<section class="panel"><details><summary style="cursor:pointer"><strong>Ver as vendas atribuídas às campanhas</strong> <span class="muted small">(${vendidas.size})</span></summary>
-    <div class="tablewrap" style="margin-top:10px"><table><thead><tr><th>Cliente</th><th>Vendedor</th><th>Fechada em</th><th>Campanha · anúncio</th><th class="n">Valor</th></tr></thead><tbody>${vendas.filter(v => vendidas.has(v.id)).map(v => { const l = linhas.find(x => x.vs.some(y => y.id === v.id)); return `<tr><td>${esc(v.cliente)}<div>${destTag(v.destino)}</div></td><td>${esc(vendLabel(v))}</td><td>${dLabel(v.fechamento)}</td><td class="small">${esc((l && l.campaign) || "")}<div class="muted small">${l ? nomeAnuncio(l) : ""}</div></td><td class="n">${money(v.valor)}</td></tr>`; }).join("")}</tbody></table></div>
+    <div class="tablewrap" style="margin-top:10px"><table><thead><tr><th>Cliente</th><th>Vendedor</th><th>Fechada em</th><th>Anúncio</th><th class="n">Valor</th></tr></thead><tbody>${vendas.filter(v => vendidas.has(v.id)).map(v => { const l = linhas.find(x => x.vs.some(y => y.id === v.id)); return `<tr><td>${esc(v.cliente)}<div>${destTag(v.destino)}</div></td><td>${esc(vendLabel(v))}</td><td>${dLabel(v.fechamento)}</td><td class="small">${l ? nomeAnuncio(l) : ""}<div class="muted small">${l ? esc(String(l.source || "").toLowerCase()) : ""}</div></td><td class="n">${money(v.valor)}</td></tr>`; }).join("")}</tbody></table></div>
     <p class="muted small" style="margin:8px 0 0">O cruzamento é pelo primeiro e último nome do cliente. Nomes muito comuns podem gerar uma ou outra ligação errada; confira na lista acima.</p></details></section>` : ""}`;
 }
 function abrirConfigTrevor() {
@@ -1651,6 +1658,10 @@ $("#main").addEventListener("click", async (e) => {
     else if (act === "ver-conferir") abrirConferir();
     else if (act === "ver-fora") abrirFora();
     else if (act === "editar-venda") openVenda(id);
+    else if (act === "helena-tel") {
+      window.open("https://web.helena.run/chat2/sessions", "_blank", "noopener");
+      try { await navigator.clipboard.writeText(b.dataset.tel); toast("Telefone copiado: no Helena, cole no campo “Conversar” (embaixo, à esquerda)."); } catch (_) { toast("Telefone do cliente: " + b.dataset.tel); }
+    }
     else if (act === "retomei") {
       const ref = col("retornos").doc(id), dono = S.previewUid || S.email;
       if (S.retornos[id]) { delete S.retornos[id]; render(); await ref.delete(); }
