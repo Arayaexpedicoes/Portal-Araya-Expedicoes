@@ -1,6 +1,7 @@
 # Portal da Equipe Araya · robô que copia as fichas do Notion para o portal.
 # Roda sozinho a cada 20 minutos (renova os links dos vídeos guardados no Notion) e também pelo botão "Run workflow" (aba Actions).
-# As chaves ficam nos segredos do GitHub (NOTION_TOKEN e ROBO_SENHA),
+# Também conta os atendimentos do Helena (mês atual e anterior) pela API.
+# As chaves ficam nos segredos do GitHub (NOTION_TOKEN, ROBO_SENHA e HELENA_TOKEN),
 # nunca neste arquivo. O registro da execução mostra só contagens, sem conteúdo.
 name: Sincronizar fichas do Notion
 
@@ -32,6 +33,7 @@ jobs:
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           ROBO_SENHA: ${{ secrets.ROBO_SENHA }}
+          HELENA_TOKEN: ${{ secrets.HELENA_TOKEN }}
           ROBO_EMAIL: robo.portal@arayaexpedicoes.com
           NOTION_DATABASE_ID: ead044fa4f87493b86621b16719cf5e8
           NOTION_DATA_SOURCE_ID: e2f3a87a2c084e83906e5393dbbab421
@@ -326,6 +328,63 @@ jobs:
             throw new Error("grande demais");
           }
 
+          // ---------- Helena (atendimentos) ----------
+          // Conta as conversas que chegaram no Helena em cada mês, por atendente, pela API (token no segredo HELENA_TOKEN).
+          // Grava só contagens e o nome/e-mail de cada atendente em helena/mes_AAAA-MM (só a administradora lê).
+          const HELENA_API = "https://api.wts.chat/chat/v2/session";
+          const addMes = (ym, n) => { let [y, m] = ym.split("-").map(Number); m += n; y += Math.floor((m - 1) / 12); m = ((m - 1) % 12 + 12) % 12 + 1; return y + "-" + String(m).padStart(2, "0"); };
+          const mesSP = (d) => { const x = new Date(d.getTime() - 3 * 3600e3); return x.getUTCFullYear() + "-" + String(x.getUTCMonth() + 1).padStart(2, "0"); };
+          async function helena(params) {
+            for (let tentativa = 1; tentativa <= 5; tentativa++) {
+              let res;
+              try { res = await fetch(HELENA_API + "?" + params.toString(), { headers: { Authorization: "Bearer " + process.env.HELENA_TOKEN, Accept: "application/json" } }); }
+              catch (_) { await sleep(tentativa * 3000); continue; }
+              if (res.status === 429 || res.status >= 500) { await sleep((Number(res.headers.get("retry-after")) || tentativa * 3) * 1000); continue; }
+              if (res.status === 401 || res.status === 403) throw new Falha("o Helena recusou o token. Confira o segredo HELENA_TOKEN (gerado em Ajustes > Integrações > Integração via API)");
+              if (!res.ok) throw new Falha("o Helena respondeu com erro " + res.status);
+              return res.json();
+            }
+            throw new Falha("o Helena não respondeu depois de 5 tentativas");
+          }
+          async function contarMesHelena(ym) {
+            const ini = ym + "-01T00:00:00-03:00", fim = addMes(ym, 1) + "-01T00:00:00-03:00";
+            const porAgente = {}; let total = 0, semAtendente = 0, pagina = 1;
+            while (pagina <= 300) {
+              const p = new URLSearchParams();
+              p.set("CreatedAt.After", ini); p.set("CreatedAt.Before", fim); p.set("Type", "INDIVIDUAL");
+              p.append("IncludeDetails", "AgentDetails"); p.set("PageSize", "100"); p.set("PageNumber", String(pagina));
+              const r = await helena(p);
+              const itens = (r && r.items) || [];
+              for (const sessao of itens) {
+                if (sessao.type === "GROUP") continue;
+                total++;
+                const a = sessao.agentDetails || null;
+                const id = sessao.userId || (a && (a.userId || a.id));
+                if (!id) { semAtendente++; continue; }
+                const k = String(id);
+                if (!porAgente[k]) porAgente[k] = { nome: (a && (a.name || a.shortName)) || "", email: String((a && a.email) || "").toLowerCase(), n: 0 };
+                porAgente[k].n++;
+                if (!porAgente[k].nome && a) porAgente[k].nome = a.name || a.shortName || "";
+              }
+              if (!r.hasMorePages || !itens.length) break;
+              pagina++; await sleep(200);
+            }
+            return { mes: ym, total, semAtendente, porAgente, atualizadoEm: new Date().toISOString() };
+          }
+          async function sincronizarHelena(db) {
+            if (!process.env.HELENA_TOKEN) { console.log("Helena: sem o segredo HELENA_TOKEN no GitHub, pulado."); return; }
+            try {
+              const agora = mesSP(new Date());
+              for (const ym of [addMes(agora, -1), agora]) {
+                const d = await contarMesHelena(ym);
+                await setDoc(doc(db, "helena", "mes_" + ym), d);
+                console.log("Helena " + ym + ": " + d.total + " atendimentos novos, " + Object.keys(d.porAgente).length + " atendentes, " + d.semAtendente + " sem atendente.");
+              }
+            } catch (e) {
+              console.log("Helena: não atualizado — " + ((e && e.message) || e) + ". O resto do portal segue normalmente.");
+            }
+          }
+
           // ---------- principal ----------
           async function main() {
             if (!process.env.NOTION_TOKEN) throw new Falha("Falta o segredo NOTION_TOKEN no GitHub.");
@@ -342,6 +401,9 @@ jobs:
               throw new Falha("Não foi possível entrar no Firebase (" + (c || "erro desconhecido") + ").");
             }
             const db = getFirestore(app);
+
+            // 0. atendimentos do Helena (se falhar, não atrapalha as fichas)
+            await sincronizarHelena(db);
 
             // 1. fichas publicadas
             const paginas = [];
