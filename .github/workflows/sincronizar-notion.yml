@@ -1,5 +1,5 @@
 # Portal da Equipe Araya · robô que copia as fichas do Notion para o portal.
-# Roda sozinho a cada 20 minutos (renova os links dos vídeos guardados no Notion) e também pelo botão "Run workflow" (aba Actions).
+# Roda sozinho duas vezes por hora (aos 17 e aos 47 minutos; o GitHub às vezes atrasa) (renova os links dos vídeos guardados no Notion) e também pelo botão "Run workflow" (aba Actions).
 # Também conta os atendimentos e as campanhas do Helena (mês atual e anterior) pela API
 # e lê as planilhas de vendas e de orçamentos do Trevor ligadas no portal.
 # As chaves ficam nos segredos do GitHub (NOTION_TOKEN, ROBO_SENHA e HELENA_TOKEN),
@@ -8,7 +8,7 @@ name: Sincronizar fichas do Notion
 
 on:
   schedule:
-    - cron: "*/20 * * * *"
+    - cron: "17,47 * * * *"
   workflow_dispatch:
 
 permissions:
@@ -335,12 +335,13 @@ jobs:
           const HELENA_API = "https://api.wts.chat/chat/v2/session";
           const addMes = (ym, n) => { let [y, m] = ym.split("-").map(Number); m += n; y += Math.floor((m - 1) / 12); m = ((m - 1) % 12 + 12) % 12 + 1; return y + "-" + String(m).padStart(2, "0"); };
           const mesSP = (d) => { const x = new Date(d.getTime() - 3 * 3600e3); return x.getUTCFullYear() + "-" + String(x.getUTCMonth() + 1).padStart(2, "0"); };
-          async function helena(params) {
+          async function helena(params, url, aceita404) {
             for (let tentativa = 1; tentativa <= 5; tentativa++) {
               let res;
-              try { res = await fetch(HELENA_API + "?" + params.toString(), { headers: { Authorization: "Bearer " + process.env.HELENA_TOKEN, Accept: "application/json" } }); }
+              try { res = await fetch(url || (HELENA_API + "?" + params.toString()), { headers: { Authorization: "Bearer " + process.env.HELENA_TOKEN, Accept: "application/json" } }); }
               catch (_) { await sleep(tentativa * 3000); continue; }
               if (res.status === 429 || res.status >= 500) { await sleep((Number(res.headers.get("retry-after")) || tentativa * 3) * 1000); continue; }
+              if (aceita404 && (res.status === 404 || res.status === 400)) return null;
               if (res.status === 401 || res.status === 403) throw new Falha("o Helena recusou o token. Confira o segredo HELENA_TOKEN (gerado em Ajustes > Integrações > Integração via API)");
               if (!res.ok) throw new Falha("o Helena respondeu com erro " + res.status);
               return res.json();
@@ -571,7 +572,7 @@ jobs:
             }
           }
           async function sincronizarTrevor(db) {
-            let cfg = null, membros = null;
+            let cfg = null, membros = null, txtOrc = null;
             try {
               const s = await getDoc(doc(db, "config", "comercial")); cfg = s.exists() ? s.data() : null;
               membros = Object.fromEntries((await getDocs(collection(db, "equipe"))).docs.map((d) => [d.id, d.data()]));
@@ -592,7 +593,7 @@ jobs:
                 } else console.log("Trevor vendas: sem mudança.");
               }
               if (cfg.planilhaOrc) {
-                const txt = await baixarCSV(cfg.planilhaOrc, "orçamentos"), h = resumo(txt + marcaEquipe);
+                const txt = await baixarCSV(cfg.planilhaOrc, "orçamentos"), h = resumo(txt + marcaEquipe); txtOrc = txt;
                 if (h !== cfg.hashOrc) {
                   const antigos = Object.fromEntries((await getDocs(collection(db, "orcamentos"))).docs.map((d) => [d.id, d.data()]));
                   const ro = prepararOrcamentos(txt, { antigos, membros, hojeD: hojeSP() });
@@ -606,6 +607,45 @@ jobs:
               console.log("Trevor: não atualizado — " + String((e && e.message) || e).slice(0, 200) + ". O resto do portal segue normalmente.");
             }
             try { await setDoc(doc(db, "config", "comercial"), upd, { merge: true }); } catch (_) {}
+            return txtOrc;
+          }
+
+          // ---------- Helena × orçamentos: acha a conversa de cada cliente pelo telefone ----------
+          // Guarda em helena/vinculos { telefone: { s: id da conversa ou "", t: data } } para não consultar de novo,
+          // e grava helenaSessao no orçamento quando acha (o portal mostra o botão "Abrir no Helena").
+          function telefoneHelena(t) { let d = String(t || "").replace(/\D/g, ""); if (!d) return ""; if (d.length <= 11) d = "55" + d; return d.length >= 12 && d.length <= 13 ? d : ""; }
+          async function sessaoDoTelefone(tel) {
+            const variantes = [tel]; if (tel.length === 13 && tel[4] === "9") variantes.push(tel.slice(0, 4) + tel.slice(5)); // número antigo sem o 9
+            for (const v of variantes) {
+              const c = await helena(null, "https://api.wts.chat/core/v1/contact/phonenumber/" + v, true); await sleep(150);
+              if (!c || !c.id) continue;
+              const p = new URLSearchParams(); p.set("ContactId", c.id); p.set("PageSize", "50"); p.set("PageNumber", "1");
+              const r = await helena(p, null, true); await sleep(150);
+              const itens = (r && r.items) || []; if (!itens.length) continue;
+              itens.sort((a, b) => String(b.lastInteractionDate || b.updatedAt || b.createdAt || "").localeCompare(String(a.lastInteractionDate || a.updatedAt || a.createdAt || "")));
+              return itens[0].id;
+            }
+            return "";
+          }
+          async function vincularHelena(db, txtOrc) {
+            if (!process.env.HELENA_TOKEN || !txtOrc) return;
+            try {
+              const hoje = hojeSP(); let mapa = {};
+              try { const s = await getDoc(doc(db, "helena", "vinculos")); mapa = (s.exists() && s.data().mapa) || {}; } catch (_) {}
+              const linhas = prepararOrcamentos(txtOrc, { antigos: {}, membros: {}, hojeD: hoje }).escritas
+                .filter(([, d]) => d.telefone && d.chegada >= hoje && semAcento(d.status).startsWith("orcamento"));
+              const gravar = []; let consultas = 0, achados = 0;
+              for (const [id, d] of linhas) {
+                const tel = telefoneHelena(d.telefone); if (!tel) continue;
+                let v = mapa[tel];
+                const velho = !v || (!v.s && (Date.parse(hoje) - Date.parse(v.t || "2000-01-01")) / 864e5 >= 3);
+                if (velho) { if (consultas >= 120) continue; consultas++; v = mapa[tel] = { s: await sessaoDoTelefone(tel), t: hoje }; if (v.s) achados++; }
+                if (v.s && !(v.ids || []).includes(id)) { gravar.push([id, { helenaSessao: v.s }]); v.ids = [...(v.ids || []), id]; }
+              }
+              if (gravar.length) await gravarLotes(db, "orcamentos", gravar);
+              if (consultas || gravar.length) await setDoc(doc(db, "helena", "vinculos"), { mapa, atualizadoEm: new Date().toISOString() });
+              console.log("Helena × orçamentos: " + consultas + " telefones consultados, " + achados + " conversas encontradas, " + gravar.length + " orçamentos ligados.");
+            } catch (e) { console.log("Helena × orçamentos: não atualizado — " + String((e && e.message) || e).slice(0, 200) + "."); }
           }
 
           // ---------- principal ----------
@@ -627,7 +667,7 @@ jobs:
 
             // 0. atendimentos do Helena e planilhas do Trevor (se falharem, não atrapalham as fichas)
             await sincronizarHelena(db);
-            await sincronizarTrevor(db);
+            await vincularHelena(db, await sincronizarTrevor(db));
 
             // 1. fichas publicadas
             const paginas = [];
