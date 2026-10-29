@@ -133,6 +133,7 @@ details.mescom > summary .v{display:flex;gap:6px 10px;align-items:center;flex-wr
 details.mescom .tablewrap{padding:0 0 12px}
 .mescom .so-cel{display:none}
 @media (max-width:640px){ .mescom .vg,.mescom .st{display:none} .mescom .so-cel{display:block;margin-top:4px} .mescom td.n{white-space:nowrap} }
+tbody tr.sel td{background:color-mix(in srgb, var(--accent-soft) 60%, transparent)}
 input.cell[readonly]{background:transparent;border-color:transparent;box-shadow:none;cursor:default}
 .formgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
 .empty{border:1px dashed var(--line);border-radius:var(--r);padding:28px 18px;text-align:center;color:var(--muted);display:grid;gap:6px;justify-items:center}
@@ -396,7 +397,7 @@ const pill = (st) => { const [c, t] = STATUS_PILL[st] || ["neutral", st]; return
 const S = {
   auth: null, db: null, session: null, resumoAtual: "", email: "", isAdmin: false, ready: false, authMode: "entrar", authMsg: null, recovery: false,
   members: {}, vendas: {}, notas: {}, atend: {}, destinos: [], passeios: [], tickets: [], equipeRes: null,
-  comercial: { planilha: "", cotacoes: {}, metas: {}, ultimaImportacao: "", ultimoResultado: null }, importando: false, vendasEquipe: null, bonus: {}, disp: {}, dispErro: false, helena: [],
+  comercial: { planilha: "", cotacoes: {}, metas: {}, ultimaImportacao: "", ultimoResultado: null }, importando: false, vendasEquipe: null, bonus: {}, disp: {}, dispErro: false, helena: [], orc: {},
   tab: null, previewUid: null,
   filtros: { vend: "", mes: "", busca: "", comMes: ymNow(), painelMes: ymNow(), destino: null, passeio: null, tourBusca: "", minhasMes: "", tkDest: null, tkItem: null, tkBusca: "", comMesC: ymNow() },
   pendingRender: false
@@ -490,6 +491,7 @@ async function loadAll() {
     try { S.bonus = Object.fromEntries(docsOf(await col("bonus").get()).map(b => [b.id, b])); } catch (_) { S.bonus = {}; }
     if (rs.exists) { const d = rs.data(); S.resumoAtual = JSON.stringify({ meses: d.meses, pessoas: d.pessoas }); }
     try { S.helena = docsOf(await col("helena").get()); } catch (_) { S.helena = []; }
+    try { S.orc = Object.fromEntries(docsOf(await col("orcamentos").get()).map(d => [d.id, d])); } catch (_) { S.orc = {}; }
     try { await syncAtendHelena(); } catch (_) { /* tenta de novo no próximo carregamento */ }
     try { await syncResumo(); } catch (_) { /* tenta de novo no próximo carregamento */ }
     return;
@@ -504,6 +506,7 @@ async function loadAll() {
   const souSup = meSnap.data().supervisor === true;
   try { S.bonus = Object.fromEntries(docsOf(await (souSup ? col("bonus") : col("bonus").where("email", "==", me)).get()).map(b => [b.id, b])); } catch (_) { S.bonus = {}; }
   S.vendasEquipe = null;
+  try { S.orc = Object.fromEntries(docsOf(await (souSup ? col("orcamentos") : col("orcamentos").where("vendedor", "==", me)).get()).map(d => [d.id, d])); } catch (_) { S.orc = {}; }
   if (souSup) {
     try { S.vendasEquipe = docsOf(await col("vendas").get()); } catch (_) { S.vendasEquipe = null; }
     try { const c = await col("config").doc("comercial").get(); if (c.exists) S.comercial = { ...S.comercial, cotacoes: {}, metas: {}, ...c.data() }; } catch (_) {}
@@ -684,7 +687,7 @@ function renderMember(data, viewingAs) {
   else if (S.tab === "agenda") html += agendaView(viewingAs || S.email);
   else if (S.tab === "passeios") html += passeiosView();
   else if (S.tab === "tickets") html += ticketsView();
-  else if (S.tab === "comercial" && data.supervisor) html += ownerComercial();
+  else if (S.tab === "comercial" && data.supervisor) html += comSubnav(true) + (S.filtros.comSub === "funil" ? ownerFunil() : ownerComercial());
   else if (S.tab === "equipe") html += memberEquipe(data, hoje);
   setMain(html);
 }
@@ -694,6 +697,7 @@ function memberInicio(data, vendas, hoje, viewingAs) {
   const doMes = ativas.filter(v => ymOf(v.fechamento) === hoje);
   const atend = data.atendimentos ? data.atendimentos[hoje] : null;
   const conv = atend ? doMes.length / atend * 100 : null;
+  const meusOrc = orcLista().filter(o => o.vendedor === data.uid), orcMes = meusOrc.filter(o => ymOf(o.criado) === hoje);
   const comMes = ativas.filter(v => v.mesRef === hoje).reduce((s, v) => s + v.comissao, 0);
   const comAnt = ativas.filter(v => v.mesRef === addM(hoje, -1)).reduce((s, v) => s + v.comissao, 0);
   const nome = data.apelido || "";
@@ -716,7 +720,8 @@ function memberInicio(data, vendas, hoje, viewingAs) {
   return `
   <div class="section-head"><div><h2>Olá${nome ? ", " + esc(nome.split(" ")[0]) : ""}</h2><p>Seus números de ${ymLong(hoje)}. Vendas contam pela data de fechamento.</p></div></div>
   <div class="tiles">
-    <div class="tile"><span class="k">Atendimentos no mês</span><span class="v">${atend ?? "—"}</span><span class="d">${atend == null ? "Ainda não lançados" : "Lançados pela Letícia"}</span></div>
+    <div class="tile"><span class="k">Atendimentos no mês</span><span class="v">${atend ?? "—"}</span><span class="d">${atend == null ? "Ainda não lançados" : "Conversas que você recebeu no mês"}</span></div>
+    <div class="tile"><span class="k">Orçamentos no mês</span><span class="v">${meusOrc.some(o => o.criado) ? orcMes.length : "—"}</span><span class="d">${meusOrc.some(o => o.criado) ? money(orcMes.reduce((s, o) => s + (Number(o.valor) || 0), 0)) + " orçados" : meusOrc.length ? meusOrc.filter(o => orcAberto(o, new Date().toISOString().slice(0, 10))).length + " em aberto" : "Ainda não ligados"}</span></div>
     <div class="tile"><span class="k">Vendas fechadas</span><span class="v">${doMes.length}</span><span class="d">${money(doMes.reduce((s, v) => s + v.valor, 0))} em vendas</span></div>
     <div class="tile"><span class="k">Conversão</span><span class="v">${conv == null ? "—" : conv.toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + "%"}</span><span class="d">Vendas ÷ atendimentos do mês</span></div>
     <div class="tile feature"><span class="k">Comissão de ${MESES_L[+hoje.slice(5) - 1]}</span><span class="v">${money(comMes)}</span><span class="d">Paga em ${MESES_L[+addM(hoje, 1).slice(5) - 1]} · ${MESES_L[+addM(hoje, -1).slice(5) - 1]}: ${money(comAnt)}</span></div>
@@ -1036,16 +1041,17 @@ function agendaView(email) {
   return intro + `<div class="grid2">${semana}${prox}</div>` + agendaEquipe(email);
 }
 
-function comSubnav() {
-  const sub = S.filtros.comSub === "vendas" ? "vendas" : "resumo";
-  return `<nav class="subnav" aria-label="Seções do Comercial">${[["resumo", "Resumo"], ["vendas", "Vendas"]].map(([k, t]) => `<button type="button" data-comsub="${k}" aria-current="${k === sub}">${t}</button>`).join("")}</nav>`;
+function comSubnav(semVendas) {
+  const itens = [["resumo", "Resumo"], ["funil", "Atendimentos e orçamentos"], ...(semVendas ? [] : [["vendas", "Vendas"]])];
+  const sub = itens.some(([k]) => k === S.filtros.comSub) ? S.filtros.comSub : "resumo";
+  return `<nav class="subnav" aria-label="Seções do Comercial">${itens.map(([k, t]) => `<button type="button" data-comsub="${k}" aria-current="${k === sub}">${t}</button>`).join("")}</nav>`;
 }
 function renderOwner() {
   if (S.tab === "vendas") { S.tab = "comercial"; S.filtros.comSub = "vendas"; } // aba antiga, agora dentro do Comercial
   renderTabs(ownerTabs());
   let html = "";
   if (S.tab === "painel") html = ownerPainel();
-  else if (S.tab === "comercial") html = comSubnav() + (S.filtros.comSub === "vendas" ? ownerVendas() : ownerComercial());
+  else if (S.tab === "comercial") html = comSubnav() + (S.filtros.comSub === "vendas" ? ownerVendas() : S.filtros.comSub === "funil" ? ownerFunil() : ownerComercial());
   else if (S.tab === "comissoes") html = ownerComissoes();
   else if (S.tab === "atendimentos") html = ownerAtendimentos();
   else if (S.tab === "agenda") html = agendaView(null);
@@ -1177,11 +1183,72 @@ function reembolsosPainel(ativas, admin) {
     <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Fechada em</th><th class="n">Reembolso</th><th>Motivo</th><th class="n">Valor final</th>${admin ? "<th>Devolução</th>" : ""}</tr></thead><tbody>${l.map(v => `<tr><td>${esc(v.cliente)}<div class="muted small">${esc(vendLabel(v))}${v.roteiro ? " · Roteiro " + esc(v.roteiro) : ""}</div></td><td>${dLabel(v.fechamento)}</td><td class="n">${money(v.reembolsoBRL)}${v.reembolsoUSD ? `<div class="muted small">+ US$ ${v.reembolsoUSD.toLocaleString("pt-BR")}</div>` : ""}</td><td class="small">${esc(String(v.reembolsoDetalhe || "—").replace(/^R\$\s?[\d.,]+\s*-\s*/, ""))}</td><td class="n">${money(v.valor)}</td>${admin ? `<td>${(Number(v.saldoBRL) || 0) < 0 ? `<span class="pill warn">confirmar ${money(-v.saldoBRL)}</span>` : '<span class="pill ok">ok</span>'}</td>` : ""}</tr>`).join("")}</tbody></table></div>
   </section>`;
 }
+// ---------- atendimentos, orçamentos e conversão ----------
+// Orçamento válido: com data de viagem e valor. Conta no mês da data do orçamento (coluna de data do relatório do Trevor).
+const orcValido = (o) => !!o.chegada && (Number(o.valor) || 0) > 0;
+const orcAberto = (o, hojeD) => orcValido(o) && o.naPlanilha !== false && semAcento(o.status).startsWith("orcamento") && (o.chegada || "") >= hojeD;
+function orcLista() { return Object.entries(S.orc || {}).map(([id, o]) => ({ id, ...o })).filter(orcValido); }
+function funilDados(M, pessoas) {
+  const orcs = orcLista(), vendas = listaEquipe().filter(v => v.status !== "cancelada");
+  const pp = (S.atend[M] && S.atend[M].porPessoa) || {};
+  const linhas = pessoas.map(u => {
+    const o = orcs.filter(x => x.vendedor === u && ymOf(x.criado) === M), v = vendas.filter(x => x.vendedor === u && ymOf(x.fechamento) === M);
+    const at = pp[u] ?? null;
+    return { u, at, orc: o.length, orcV: o.reduce((s, x) => s + (Number(x.valor) || 0), 0), vq: v.length, vV: v.reduce((s, x) => s + (Number(x.valor) || 0), 0), conv: at ? v.length / at * 100 : null };
+  });
+  return linhas;
+}
+const pctTxt = (n) => n == null ? "—" : n.toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + "%";
+function ownerFunil() {
+  const M = S.filtros.comMesC || ymNow(), hoje = ymNow(), hojeD = new Date().toISOString().slice(0, 10);
+  const admin = S.isAdmin && !S.previewUid;
+  const orcs = orcLista(), vendas = listaEquipe().filter(v => v.status !== "cancelada");
+  const pessoas = [...new Set([...(admin ? activeMembers() : []), ...orcs.map(o => o.vendedor), ...vendas.filter(v => ymOf(v.fechamento) === M).map(v => v.vendedor), ...Object.keys(((S.atend[M] || {}).porPessoa) || {})])].filter(u => u && (admin ? S.members[u] : true));
+  const nomeDe = (u) => u === "__outros" ? "Outros (sem cadastro no portal ou venda da casa)" : (S.members[u] && S.members[u].apelido) || ((orcs.find(o => o.vendedor === u) || vendas.find(v => v.vendedor === u) || {}).vendedorNome) || u;
+  const linhas = funilDados(M, pessoas).filter(l => l.at || l.orc || l.vq).sort((a, b) => (b.vV - a.vV) || (b.orc - a.orc));
+  { const oo = orcs.filter(o => !o.vendedor && ymOf(o.criado) === M), vo = vendas.filter(v => !v.vendedor && ymOf(v.fechamento) === M);
+    if (oo.length || vo.length) linhas.push({ u: "__outros", at: null, orc: oo.length, orcV: oo.reduce((s, x) => s + (Number(x.valor) || 0), 0), vq: vo.length, vV: vo.reduce((s, x) => s + (Number(x.valor) || 0), 0), conv: null }); }
+  const hp = admin ? helenaPorMes() : {};
+  const atTot = linhas.reduce((s, l) => s + (l.at || 0), 0);
+  const tot = linhas.reduce((a, l) => ({ at: a.at + (l.at || 0), orc: a.orc + l.orc, orcV: a.orcV + l.orcV, vq: a.vq + l.vq, vV: a.vV + l.vV }), { at: 0, orc: 0, orcV: 0, vq: 0, vV: 0 });
+  const abertos = orcs.filter(o => orcAberto(o, hojeD));
+  const porPessoaAberto = {}; abertos.forEach(o => { const k = o.vendedor || (o.vendedorNome ? "nome:" + o.vendedorNome : "—"); (porPessoaAberto[k] ||= { q: 0, v: 0 }); porPessoaAberto[k].q++; porPessoaAberto[k].v += Number(o.valor) || 0; });
+  const meses = Array.from({ length: 12 }, (_, i) => addM(M, i - 11)).reverse();
+  const porMes = meses.map(m => { const o = orcs.filter(x => ymOf(x.criado) === m), v = vendas.filter(x => ymOf(x.fechamento) === m); const at = Object.values(((S.atend[m] || {}).porPessoa) || {}).reduce((s, n) => s + (Number(n) || 0), 0); return { m, at, orc: o.length, orcV: o.reduce((s, x) => s + (Number(x.valor) || 0), 0), vq: v.length, vV: v.reduce((s, x) => s + (Number(x.valor) || 0), 0) }; });
+  const semPlanilha = !S.comercial.planilhaOrc && !orcs.length, semData = orcs.length && !orcs.some(o => o.criado);
+  return `
+  <div class="section-head"><div><h2>Atendimentos e orçamentos</h2><p>Atendimentos do Helena, orçamentos do Trevor (com data de viagem e valor) e vendas pela data de fechamento. Conversão = vendas ÷ atendimentos.</p></div>
+    <div class="row"><div class="field"><label for="f-funil-mes">Mês</label><select id="f-funil-mes" data-filter="comMesC">${monthOptions(M, 12, 0)}</select></div>
+    ${admin ? `<button class="btn" data-act="atualizar-trevor" ${S.importando ? "disabled" : ""}>${S.importando ? "Lendo planilhas…" : "Atualizar do Trevor"}</button>` : ""}</div></div>
+  ${semPlanilha ? (admin ? `<div class="banner"><span>Ligue a planilha de orçamentos do Trevor para ver orçamentos e valores.</span><button class="btn sm primary" data-act="abrir-config-trevor">Ligar planilha</button></div>` : `<div class="banner"><span>Os orçamentos ainda não foram ligados ao portal.</span></div>`) : ""}
+  ${semData ? `<div class="banner warn-b"><span>A planilha de orçamentos ainda não tem a <strong>data do orçamento</strong>. Sem ela, não dá para separar os orçamentos por mês. Os orçamentos em aberto já aparecem abaixo.${admin ? " Inclua a coluna de data (ex.: created_at) no relatório do Trevor." : ""}</span></div>` : ""}
+  <div class="tiles">
+    <div class="tile"><span class="k">Atendimentos</span><span class="v">${atTot ? atTot.toLocaleString("pt-BR") : "—"}</span><span class="d">Equipe de vendas em ${ymLabel(M)}${hp[M] ? ` · ${hp[M].total.toLocaleString("pt-BR")} no Helena (com bot e outras atendentes)` : ""}</span></div>
+    <div class="tile"><span class="k">Orçamentos enviados</span><span class="v">${semData ? "—" : tot.orc}</span><span class="d">${semData ? "Falta a data no relatório" : money(tot.orcV) + " em orçamentos"}</span></div>
+    <div class="tile"><span class="k">Vendas</span><span class="v">${tot.vq}</span><span class="d">${money(tot.vV)}</span></div>
+    <div class="tile feature"><span class="k">Conversão</span><span class="v">${pctTxt(tot.at ? tot.vq / tot.at * 100 : null)}</span><span class="d">Vendas ÷ atendimentos da equipe</span></div>
+  </div>
+  <section class="panel"><h3>Por pessoa · ${ymLong(M)}</h3>
+    ${linhas.length ? `<div class="tablewrap"><table><thead><tr><th>Pessoa</th><th class="n">Atendimentos</th><th class="n">Orçamentos</th><th class="n">Valor orçado</th><th class="n">Vendas</th><th class="n">Valor vendido</th><th class="n">Conversão</th></tr></thead>
+    <tbody>${linhas.map(l => `<tr><td>${esc(nomeDe(l.u))}</td><td class="n">${l.at ?? "—"}</td><td class="n">${semData ? "—" : l.orc}</td><td class="n">${semData ? "—" : money(l.orcV)}</td><td class="n">${l.vq}</td><td class="n">${money(l.vV)}</td><td class="n">${pctTxt(l.conv)}</td></tr>`).join("")}</tbody>
+    <tfoot><tr><td>Equipe</td><td class="n">${tot.at || "—"}</td><td class="n">${semData ? "—" : tot.orc}</td><td class="n">${semData ? "—" : money(tot.orcV)}</td><td class="n">${tot.vq}</td><td class="n">${money(tot.vV)}</td><td class="n">${pctTxt(tot.at ? tot.vq / tot.at * 100 : null)}</td></tr></tfoot></table></div>` : `<div class="empty"><strong>Sem dados em ${ymLabel(M)}</strong></div>`}
+  </section>
+  <div class="grid2">
+    <section class="panel"><div class="section-head"><div><h3>Orçamentos em aberto</h3><span class="muted small">Status “Orçamento”, com viagem a partir de hoje.</span></div><span class="pill info">${abertos.length} · ${money(abertos.reduce((s, o) => s + (Number(o.valor) || 0), 0))}</span></div>
+      ${abertos.length ? `<div class="tablewrap"><table><thead><tr><th>Pessoa</th><th class="n">Orçamentos</th><th class="n">Valor</th></tr></thead><tbody>${Object.entries(porPessoaAberto).sort((a, b) => b[1].v - a[1].v).map(([u, x]) => `<tr><td>${esc(u === "—" ? "Sem vendedor" : u.startsWith("nome:") ? u.slice(5) + " (sem cadastro)" : nomeDe(u))}</td><td class="n">${x.q}</td><td class="n">${money(x.v)}</td></tr>`).join("")}</tbody></table></div>` : `<div class="empty"><strong>Nenhum orçamento em aberto</strong></div>`}
+    </section>
+    <section class="panel"><h3>Mês a mês</h3>
+      <div class="tablewrap"><table><thead><tr><th>Mês</th><th class="n">Atend.</th><th class="n">Orçam.</th><th class="n">Valor orçado</th><th class="n">Vendas</th><th class="n">Conv.</th></tr></thead>
+      <tbody>${porMes.map(x => `<tr${x.m === M ? ' class="sel"' : ""}><td>${ymLabel(x.m)}</td><td class="n">${x.at || "—"}</td><td class="n">${semData ? "—" : x.orc || "—"}</td><td class="n">${semData || !x.orcV ? "—" : money(x.orcV)}</td><td class="n">${x.vq || "—"}</td><td class="n">${pctTxt(x.at ? x.vq / x.at * 100 : null)}</td></tr>`).join("")}</tbody></table></div>
+    </section>
+  </div>`;
+}
 function abrirConfigTrevor() {
   const c = S.comercial;
   $("#layer").innerHTML = `<div class="overlay" data-close><div class="dialog cfg-trevor">
     <div class="section-head"><h2>Planilha do Trevor</h2><button type="button" class="btn sm ghost" data-close-btn>Fechar</button></div>
-    <div class="field"><label for="cfg-planilha">Link da planilha (Google Sheets)</label><input type="text" id="cfg-planilha" value="${esc(c.planilha || "")}" placeholder="https://docs.google.com/spreadsheets/d/..."></div>
+    <div class="field"><label for="cfg-planilha">Link da planilha de vendas (Google Sheets)</label><input type="text" id="cfg-planilha" value="${esc(c.planilha || "")}" placeholder="https://docs.google.com/spreadsheets/d/..."></div>
+    <div class="field"><label for="cfg-planilha-orc">Link da planilha de orçamentos (Google Sheets)</label><input type="text" id="cfg-planilha-orc" value="${esc(c.planilhaOrc || "")}" placeholder="https://docs.google.com/spreadsheets/d/..."></div>
     <p class="small muted" style="margin:0">A planilha precisa estar compartilhada como “Qualquer pessoa com o link: Leitor”. O link fica guardado só para você; a equipe não vê. O portal lê a planilha sozinho quando você abre (no máximo a cada 30 minutos) e pelo botão “Atualizar do Trevor”.</p>
     <p class="small muted" style="margin:0">Quando o CRM já converteu o dólar, o “Valor final R$” da planilha já vem em reais e não precisa de cotação. Só as vendas com saldo ainda em dólar pedem o câmbio do dia, em “Vendas em dólar”.</p>
     <div class="row" style="justify-content:flex-end"><button type="button" class="btn primary" data-act="salvar-trevor">Salvar e ler a planilha</button></div>
@@ -1422,10 +1489,10 @@ $("#layer").addEventListener("click", async (e) => {
     return;
   }
   if (e.target.closest('[data-act="salvar-trevor"]')) {
-    const link = $("#cfg-planilha").value.trim();
-    if (link && !urlPlanilha(link)) { toast("Esse não parece um link de planilha do Google."); return; }
+    const link = $("#cfg-planilha").value.trim(), linkOrc = ($("#cfg-planilha-orc") ? $("#cfg-planilha-orc").value : "").trim();
+    if ((link && !urlPlanilha(link)) || (linkOrc && !urlPlanilha(linkOrc))) { toast("Esse não parece um link de planilha do Google."); return; }
     try {
-      await salvarComercial({ planilha: link, ultimaImportacao: "" });
+      await salvarComercial({ planilha: link, planilhaOrc: linkOrc, ultimaImportacao: "" });
       closeLayer();
       if (link) await importarTrevor(false); else render();
     } catch (err) { toast(errMsg(err)); }
@@ -1669,12 +1736,69 @@ async function importarTrevor(silencioso) {
     const idsPlanilha = Object.keys(vistos).sort();
     S.comercial.ultimaImportacao = resultado.em; S.comercial.ultimoResultado = resultado; S.comercial.idsPlanilha = idsPlanilha;
     await col("config").doc("comercial").set({ ultimaImportacao: resultado.em, ultimoResultado: resultado, idsPlanilha }, { merge: true });
+    let msgOrc = "";
+    if (c.planilhaOrc) {
+      try { const ro = await importarOrcamentos(); if (ro && (ro.novos || ro.alterados || !silencioso)) msgOrc = ` Orçamentos: ${ro.novos} ${ro.novos === 1 ? "novo" : "novos"}, ${ro.alterados} ${ro.alterados === 1 ? "atualizado" : "atualizados"}.`; }
+      catch (e) { msgOrc = " " + (e && e.message ? e.message : "A planilha de orçamentos não pôde ser lida."); }
+    }
     S.importando = false;
-    await reload(silencioso && !novas && !alteradas ? "" : `Planilha do Trevor lida: ${novas} ${novas === 1 ? "venda nova" : "vendas novas"}, ${alteradas} ${alteradas === 1 ? "atualizada" : "atualizadas"}.`);
+    await reload(silencioso && !novas && !alteradas && !msgOrc ? "" : `Planilha do Trevor lida: ${novas} ${novas === 1 ? "venda nova" : "vendas novas"}, ${alteradas} ${alteradas === 1 ? "atualizada" : "atualizadas"}.` + msgOrc);
   } catch (e) {
     S.importando = false;
     if (!silencioso) { toast(e && e.message && !e.code ? e.message : errMsg(e)); render(); }
   }
+}
+// ---------- planilha de orçamentos (Trevor) ----------
+// Nomes de coluna aceitos (sem acento, minúsculas). A primeira coluna "name" é o destino e a segunda, o vendedor.
+const ALIAS_ORC = {
+  id: ["id", "roteiro", "orcamento", "numero", "numero do orcamento"],
+  status: ["status", "situacao"],
+  criado: ["sent_at", "enviado em", "data de envio", "data do envio", "created_at", "criado em", "data de criacao", "data do orcamento", "data"],
+  cheg: ["arrival_date", "chegada", "data de chegada"],
+  part: ["departure_date", "partida", "data de partida"],
+  pax: ["number_of_people", "pax", "pessoas", "numero de pessoas"],
+  total: ["total", "valor", "valor total", "valor r$", "total r$"],
+  destino: ["destino", "destination"],
+  vend: ["vendedor", "vendedor(a)", "vendedora", "seller", "responsavel"]
+};
+async function importarOrcamentos() {
+  const url = urlPlanilha(S.comercial.planilhaOrc); if (!url) return null;
+  let txt;
+  try { const r = await fetch(url); txt = await r.text(); if (!r.ok || /^\s*<!doctype html|<html/i.test(txt)) throw new Error("html"); }
+  catch (_) { throw new Error("A planilha de orçamentos não abriu. Confira se ela está compartilhada como “Qualquer pessoa com o link: Leitor”."); }
+  if (/^\s*"?carregando/i.test(txt)) throw new Error("A planilha de orçamentos ainda está carregando os dados do Trevor. Tente de novo em alguns minutos.");
+  const linhas = lerCSV(txt); if (linhas.length < 2) throw new Error("A planilha de orçamentos está vazia.");
+  const cab = linhas[0].map(semAcento);
+  const ix = {}; for (const [k, nomes] of Object.entries(ALIAS_ORC)) { ix[k] = -1; for (const n of nomes) { const i = cab.indexOf(n); if (i >= 0) { ix[k] = i; break; } } }
+  const names = cab.map((h, i) => h === "name" ? i : -1).filter(i => i >= 0);
+  if (ix.destino < 0 && names.length) ix.destino = names[0];
+  if (ix.vend < 0 && names.length > 1) ix.vend = names[1];
+  if (ix.id < 0 || ix.total < 0) throw new Error("Não reconheci as colunas da planilha de orçamentos (faltam id ou total).");
+  const v_ = (l, k) => ix[k] >= 0 ? (l[ix[k]] || "").trim() : "";
+  const vistos = new Set(), escritas = []; let novos = 0, alterados = 0;
+  for (const l of linhas.slice(1)) {
+    const idv = v_(l, "id").replace(/[^A-Za-z0-9_-]/g, ""); if (!idv) continue;
+    const id = "orc_" + idv; if (vistos.has(id)) continue; vistos.add(id);
+    const achado = acharVendedor(v_(l, "vend")), casa = achado === "__casa", antigo = S.orc[id];
+    let vendedor = casa ? "" : achado; if (!vendedor && !casa && antigo && antigo.vendedor) vendedor = antigo.vendedor;
+    const d = { roteiro: idv, status: v_(l, "status"), criado: lerData(v_(l, "criado")), chegada: lerData(v_(l, "cheg")), partida: lerData(v_(l, "part")), pax: Number(v_(l, "pax")) || null, valor: lerMoeda(v_(l, "total")), destino: DEST_CRM(v_(l, "destino")), vendedor, vendedorNome: v_(l, "vend"), casa, naPlanilha: true };
+    if (antigo && !d.criado && antigo.criado) d.criado = antigo.criado;
+    const mudou = !antigo || Object.keys(d).some(k => JSON.stringify(antigo[k] ?? null) !== JSON.stringify(d[k] ?? null));
+    if (!mudou) continue;
+    if (!antigo) { d.vistoEm = new Date().toISOString().slice(0, 10); novos++; } else alterados++;
+    escritas.push([id, d]);
+  }
+  // orçamentos que saíram da planilha (viraram venda, foram cancelados ou apagados): ficam no histórico, mas não contam como "em aberto"
+  for (const [id, o] of Object.entries(S.orc)) if (!vistos.has(id) && o.naPlanilha !== false) escritas.push([id, { naPlanilha: false }]);
+  for (let i = 0; i < escritas.length; i += 400) {
+    const lote = S.db.batch();
+    escritas.slice(i, i + 400).forEach(([id, d]) => lote.set(col("orcamentos").doc(id), d, { merge: true }));
+    await lote.commit();
+  }
+  const temData = ix.criado >= 0;
+  await col("config").doc("comercial").set({ ultimaImportacaoOrc: new Date().toISOString(), orcTemData: temData }, { merge: true });
+  S.comercial.orcTemData = temData;
+  return { linhas: linhas.length - 1, novos, alterados };
 }
 async function salvarComercial(campos, msg) {
   S.comercial = { ...S.comercial, ...campos };
