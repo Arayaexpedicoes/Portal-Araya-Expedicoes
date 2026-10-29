@@ -335,13 +335,15 @@ jobs:
           const HELENA_API = "https://api.wts.chat/chat/v2/session";
           const addMes = (ym, n) => { let [y, m] = ym.split("-").map(Number); m += n; y += Math.floor((m - 1) / 12); m = ((m - 1) % 12 + 12) % 12 + 1; return y + "-" + String(m).padStart(2, "0"); };
           const mesSP = (d) => { const x = new Date(d.getTime() - 3 * 3600e3); return x.getUTCFullYear() + "-" + String(x.getUTCMonth() + 1).padStart(2, "0"); };
+          const DIAG = {}; // contagem das respostas do Helena na busca por telefone (só números, para o registro)
           async function helena(params, url, aceita404) {
             for (let tentativa = 1; tentativa <= 5; tentativa++) {
               let res;
               try { res = await fetch(url || (HELENA_API + "?" + params.toString()), { headers: { Authorization: "Bearer " + process.env.HELENA_TOKEN, Accept: "application/json" } }); }
               catch (_) { await sleep(tentativa * 3000); continue; }
               if (res.status === 429 || res.status >= 500) { await sleep((Number(res.headers.get("retry-after")) || tentativa * 3) * 1000); continue; }
-              if (aceita404 && (res.status === 404 || res.status === 400)) return null;
+              if (aceita404) DIAG[res.status] = (DIAG[res.status] || 0) + 1;
+              if (aceita404 && res.status >= 400 && res.status < 500 && ![401, 403, 429].includes(res.status)) return null;
               if (res.status === 401 || res.status === 403) throw new Falha("o Helena recusou o token. Confira o segredo HELENA_TOKEN (gerado em Ajustes > Integrações > Integração via API)");
               if (!res.ok) throw new Falha("o Helena respondeu com erro " + res.status);
               return res.json();
@@ -615,13 +617,15 @@ jobs:
           // e grava helenaSessao no orçamento quando acha (o portal mostra o botão "Abrir no Helena").
           function telefoneHelena(t) { let d = String(t || "").replace(/\D/g, ""); if (!d) return ""; if (d.length <= 11) d = "55" + d; return d.length >= 12 && d.length <= 13 ? d : ""; }
           async function sessaoDoTelefone(tel) {
-            const variantes = [tel]; if (tel.length === 13 && tel[4] === "9") variantes.push(tel.slice(0, 4) + tel.slice(5)); // número antigo sem o 9
+            const variantes = [tel, "+" + tel]; if (tel.length === 13 && tel[4] === "9") variantes.push(tel.slice(0, 4) + tel.slice(5)); // com "+" e número antigo sem o 9
             for (const v of variantes) {
-              const c = await helena(null, "https://api.wts.chat/core/v1/contact/phonenumber/" + v, true); await sleep(150);
+              const c0 = await helena(null, "https://api.wts.chat/core/v1/contact/phonenumber/" + encodeURIComponent(v), true); await sleep(150);
+              const c = c0 && (c0.id ? c0 : Array.isArray(c0.items) && c0.items[0] ? c0.items[0] : Array.isArray(c0) && c0[0] ? c0[0] : null);
               if (!c || !c.id) continue;
+              DIAG.contatos = (DIAG.contatos || 0) + 1;
               const p = new URLSearchParams(); p.set("ContactId", c.id); p.set("PageSize", "50"); p.set("PageNumber", "1");
               const r = await helena(p, null, true); await sleep(150);
-              const itens = (r && r.items) || []; if (!itens.length) continue;
+              const itens = (r && r.items) || []; if (!itens.length) { DIAG.contatoSemConversa = (DIAG.contatoSemConversa || 0) + 1; continue; }
               itens.sort((a, b) => String(b.lastInteractionDate || b.updatedAt || b.createdAt || "").localeCompare(String(a.lastInteractionDate || a.updatedAt || a.createdAt || "")));
               return itens[0].id;
             }
@@ -644,7 +648,7 @@ jobs:
               }
               if (gravar.length) await gravarLotes(db, "orcamentos", gravar);
               if (consultas || gravar.length) await setDoc(doc(db, "helena", "vinculos"), { mapa, atualizadoEm: new Date().toISOString() });
-              console.log("Helena × orçamentos: " + consultas + " telefones consultados, " + achados + " conversas encontradas, " + gravar.length + " orçamentos ligados.");
+              console.log("Helena × orçamentos: " + linhas.length + " orçamentos em aberto com telefone, " + consultas + " telefones consultados, " + achados + " conversas encontradas, " + gravar.length + " orçamentos ligados. Respostas do Helena: " + JSON.stringify(DIAG));
             } catch (e) { console.log("Helena × orçamentos: não atualizado — " + String((e && e.message) || e).slice(0, 200) + "."); }
           }
 
