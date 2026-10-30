@@ -76,6 +76,7 @@ jobs:
             "caracteristicas e atencao": "atencao", "atencao": "atencao",
             "gastronomia": "gastronomia", "guia interno": "guia",
             "fotos e videos": "galeria", "fotos": "galeria", "videos": "galeria", "galeria": "galeria",
+            "documentos": "documentos", "documento": "documentos", "ficha tecnica": "documentos", "fichas tecnicas": "documentos", "arquivos": "documentos", "anexos": "documentos", "materiais": "documentos",
           };
           const norm = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
           const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
