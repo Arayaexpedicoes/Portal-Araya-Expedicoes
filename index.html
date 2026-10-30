@@ -1209,7 +1209,8 @@ function orcLista() {
   _orcCache = { t: agora, v }; return v;
 }
 const diasEntre = (a, b) => Math.round((Date.parse(b + "T12:00:00") - Date.parse(a + "T12:00:00")) / 864e5);
-function telNacional(tel) { let d = String(tel || "").replace(/\D/g, ""); if (d.length >= 12 && d.startsWith("55")) d = d.slice(2); return d; }
+// Formato que a busca do Helena encontra: só números, com 55 (ex.: 5521970231664)
+function telNacional(tel) { let d = String(tel || "").replace(/\D/g, ""); if (d && d.length <= 11) d = "55" + d; return d; }
 function waLink(tel) { let d = String(tel || "").replace(/\D/g, ""); if (!d) return ""; if (d.length <= 11) d = "55" + d; return "https://wa.me/" + d; }
 function acompHtml(o, hojeD) {
   const r = (S.retornos || {})[o.id];
@@ -1660,7 +1661,7 @@ $("#main").addEventListener("click", async (e) => {
     else if (act === "editar-venda") openVenda(id);
     else if (act === "helena-tel") {
       window.open("https://web.helena.run/chat2/sessions", "_blank", "noopener");
-      try { await navigator.clipboard.writeText(b.dataset.tel); toast("Telefone copiado: no Helena, cole no campo “Conversar” (embaixo, à esquerda)."); } catch (_) { toast("Telefone do cliente: " + b.dataset.tel); }
+      try { await navigator.clipboard.writeText(b.dataset.tel); toast("Telefone copiado (" + b.dataset.tel + "): no Helena, cole na busca de atendimentos para abrir a conversa."); } catch (_) { toast("Telefone do cliente: " + b.dataset.tel); }
     }
     else if (act === "retomei") {
       const ref = col("retornos").doc(id), dono = S.previewUid || S.email;
