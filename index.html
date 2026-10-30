@@ -275,6 +275,15 @@ td.hojecol,th.hojecol{background:color-mix(in srgb, var(--accent-soft) 55%, tran
 .fatos dt{font-size:.66rem;text-transform:uppercase;letter-spacing:.11em;color:var(--muted);font-weight:600}
 .fatos dd{margin:0;font-weight:600;font-size:.93rem;overflow-wrap:anywhere}
 .fsec{display:grid;gap:8px;min-width:0}
+.ficha-abas{margin-top:-4px}
+.ficha-corpo{display:grid;gap:12px;min-width:0}
+.docs{display:grid;gap:8px;max-width:640px}
+.doc{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--r);background:var(--surface-2);text-decoration:none;color:var(--fg)}
+.doc:hover{background:color-mix(in srgb, var(--dc,var(--accent)) 12%, var(--surface-2))}
+.doc-ico{flex:none;width:42px;height:48px;border-radius:6px;background:var(--surface);display:grid;place-items:center;font-size:.7rem;font-weight:800;color:var(--bad);border:1px solid var(--line)}
+.doc-txt{display:grid;gap:2px;min-width:0;flex:1}
+.doc-txt span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.doc-abrir{font-weight:600;font-size:.85rem;white-space:nowrap}
 .fh{font-family:var(--body);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--dc,var(--muted));font-weight:700;margin:0;display:flex;align-items:center;gap:10px}
 .fh::after{content:"";flex:1;height:1px;background:var(--line)}
 .fcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
@@ -901,13 +910,43 @@ function fichaHtml(f, dest, isDest) {
     const ln = sec.galeria.split("\n"), peso = (l) => /^\[\[foto:/.test(l.trim()) ? 0 : /^\[\[(n?video):/.test(l.trim()) ? 1 : /^\[\[arquivo:/.test(l.trim()) ? 2 : 3;
     sec.galeria = ln.map((l, i) => [peso(l), i, l]).sort((a, b) => a[0] - b[0] || a[1] - b[1]).map(x => x[2]).join("\n");
   }
-  let corpo;
+  let corpo, abasHtml = "", copiar = "";
   if (temSec) {
-    corpo = bloco("descricao", isDest ? "Sobre o destino" : "Descrição", "fsec")
-      + bloco("galeria", "Fotos e vídeos", "fsec")
-      + (sec.inclui || sec.atencao ? `<div class="fcards">${bloco("inclui", "O que inclui", "fcard inclui")}${bloco("atencao", "Características e atenção", "fcard atencao")}</div>` : "")
-      + bloco("gastronomia", "Gastronomia", "fsec")
-      + (sec.guia ? `<section class="fsec guia"><span class="guia-tag">Uso interno · não enviar ao cliente</span><h4 class="fh">Guia interno</h4><div class="prose">${md(sec.guia, fmap, amap)}</div></section>` : "");
+    // Tópicos (abas). Fotos e vídeos de qualquer parte da ficha vão para "Fotos e vídeos"; arquivos vão para "Documentos".
+    const linhas = (k) => String(sec[k] || "").split("\n");
+    const ehMidia = (l) => /^\[\[(foto|nvideo|video):/.test(l.trim()), ehArq = (l) => /^\[\[arquivo:/.test(l.trim());
+    const texto = (k) => linhas(k).filter(l => !ehMidia(l) && !ehArq(l)).join("\n").trim();
+    const ordem = ["descricao", "inclui", "atencao", "gastronomia", "galeria", "documentos", "guia"];
+    const midias = [], arqs = [];
+    ordem.forEach(k => linhas(k).forEach(l => { if (ehMidia(l) && !midias.includes(l.trim())) midias.push(l.trim()); if (ehArq(l) && !arqs.includes(l.trim())) arqs.push(l.trim()); }));
+    const fotosL = midias.filter(l => l.startsWith("[[foto:")), vidsL = midias.filter(l => !l.startsWith("[[foto:"));
+    const docsTexto = texto("documentos");
+    const docs = arqs.map(l => amap[(l.match(/^\[\[arquivo:([A-Za-z0-9_-]+)\]\]$/) || [])[1]]).filter(a => a && a.url);
+    const topicos = [
+      ["resumo", "Resumo", texto("descricao") || fatos.length],
+      ["inclui", "O que inclui", texto("inclui")],
+      ["atencao", "Atenção", texto("atencao")],
+      ["gastronomia", "Gastronomia", texto("gastronomia")],
+      ["galeria", `Fotos e vídeos${midias.length ? " · " + midias.length : ""}`, midias.length || texto("galeria")],
+      ["documentos", `Documentos${docs.length ? " · " + docs.length : ""}`, docs.length || docsTexto],
+      ["guia", "Guia interno", texto("guia")]
+    ].filter(t => t[2]);
+    const atual = topicos.some(t => t[0] === S.filtros.fichaTab) ? S.filtros.fichaTab : (topicos[0] || [])[0];
+    abasHtml = topicos.length > 1 ? `<nav class="subnav ficha-abas" aria-label="Tópicos da ficha">${topicos.map(([k, t]) => `<button type="button" data-fichatab="${k}" aria-current="${k === atual}">${t}</button>`).join("")}</nav>` : "";
+    const prose = (txt) => `<div class="prose">${md(txt, fmap, amap)}</div>`;
+    if (atual === "resumo") corpo = texto("descricao") ? prose(texto("descricao")) : `<p class="muted">Sem descrição nesta ficha.</p>`;
+    else if (atual === "inclui") corpo = `<section class="fcard inclui">${prose(texto("inclui"))}</section>`;
+    else if (atual === "atencao") corpo = `<section class="fcard atencao">${prose(texto("atencao"))}</section>`;
+    else if (atual === "gastronomia") corpo = prose(texto("gastronomia"));
+    else if (atual === "galeria") corpo = (fotosL.length ? `<div class="prose">${md(fotosL.join("\n"), fmap, amap)}</div>` : "") + (vidsL.length ? `<h4 class="fh">Vídeos</h4><div class="prose">${md(vidsL.join("\n"), fmap, amap)}</div>` : "") + (texto("galeria") ? prose(texto("galeria")) : "")
+      + `<p class="muted small" style="margin:0">Para incluir: no Notion, arraste a foto ou o vídeo para baixo do título “Fotos e vídeos” desta ficha; a legenda é a opção “Legenda” da imagem.</p>`;
+    else if (atual === "documentos") corpo = `<div class="docs">${docs.map(a => `<a class="doc" href="${esc(a.url)}" target="_blank" rel="noopener"><span class="doc-ico" aria-hidden="true">${/\.pdf(\?|$)/i.test(a.nome || a.url) ? "PDF" : "DOC"}</span><span class="doc-txt"><strong>${esc(a.legenda || String(a.nome || "Documento").replace(/\.[a-z0-9]{2,4}$/i, ""))}</strong><span class="muted small">${esc(a.nome || "")}</span></span><span class="doc-abrir">Abrir ↗</span></a>`).join("")}</div>${docsTexto ? prose(docsTexto) : ""}
+      <p class="muted small" style="margin:0">Para incluir: no Notion, crie o título “Documentos” na ficha e solte ali o PDF (ficha técnica, mapa, regulamento).</p>`;
+    else if (atual === "guia") corpo = `<section class="fsec guia"><span class="guia-tag">Uso interno · não enviar ao cliente</span>${prose(texto("guia"))}</section>`;
+    // texto pronto para o cliente (sem guia interno)
+    const plano = (t) => String(t || "").split("\n").map(l => l.replace(/\*\*/g, "").replace(/\[([^\]]+)\]\(([^)]+)\)/g, "$1").replace(/^#{2,6}\s+/, "").replace(/^>\s?/, "").replace(/^[-•]\s+/, "• ")).join("\n").replace(/\n{3,}/g, "\n\n").trim();
+    const partes = [`*${titulo}*`, f.subtitulo || "", fatos.filter(([k]) => k !== "Preço").map(([k, v]) => `${k}: ${v}`).join(" · "), plano(texto("descricao")), texto("inclui") ? "*O que inclui*\n" + plano(texto("inclui")) : "", texto("atencao") ? "*Importante*\n" + plano(texto("atencao")) : ""].filter(Boolean);
+    copiar = `<button type="button" class="btn sm" data-act="copiar-ficha" data-texto="${esc(partes.join("\n\n"))}">Copiar texto para o cliente</button>`;
   } else {
     const txt = isDest ? f.resumo : f.conteudo;
     corpo = txt ? `<div class="prose">${md(txt)}</div>` : `<p class="muted">Ainda não há texto nesta ficha.</p>`;
@@ -915,13 +954,14 @@ function fichaHtml(f, dest, isDest) {
   const rev = [f.revisadoEm ? `Revisado${f.revisadoPor ? " por " + esc(f.revisadoPor) : ""} em ${dataBR(f.revisadoEm)}` : "", f.editadoEm ? `Atualizado no Notion em ${dataBR(f.editadoEm)}` : ""].filter(Boolean).join(" · ");
   return `<article class="ficha">
     <header class="ficha-head">
-      <div class="ficha-top"><div class="ficha-meta">${cat ? `<span class="cat">${esc(cat)}</span>` : ""}${etq.map(e => `<span class="etq">${esc(e)}</span>`).join("")}</div>${link}</div>
+      <div class="ficha-top"><div class="ficha-meta">${cat ? `<span class="cat">${esc(cat)}</span>` : ""}${etq.map(e => `<span class="etq">${esc(e)}</span>`).join("")}</div><div class="row">${copiar}${link}</div></div>
       <h3>${esc(titulo)}</h3>
       ${f.subtitulo ? `<p class="ficha-sub">${esc(f.subtitulo)}</p>` : ""}
     </header>
     ${fatos.length ? `<dl class="fatos">${fatos.map(([k, v]) => `<div><dt>${k}</dt><dd>${k === "Esforço" && ESFORCO[v] ? `<span class="pill ${ESFORCO[v]}">${esc(v)}</span>` : esc(v)}</dd></div>`).join("")}</dl>` : ""}
     ${S.isAdmin && !S.previewUid && f.pendentes ? `<div class="notice">Só você vê este aviso: na página Destinos antiga este trecho tinha ${f.pendentes} ${f.pendentes === 1 ? "foto ou vídeo" : "fotos e vídeos"}. Copie para esta ficha no Notion e depois apague o aviso 📷 da ficha.</div>` : ""}
-    ${corpo}
+    ${abasHtml}
+    <div class="ficha-corpo">${corpo}</div>
     ${rev ? `<p class="rev">${rev}</p>` : ""}
   </article>`;
 }
@@ -1682,8 +1722,9 @@ $("#main").addEventListener("click", async (e) => {
   const go = e.target.closest("[data-tab-go]"); if (go) { S.tab = go.dataset.tabGo; render(); return; }
   const od = e.target.closest("[data-orcdest]"); if (od) { const k = od.dataset.orcdest; S.filtros.orcDest = S.filtros.orcDest === k ? "" : k; S.orcTodosAberto = !!(document.getElementById("orc-todos") || {}).open; render(); return; }
   const cs = e.target.closest("[data-comsub]"); if (cs) { S.filtros.comSub = cs.dataset.comsub; try { localStorage.setItem("araya-comsub", S.filtros.comSub); } catch (_) {} render(); return; }
-  const dest = e.target.closest("[data-dest]"); if (dest) { S.filtros.destino = dest.dataset.dest; S.filtros.passeio = "__geral"; render(); return; }
-  const tour = e.target.closest("[data-tourid]"); if (tour) { S.filtros.passeio = tour.dataset.tourid; render(); return; }
+  const dest = e.target.closest("[data-dest]"); if (dest) { S.filtros.destino = dest.dataset.dest; S.filtros.passeio = "__geral"; S.filtros.fichaTab = "resumo"; render(); return; }
+  const tour = e.target.closest("[data-tourid]"); if (tour) { S.filtros.passeio = tour.dataset.tourid; S.filtros.fichaTab = "resumo"; render(); return; }
+  const ft = e.target.closest("[data-fichatab]"); if (ft) { S.filtros.fichaTab = ft.dataset.fichatab; render(); return; }
   const tkd = e.target.closest("[data-tkdest]"); if (tkd) { S.filtros.tkDest = tkd.dataset.tkdest; S.filtros.tkItem = null; render(); return; }
   const tki = e.target.closest("[data-tkid]"); if (tki) { S.filtros.tkItem = tki.dataset.tkid; render(); if (innerWidth < 760) { const p = document.querySelectorAll(".tour .panel")[1]; if (p) p.scrollIntoView({ behavior: "smooth", block: "start" }); } return; }
   const foto = e.target.closest("[data-foto]"); if (foto) { abrirFoto(foto.dataset.foto); return; }
@@ -1699,6 +1740,7 @@ $("#main").addEventListener("click", async (e) => {
     else if (act === "ver-conferir") abrirConferir();
     else if (act === "ver-fora") abrirFora();
     else if (act === "editar-venda") openVenda(id);
+    else if (act === "copiar-ficha") { try { await navigator.clipboard.writeText(b.dataset.texto); toast("Texto copiado. É só colar no WhatsApp do cliente."); } catch (_) { toast("Não deu para copiar automaticamente."); } }
     else if (act === "helena-tel") {
       window.open("https://web.helena.run/chat2/sessions", "_blank", "noopener");
       try { await navigator.clipboard.writeText(b.dataset.tel); toast("Telefone copiado (" + b.dataset.tel + "): no Helena, cole na busca de atendimentos para abrir a conversa."); } catch (_) { toast("Telefone do cliente: " + b.dataset.tel); }
