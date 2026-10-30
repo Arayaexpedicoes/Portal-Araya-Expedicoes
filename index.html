@@ -137,6 +137,7 @@ details.mescom .tablewrap{padding:0 0 12px}
 @media (max-width:640px){ .orclista .px,.orclista .lk,.orclista .vd,.orclista .ac,.orclista .vg{display:none} .orclista .so-cel.acoes{display:flex;justify-content:flex-end;margin-top:6px} .orclista .so-cel{display:block;margin-top:4px} .orclista td.n{white-space:nowrap} }
 @media (max-width:640px){ .mescom .vg,.mescom .st{display:none} .mescom .so-cel{display:block;margin-top:4px} .mescom td.n{white-space:nowrap} }
 tbody tr.sel td{background:color-mix(in srgb, var(--accent-soft) 60%, transparent)}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 input.cell[readonly]{background:transparent;border-color:transparent;box-shadow:none;cursor:default}
 .formgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
 .empty{border:1px dashed var(--line);border-radius:var(--r);padding:28px 18px;text-align:center;color:var(--muted);display:grid;gap:6px;justify-items:center}
@@ -434,13 +435,13 @@ const vendidoNoMes = (lista, uid, ym) => lista.filter(v => v.vendedor === uid &&
 // ---------- dados ----------
 const col = (n) => S.db.collection(n);
 const docsOf = (snap) => snap.docs.map(d => ({ id: d.id, ...d.data() }));
-function setMembers(rows) { S.members = Object.fromEntries(rows.map(r => [r.id, { apelido: r.apelido || "", nomeCrm: r.nomeCrm || "", nomeHelena: r.nomeHelena || "", supervisor: r.supervisor === true, bonus: r.bonus !== false, semEmail: r.semEmail === true, pct: r.pct == null ? null : Number(r.pct), abas: r.abas || {}, ativo: r.ativo !== false, uid: r.uid || null }])); }
+function setMembers(rows) { S.members = Object.fromEntries(rows.map(r => [r.id, { apelido: r.apelido || "", nomeCrm: r.nomeCrm || "", nomeHelena: r.nomeHelena || "", vendedora: r.vendedora !== false, supervisor: r.supervisor === true, bonus: r.bonus !== false, semEmail: r.semEmail === true, pct: r.pct == null ? null : Number(r.pct), abas: r.abas || {}, ativo: r.ativo !== false, uid: r.uid || null }])); }
 function setVendas(rows) { S.vendas = Object.fromEntries(rows.map(r => [r.id, { ...r, cliente: r.cliente || "", vendedor: r.vendedor, destino: r.destino || "", valor: Number(r.valor) || 0, pct: Number(r.pct) || 0, fechamento: r.fechamento || "", embarque: r.embarque || "", status: r.status || "ativa", pagaEm: r.pagaEm || null, origem: r.origem || "manual" }])); }
 function setAtend(rows) { S.atend = {}; for (const r of rows) (S.atend[r.mes] ||= { porPessoa: {} }).porPessoa[r.email] = r.n; }
 function computeEquipe() {
   const hoje = ymNow(); const meses = [hoje, addM(hoje, -1), addM(hoje, -2)];
   const ativas = allVendas().filter(v => v.status !== "cancelada");
-  return { meses, pessoas: activeMembers().map(u => ({ uid: u, apelido: S.members[u].apelido || "", meses: Object.fromEntries(meses.map(m => { const vs = ativas.filter(v => v.vendedor === u && ymOf(v.fechamento) === m); return [m, { q: vs.length, v: round2(vs.reduce((s, v) => s + v.valor, 0)) }]; })) })) };
+  return { meses, pessoas: vendedoras().map(u => ({ uid: u, apelido: S.members[u].apelido || "", meses: Object.fromEntries(meses.map(m => { const vs = ativas.filter(v => v.vendedor === u && ymOf(v.fechamento) === m); return [m, { q: vs.length, v: round2(vs.reduce((s, v) => s + v.valor, 0)) }]; })) })) };
 }
 // ---------- Helena: o robô grava as contagens por atendente; aqui ligamos cada atendente a uma pessoa da equipe ----------
 function membroDoAgente(a) {
@@ -460,7 +461,7 @@ function helenaPorMes() {
     for (const a of Object.values(h.porAgente || {})) {
       const u = membroDoAgente(a);
       if (u) r.porPessoa[u] = (r.porPessoa[u] || 0) + (Number(a.n) || 0);
-      else r.semLigacao.push({ nome: a.nome || a.email || "Atendente sem nome", n: Number(a.n) || 0 });
+      else if (!oculto(a.nome)) r.semLigacao.push({ nome: a.nome || a.email || "Atendente sem nome", n: Number(a.n) || 0 });
     }
     r.semLigacao.sort((x, y) => y.n - x.n);
     out[h.mes] = r;
@@ -549,7 +550,7 @@ function setMain(html) { $("#main").innerHTML = html; if (html.includes("data-mi
 function centerMsg(t, p, extra = "") { $("#tabs").innerHTML = ""; setMain(`<div class="center"><div class="box"><h2>${esc(t)}</h2><p class="muted">${p}</p>${extra}</div></div>`); }
 
 function ownerTabs() { return [["painel", "Visão geral"], ["comercial", "Comercial"], ["comissoes", "Comissões"], ["atendimentos", "Atendimentos"], ["agenda", "Disponibilidade"], ["acessos", "Equipe e acessos"], ["passeios", "Passeios"], ["tickets", "Tickets"]]; }
-function memberTabs(data) { const ab = { ...ABAS_PADRAO, ...((data && data.abas) || {}) }; const t = ABAS.filter(([k]) => ab[k]); if (data && data.supervisor) t.splice(1, 0, ["comercial", "Comercial da equipe"]); return t; }
+function memberTabs(data) { const ab = { ...ABAS_PADRAO, ...((data && data.abas) || {}) }; const t = ABAS.filter(([k]) => ab[k] && !(k === "vendas" && data && data.vendedora === false)); if (data && data.supervisor) t.splice(1, 0, ["comercial", "Comercial da equipe"]); return t; }
 
 function render() {
   _orcCache.v = null;
@@ -701,6 +702,12 @@ function renderMember(data, viewingAs) {
 }
 
 function memberInicio(data, vendas, hoje, viewingAs) {
+  if (data.vendedora === false) {
+    const nome = data.apelido || "", atend = data.atendimentos ? data.atendimentos[hoje] : null;
+    return `<div class="section-head"><div><h2>Olá${nome ? ", " + esc(nome.split(" ")[0]) : ""}</h2><p>Aqui você encontra as fichas dos passeios, os tickets e a disponibilidade da equipe.</p></div></div>
+    ${atend != null ? `<div class="tiles"><div class="tile"><span class="k">Atendimentos no mês</span><span class="v">${atend}</span><span class="d">Conversas que você recebeu em ${ymLong(hoje)}</span></div></div>` : ""}
+    <div class="row">${[["passeios", "Passeios"], ["tickets", "Tickets"], ["agenda", "Disponibilidade"]].filter(([k]) => memberTabs(data).some(t => t[0] === k)).map(([k, t]) => `<button class="btn" data-tab-go="${k}">${t}</button>`).join("")}</div>`;
+  }
   const ativas = vendas.filter(v => v.status !== "cancelada");
   const doMes = ativas.filter(v => ymOf(v.fechamento) === hoje);
   const atend = data.atendimentos ? data.atendimentos[hoje] : null;
@@ -995,6 +1002,13 @@ function ticketsView() {
 }
 
 // ---------- administração ----------
+// Quem vende (recebe comissão e aparece nos relatórios de vendas). Camila e Juliana, por exemplo, não.
+const vendedoras = () => activeMembers().filter(u => S.members[u].vendedora !== false);
+const naoVende = (u) => !!(S.members[u] && S.members[u].vendedora === false);
+// Nomes que não aparecem nos relatórios (vendas e orçamentos de quem não tem cadastro, atendentes do Helena)
+const OCULTOS_PADRAO = ["Caroline Pachu", "Maju Malavolta", "Leticia Maciel", "Roberta Gameiro", "Thaís Santana", "Alvaro Penna", "Karol Marinho", "Raquel Theodoro"];
+const listaOcultos = () => Array.isArray(S.comercial.ocultos) ? S.comercial.ocultos : OCULTOS_PADRAO;
+function oculto(nome) { const n = semAcento(nome), k = chaveNome(nome); if (!n) return false; return listaOcultos().some(x => semAcento(x) === n || (k && chaveNome(x) === k)); }
 const activeMembers = () => Object.entries(S.members).filter(([, m]) => m.ativo !== false).map(([u]) => u).sort((a, b) => label(a).localeCompare(label(b), "pt-BR"));
 const allVendas = () => Object.entries(S.vendas).map(([id, v]) => enrich({ id, ...v, obs: S.notas[id] || "" }));
 
@@ -1082,8 +1096,8 @@ function monthOptions(sel, back = 12, fwd = 2, withAll = false) {
 function ownerPainel() {
   const M = S.filtros.painelMes; const hoje = ymNow();
   const ativas = allVendas().filter(v => v.status !== "cancelada");
-  const mem = activeMembers();
-  const ids = [...new Set([...mem, ...ativas.map(v => v.vendedor)])].filter(Boolean);
+  const mem = vendedoras();
+  const ids = [...new Set([...mem, ...ativas.map(v => v.vendedor)])].filter(u => u && !naoVende(u));
   const rows = ids.map(u => {
     const fech = ativas.filter(v => v.vendedor === u && ymOf(v.fechamento) === M);
     const at = S.atend[M] && S.atend[M].porPessoa ? S.atend[M].porPessoa[u] : undefined;
@@ -1117,7 +1131,7 @@ const listaEquipe = () => S.isAdmin ? allVendas() : (S.vendasEquipe || []).map(r
 function bonusPainel(M, ativas, admin) {
   const hoje = ymNow();
   if (M < INICIO_BONUS) return `<section class="panel"><h3>Bônus por faixa de vendas</h3><p class="muted small" style="margin:0">O bônus mensal vale a partir das vendas de ${ymLong(INICIO_BONUS)}.</p></section>`;
-  const ids = [...new Set([...(admin ? activeMembers() : []), ...ativas.filter(v => ymOf(v.fechamento) === M && v.vendedor).map(v => v.vendedor)])];
+  const ids = [...new Set([...(admin ? vendedoras() : []), ...ativas.filter(v => ymOf(v.fechamento) === M && v.vendedor).map(v => v.vendedor)])].filter(u => !naoVende(u));
   const linhas = ids.map(u => {
     const vendido = vendidoNoMes(ativas, u, M), m = S.members[u];
     const participa = !m || m.bonus !== false;
@@ -1144,7 +1158,7 @@ function ownerComercial() {
   const porMes = meses.map(m => { const l = ativas.filter(v => ymOf(v.fechamento) === m); return { m, q: l.length, v: soma(l) }; });
   const maxM = Math.max(1, ...porMes.map(x => x.v));
   const agrupa = (fn) => { const g = {}; doMes.forEach(v => { const k = fn(v) || "—"; (g[k] ||= { k, q: 0, v: 0 }); g[k].q++; g[k].v += Number(v.valor) || 0; }); return Object.values(g).sort((a, b) => b.v - a.v); };
-  const porDest = agrupa(v => v.destino), porOrig = agrupa(v => v.origemLead || "Sem origem informada"), porVend = agrupa(v => vendLabel(v));
+  const porDest = agrupa(v => v.destino), porOrig = agrupa(v => v.origemLead || "Sem origem informada"), porVend = agrupa(v => !v.vendedor && !v.casa && oculto(v.vendedorNome) ? "Outros" : vendLabel(v));
   const tabela = (lista, titulo, comCor) => { const mx = Math.max(1, ...lista.map(x => x.v)); return `<section class="panel"><h3>${titulo}</h3>${lista.length ? `<div class="tablewrap"><table><thead><tr><th></th><th class="n">Vendas</th><th class="n">Valor</th><th style="width:22%"></th><th class="n">% do mês</th></tr></thead><tbody>${lista.map(x => `<tr><td>${comCor ? destTag(x.k) : esc(x.k)}</td><td class="n">${x.q}</td><td class="n">${money(x.v)}</td><td><div class="bar"><i style="width:${Math.round(x.v / mx * 100)}%"></i></div></td><td class="n">${fat ? (x.v / fat * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + "%" : "—"}</td></tr>`).join("")}</tbody></table></div>` : `<div class="empty"><strong>Sem vendas em ${ymLabel(M)}</strong></div>`}</section>`; };
   const futuros = Array.from({ length: 6 }, (_, i) => addM(hoje, i));
   const somaPos = (l, k) => l.reduce((s, v) => s + Math.max(0, Number(v[k]) || 0), 0);
@@ -1271,14 +1285,14 @@ function conversaoPainel(orcs, nomeDe) {
       <div class="tile"><span class="k">Taxa de conversão</span><span class="v">${pctTxt(conv.length / acomp.length * 100)}</span><span class="d">dos orçamentos acompanhados</span></div>
       <div class="tile"><span class="k">Tempo até fechar</span><span class="v">${media == null ? "—" : media + (media === 1 ? " dia" : " dias")}</span><span class="d">${media == null ? "Aparece quando os orçamentos novos começarem a fechar" : "Em média, do orçamento à venda"}</span></div>
     </div>
-    <div class="grid2">${tab("Por pessoa", agrupa(o => o.vendedor ? o.vendedor : o.vendedorNome ? "nome:" + o.vendedorNome : ""), k => esc(k === "—" ? "Sem vendedor" : k.startsWith("nome:") ? k.slice(5) : nomeDe(k)))}${tab("Por destino", agrupa(o => o.destino), k => destTag(k) || "—")}</div>
+    <div class="grid2">${tab("Por pessoa", agrupa(o => o.vendedor ? o.vendedor : o.vendedorNome && !oculto(o.vendedorNome) ? "nome:" + o.vendedorNome : ""), k => esc(k === "—" ? "Outros / sem vendedor" : k.startsWith("nome:") ? k.slice(5) : nomeDe(k)))}${tab("Por destino", agrupa(o => o.destino), k => destTag(k) || "—")}</div>
   </section>`;
 }
 function ownerFunil() {
   const M = S.filtros.comMesC || ymNow(), hoje = ymNow(), hojeD = new Date().toISOString().slice(0, 10);
   const admin = S.isAdmin && !S.previewUid;
   const orcs = orcLista(), vendas = listaEquipe().filter(v => v.status !== "cancelada");
-  const pessoas = [...new Set([...(admin ? activeMembers() : []), ...orcs.map(o => o.vendedor), ...vendas.filter(v => ymOf(v.fechamento) === M).map(v => v.vendedor), ...Object.keys(((S.atend[M] || {}).porPessoa) || {})])].filter(u => u && (admin ? S.members[u] : true));
+  const pessoas = [...new Set([...(admin ? vendedoras() : []), ...orcs.map(o => o.vendedor), ...vendas.filter(v => ymOf(v.fechamento) === M).map(v => v.vendedor), ...Object.keys(((S.atend[M] || {}).porPessoa) || {})])].filter(u => u && !naoVende(u) && (admin ? S.members[u] : true));
   const nomeDe = (u) => u === "__outros" ? "Outros (sem cadastro no portal ou venda da casa)" : (S.members[u] && S.members[u].apelido) || ((orcs.find(o => o.vendedor === u) || vendas.find(v => v.vendedor === u) || {}).vendedorNome) || u;
   const semPlanilha = !S.comercial.planilhaOrc && !orcs.length, semData = orcs.length > 0 && !orcs.some(o => o.criado);
   const linhas = funilDados(M, pessoas, semData).filter(l => l.at || l.orc || l.vq).sort((a, b) => (b.vV - a.vV) || (b.orc - a.orc));
@@ -1288,7 +1302,7 @@ function ownerFunil() {
   const atTot = linhas.reduce((s, l) => s + (l.at || 0), 0);
   const tot = linhas.reduce((a, l) => ({ at: a.at + (l.at || 0), orc: a.orc + l.orc, orcV: a.orcV + l.orcV, vq: a.vq + l.vq, vV: a.vV + l.vV }), { at: 0, orc: 0, orcV: 0, vq: 0, vV: 0 });
   const abertos = orcs.filter(o => orcAberto(o, hojeD));
-  const porPessoaAberto = {}; abertos.forEach(o => { const k = o.vendedor || (o.vendedorNome ? "nome:" + o.vendedorNome : "—"); (porPessoaAberto[k] ||= { q: 0, v: 0 }); porPessoaAberto[k].q++; porPessoaAberto[k].v += Number(o.valor) || 0; });
+  const porPessoaAberto = {}; abertos.forEach(o => { const k = o.vendedor || (o.vendedorNome && !oculto(o.vendedorNome) ? "nome:" + o.vendedorNome : "—"); (porPessoaAberto[k] ||= { q: 0, v: 0 }); porPessoaAberto[k].q++; porPessoaAberto[k].v += Number(o.valor) || 0; });
   const meses = Array.from({ length: 12 }, (_, i) => addM(M, i - 11)).reverse();
   const porMes = meses.map(m => { const o = orcs.filter(x => ymOf(x.criado) === m), v = vendas.filter(x => ymOf(x.fechamento) === m); const at = Object.values(((S.atend[m] || {}).porPessoa) || {}).reduce((s, n) => s + (Number(n) || 0), 0); return { m, at, orc: o.length, orcV: o.reduce((s, x) => s + (Number(x.valor) || 0), 0), vq: v.length, vV: v.reduce((s, x) => s + (Number(x.valor) || 0), 0) }; });
   const porDestAberto = {}; abertos.forEach(o => { const k = o.destino || "—"; (porDestAberto[k] ||= { q: 0, v: 0 }); porDestAberto[k].q++; porDestAberto[k].v += Number(o.valor) || 0; });
@@ -1313,7 +1327,7 @@ function ownerFunil() {
   <div class="grid2">
     <section class="panel"><div class="section-head"><div><h3>Orçamentos em aberto</h3><span class="muted small">Status “Orçamento”, com viagem a partir de hoje.</span></div><span class="pill info">${abertos.length} · ${money(abertos.reduce((s, o) => s + (Number(o.valor) || 0), 0))}</span></div>
       ${abertos.length ? `<div class="chips">${Object.entries(porDestAberto).sort((a, b) => b[1].q - a[1].q).map(([k, x]) => `<span class="dest" style="${dc(k)}">${esc(k)} · ${x.q}</span>`).join("")}</div>` : ""}
-      ${abertos.length ? `<div class="tablewrap"><table><thead><tr><th>Pessoa</th><th class="n">Orçamentos</th><th class="n">Valor</th></tr></thead><tbody>${Object.entries(porPessoaAberto).sort((a, b) => b[1].v - a[1].v).map(([u, x]) => `<tr><td>${esc(u === "—" ? "Sem vendedor" : u.startsWith("nome:") ? u.slice(5) + " (sem cadastro)" : nomeDe(u))}</td><td class="n">${x.q}</td><td class="n">${money(x.v)}</td></tr>`).join("")}</tbody></table></div>` : `<div class="empty"><strong>Nenhum orçamento em aberto</strong></div>`}
+      ${abertos.length ? `<div class="tablewrap"><table><thead><tr><th>Pessoa</th><th class="n">Orçamentos</th><th class="n">Valor</th></tr></thead><tbody>${Object.entries(porPessoaAberto).sort((a, b) => b[1].v - a[1].v).map(([u, x]) => `<tr><td>${esc(u === "—" ? "Outros / sem vendedor" : u.startsWith("nome:") ? u.slice(5) + " (sem cadastro)" : nomeDe(u))}</td><td class="n">${x.q}</td><td class="n">${money(x.v)}</td></tr>`).join("")}</tbody></table></div>` : `<div class="empty"><strong>Nenhum orçamento em aberto</strong></div>`}
     </section>
     <section class="panel"><h3>Mês a mês</h3>
       <div class="tablewrap"><table><thead><tr><th>Mês</th><th class="n">Atend.</th><th class="n">Orçam.</th><th class="n">Valor orçado</th><th class="n">Vendas</th><th class="n">Conv.</th></tr></thead>
@@ -1473,7 +1487,7 @@ function helenaPainel(hp, hoje) {
   </section>`;
 }
 function ownerAtendimentos() {
-  const mem = activeMembers(); const hoje = ymNow();
+  const mem = vendedoras(); const hoje = ymNow();
   const meses = Array.from({ length: 12 }, (_, i) => addM(hoje, -i));
   const hp = helenaPorMes(), temHelena = Object.keys(hp).length > 0;
   return `
@@ -1513,16 +1527,19 @@ function ownerAcessos() {
         <div class="field"><label for="pc-${esc(u)}">Comissão (% sobre a venda)</label><input type="number" min="0" max="100" step="0.1" id="pc-${esc(u)}" data-cfg="pct" data-uid="${esc(u)}" value="${m.pct ?? ""}" placeholder="Ex.: 3"></div>
       </div>
       <div><div class="field"><label>O que essa pessoa vê</label></div><div class="toggles">${ABAS.map(([k, t]) => `<label class="toggle"><input type="checkbox" data-aba="${k}" data-uid="${esc(u)}" ${ab[k] ? "checked" : ""}>${t}</label>`).join("")}</div></div>
-      <div><div class="field"><label>Papel</label></div><div class="toggles"><label class="toggle"><input type="checkbox" data-flag="supervisor" data-uid="${esc(u)}" ${m.supervisor ? "checked" : ""}>Supervisão de vendas (vê o comercial de toda a equipe)</label><label class="toggle"><input type="checkbox" data-flag="bonus" data-uid="${esc(u)}" ${m.bonus !== false ? "checked" : ""}>Participa do bônus mensal</label></div></div>
+      <div><div class="field"><label>Papel</label></div><div class="toggles"><label class="toggle"><input type="checkbox" data-flag="supervisor" data-uid="${esc(u)}" ${m.supervisor ? "checked" : ""}>Supervisão de vendas (vê o comercial de toda a equipe)</label><label class="toggle"><input type="checkbox" data-flag="vendedora" data-uid="${esc(u)}" ${m.vendedora !== false ? "checked" : ""}>Vendedora (tem comissão e aparece nos relatórios de vendas)</label><label class="toggle"><input type="checkbox" data-flag="bonus" data-uid="${esc(u)}" ${m.bonus !== false ? "checked" : ""}>Participa do bônus mensal</label></div></div>
       <p class="muted small" style="margin:0">Mudar o percentual vale para as próximas vendas. As vendas já lançadas mantêm o percentual delas.</p>
     </div></div>`; }).join("") : `<div class="empty"><strong>Ninguém cadastrado ainda</strong><span>Use o formulário acima para cadastrar a primeira pessoa.</span></div>`}
+  </section>
+  <section class="panel"><div><h3>Nomes que não aparecem nos relatórios</h3><span class="muted small">Vendas, orçamentos e atendimentos dessas pessoas não aparecem por nome nos relatórios (entram como “Outros”). Um nome por linha. Salva ao sair do campo.</span></div>
+    <div class="field"><label for="cfg-ocultos" class="sr-only">Nomes</label><textarea id="cfg-ocultos" data-ocultos rows="5" style="width:100%;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--fg)">${esc(listaOcultos().join("\n"))}</textarea></div>
   </section>`;
 }
 
 // ---------- formulário de venda ----------
 function openVenda(id) {
   const v = id ? { id, ...S.vendas[id], obs: S.notas[id] || "" } : null;
-  const mem = activeMembers();
+  const mem = vendedoras();
   const vend = v ? v.vendedor : (mem[0] || "");
   const pct = v ? v.pct : ((S.members[vend] && S.members[vend].pct) ?? "");
   const vendOpts = [...new Set([...mem, ...(v && v.vendedor ? [v.vendedor] : [])])];
@@ -1736,6 +1753,7 @@ $("#main").addEventListener("change", async (e) => {
   const t = e.target;
   if (t.id === "n-semail") { $("#n-senha-box").hidden = !t.checked; if (t.checked && !$("#n-senha").value) $("#n-senha").value = gerarSenha(); return; }
   if (t.dataset.filter) { S.filtros[t.dataset.filter] = t.value; render(); return; }
+  if ("ocultos" in t.dataset) { const lista = t.value.split("\n").map(x => x.trim()).filter(Boolean); try { await salvarComercial({ ocultos: lista }, "Lista salva"); render(); } catch (e) { toast(errMsg(e)); } return; }
   if ("ocultarRet" in t.dataset) { S.filtros.ocultarRetomados = t.checked; render(); return; }
   if (t.dataset.dispObs) { const d = dispDe(t.dataset.dispObs), obs = t.value.trim(); if ((d.obs || "") !== obs) { await salvarDisp(t.dataset.dispObs, { ...d, obs }); toast("Recado salvo"); } return; }
   try {
@@ -1989,7 +2007,7 @@ function alertasComerciais() {
   const vs = allVendas().filter(v => v.origem === "crm" && v.status !== "cancelada");
   const semCot = vs.filter(v => v.valorUSD && v.semCotacao);
   const comUsd = vs.filter(v => v.valorUSD);
-  const semCadastro = [...new Set(vs.filter(v => !v.vendedor && !v.casa && v.vendedorNome).map(v => v.vendedorNome))];
+  const semCadastro = [...new Set(vs.filter(v => !v.vendedor && !v.casa && v.vendedorNome && !oculto(v.vendedorNome)).map(v => v.vendedorNome))];
   const conferir = vs.filter(v => v.conferir);
   const ids = S.comercial.idsPlanilha; const naPlanilha = ids && ids.length ? new Set(ids) : null;
   const fora = naPlanilha ? vs.filter(v => !naPlanilha.has(v.id)) : [];
@@ -2033,7 +2051,7 @@ function payloadFor(uid) {
   if (abas.equipe) {
     equipe = S.isAdmin ? computeEquipe().pessoas : S.equipeRes;
   }
-  return { apelido: cfg.apelido || "", pct: cfg.pct ?? 0, abas, vendas, atendimentos, equipe, uid, supervisor: cfg.supervisor === true, bonus: cfg.bonus !== false };
+  return { apelido: cfg.apelido || "", pct: cfg.pct ?? 0, abas, vendas, atendimentos, equipe, uid, supervisor: cfg.supervisor === true, bonus: cfg.bonus !== false, vendedora: cfg.vendedora !== false };
 }
 
 // ---------- início ----------
