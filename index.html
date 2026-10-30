@@ -1353,18 +1353,39 @@ function ownerCampanhas() {
   const M = S.filtros.comMesC || ymNow();
   const h = (S.helena || []).find(x => x.mes === M);
   const meses = (S.helena || []).map(x => x.mes).filter(Boolean).sort().reverse();
-  const head = `<div class="section-head"><div><h2>Campanhas</h2><p>Leads que chegaram pelo Helena vindos de anúncios (UTM) e as vendas que geraram. Conta como venda da campanha o lead que chegou no mês e fechou no mesmo mês, cruzado pelo nome do cliente, mesmo que tenha fechado outro destino.</p></div>
+  const head = `<div class="section-head"><div><h2>Campanhas</h2><p>Leads que chegaram pelo Helena vindos de anúncios (UTM) e as vendas que geraram. Conta como venda do anúncio a venda fechada no mês por um cliente que chegou por aquele anúncio neste mês ou no anterior, ligada pelo telefone do cliente (e, se não houver telefone, pelo nome), mesmo que tenha fechado outro destino.</p></div>
     <div class="field"><label for="f-camp-mes">Mês</label><select id="f-camp-mes" data-filter="comMesC">${(meses.includes(M) ? meses : [M, ...meses]).map(m => `<option value="${m}" ${m === M ? "selected" : ""}>${ymLabel(m)}</option>`).join("")}</select></div></div>`;
   if (!h || !h.campanhas) return head + `<div class="empty"><strong>Sem dados de campanha em ${ymLabel(M)}</strong><span>O robô do Helena guarda as campanhas do mês atual e do anterior a partir da próxima execução.</span></div>`;
+  const hAnt = (S.helena || []).find(x => x.mes === addM(M, -1)) || {};
   const vendas = vendasVisiveis().filter(v => v.status !== "cancelada" && ymOf(v.fechamento) === M);
-  const orcs = orcLista().filter(o => o.cliente && ymOf(o.criado) === M);
-  const porChave = (lista, campo) => { const m = {}; lista.forEach(x => { const k = chaveNome(x[campo]); if (k) (m[k] ||= []).push(x); }); return m; };
-  const vChave = porChave(vendas, "cliente"), oChave = porChave(orcs, "cliente");
-  const linhas = h.campanhas.map(c => { const nomes = new Set(c.nomes || []); const vs = [...nomes].flatMap(k => vChave[k] || []); const os = [...nomes].flatMap(k => oChave[k] || []); return { ...c, dest: destinoDaCampanha(c), vs, os, vV: vs.reduce((a, v) => a + (Number(v.valor) || 0), 0) }; });
+  // telefone da venda: o da planilha de vendas (se tiver) ou o do orçamento com o mesmo número de roteiro
+  const telOrc = {}; Object.values(S.orc || {}).forEach(o => { if (o.roteiro && o.telefone) telOrc[String(o.roteiro)] = telNacional(o.telefone); });
+  const telVenda = (v) => telNacional(v.telefone) || telOrc[String(v.roteiro)] || "";
+  const orcs = orcLista().filter(o => ymOf(o.criado) === M);
+  const juntar = (lista, listaAnt, chave) => lista.map(c => { const k = chave(c); const ant = (listaAnt || []).find(x => chave(x) === k) || {}; return { ...c, telSet: new Set([...(c.telefones || []), ...(ant.telefones || [])]), nomeSet: new Set([...(c.nomes || []), ...(ant.nomes || [])]) }; });
+  const usadas = new Set();
+  const atribui = (g) => { // por telefone primeiro; pelo nome só se a venda ainda não foi atribuída
+    const vs = vendas.filter(v => { const t = telVenda(v); return t && g.telSet.has(t); });
+    vs.forEach(v => usadas.add(v.id));
+    return vs;
+  };
+  const atribuiNome = (g, jaVs) => vendas.filter(v => !usadas.has(v.id) && !jaVs.includes(v) && g.nomeSet.has(chaveNome(v.cliente)));
+  const orcsDe = (g) => orcs.filter(o => (o.telefone && g.telSet.has(telNacional(o.telefone))) || (o.cliente && g.nomeSet.has(chaveNome(o.cliente))));
+  const chaveCamp = (c) => [c.source, c.campaign, c.content || c.headline].join("|");
+  const base = juntar(h.campanhas, hAnt.campanhas, chaveCamp), baseOrig = juntar(h.origens || [], hAnt.origens, c => c.nome);
+  [...base, ...baseOrig].forEach(g => { g.vs = atribui(g); });
+  [...base, ...baseOrig].forEach(g => { const extra = atribuiNome(g, g.vs); extra.forEach(v => usadas.add(v.id)); g.vs = [...g.vs, ...extra]; g.os = orcsDe(g); g.vV = g.vs.reduce((a, v) => a + (Number(v.valor) || 0), 0); });
+  const linhas = base.map(c => ({ ...c, dest: destinoDaCampanha(c) })), origensL = baseOrig;
   const grupos = {}; linhas.forEach(l => (grupos[l.dest] ||= []).push(l));
   const ordem = Object.entries(grupos).map(([d, ls]) => [d, ls, ls.reduce((a, l) => a + l.n, 0), ls.reduce((a, l) => a + l.vs.length, 0), ls.reduce((a, l) => a + l.vV, 0)]).sort((a, b) => b[4] - a[4] || b[2] - a[2]);
-  const leads = linhas.reduce((a, l) => a + l.n, 0), vendidas = new Set(linhas.flatMap(l => l.vs.map(v => v.id))), valor = vendas.filter(v => vendidas.has(v.id)).reduce((a, v) => a + (Number(v.valor) || 0), 0);
+  const leads = linhas.reduce((a, l) => a + l.n, 0), vendidas = new Set(linhas.flatMap(l => l.vs.map(v => v.id))), vendidasOrig = new Set(origensL.flatMap(l => l.vs.map(v => v.id))), valor = vendas.filter(v => vendidas.has(v.id)).reduce((a, v) => a + (Number(v.valor) || 0), 0);
   const temOrc = orcs.length > 0;
+  const origemTabela = origensL.length ? `<section class="panel"><div class="section-head"><div><h3>Influenciadoras e indicações</h3><span class="muted small">Conversas sem anúncio cuja primeira mensagem cita a origem (ex.: “vim do Status Viajante”). ${h.semUtmTotal ? `${(h.semUtmLidas || 0).toLocaleString("pt-BR")} de ${h.semUtmTotal.toLocaleString("pt-BR")} conversas sem anúncio do mês já foram lidas.` : ""}</span></div><span class="pill ${vendidasOrig.size ? "ok" : "neutral"}">${vendidasOrig.size} ${vendidasOrig.size === 1 ? "venda" : "vendas"}</span></div>
+    <div class="tablewrap"><table><thead><tr><th>Origem</th><th class="n">Leads</th>${temOrc ? '<th class="n">Orçamentos</th>' : ""}<th class="n">Vendas</th><th class="n">Conversão</th><th class="n">Valor vendido</th></tr></thead><tbody>${origensL.map(l => `<tr><td><strong>${esc(l.nome)}</strong>${l.vs.length ? `<div class="muted small">Fechou: ${[...new Set(l.vs.map(v => v.destino))].map(x => esc(x)).join(", ")}</div>` : ""}</td><td class="n">${l.n}</td>${temOrc ? `<td class="n">${l.os.length}</td>` : ""}<td class="n">${l.vs.length}</td><td class="n">${pctTxt(l.n ? l.vs.length / l.n * 100 : null)}</td><td class="n">${money(l.vV)}</td></tr>`).join("")}</tbody></table></div></section>` : "";
+  const termosTxt = (Array.isArray(S.comercial.origens) ? S.comercial.origens : [{ nome: "Status Viajante", termos: ["status viajante"] }]).map(o => o.nome + ": " + (o.termos || []).join(", ")).join("\n");
+  const editorOrigens = `<section class="panel"><details><summary style="cursor:pointer"><strong>Origens reconhecidas pela mensagem</strong> <span class="muted small">(influenciadoras, parceiros, indicações)</span></summary>
+    <p class="muted small" style="margin:10px 0 6px">Uma origem por linha, no formato <strong>Nome: termo1, termo2</strong>. Quando a primeira mensagem do cliente tiver um desses termos, a conversa conta para essa origem. Vale a partir da próxima rodada do robô (conversas já lidas não são relidas).</p>
+    <textarea data-origens rows="4" style="width:100%;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--fg)">${esc(termosTxt)}</textarea></details></section>`;
   const corta = (t, n) => { t = String(t || "").replace(/\s+/g, " ").trim(); return t.length > n ? t.slice(0, n - 1).trimEnd() + "…" : t; };
   const tituloUtil = (l) => l.headline && !/^(fale conosco|saiba mais|enviar mensagem|araya expedi[cç][oõ]es)$/i.test(String(l.headline).trim());
   const partesTexto = (t) => { t = String(t || "").replace(/\s+/g, " ").trim(); const m = t.match(/^(.{15,130}?[.!?])\s+(.*)$/); if (m) return [m[1], m[2]]; if (t.length <= 90) return [t, ""]; const k = t.lastIndexOf(" ", 85); return [t.slice(0, k) + "…", "…" + t.slice(k + 1)]; };
@@ -1382,9 +1403,11 @@ function ownerCampanhas() {
     <div class="tablewrap"><table><thead><tr><th>Anúncio</th><th>Origem</th><th class="n">Leads</th>${temOrc ? '<th class="n">Orçamentos</th>' : ""}<th class="n">Vendas</th><th class="n">Conversão</th><th class="n">Valor vendido</th></tr></thead>
     <tbody>${ls.sort((a, b) => b.vV - a.vV || b.n - a.n).map(l => `<tr><td><strong>${tituloAnuncio(l)}</strong>${detalheAnuncio(l)}${l.vs.length ? `<div class="muted small">Fechou: ${[...new Set(l.vs.map(v => v.destino))].map(x => esc(x)).join(", ")}</div>` : ""}</td><td class="small">${esc(String(l.source || "—").toLowerCase().replace(/^./, c => c.toUpperCase()))}<div class="muted small">${codigo(l)}</div></td><td class="n">${l.n}</td>${temOrc ? `<td class="n">${l.os.length}</td>` : ""}<td class="n">${l.vs.length}</td><td class="n">${pctTxt(l.n ? l.vs.length / l.n * 100 : null)}</td><td class="n">${money(l.vV)}</td></tr>`).join("")}</tbody></table></div>
   </section>`).join("")}
-  ${vendidas.size ? `<section class="panel"><details><summary style="cursor:pointer"><strong>Ver as vendas atribuídas às campanhas</strong> <span class="muted small">(${vendidas.size})</span></summary>
-    <div class="tablewrap" style="margin-top:10px"><table><thead><tr><th>Cliente</th><th>Vendedor</th><th>Fechada em</th><th>Anúncio</th><th class="n">Valor</th></tr></thead><tbody>${vendas.filter(v => vendidas.has(v.id)).map(v => { const l = linhas.find(x => x.vs.some(y => y.id === v.id)); return `<tr><td>${esc(v.cliente)}<div>${destTag(v.destino)}</div></td><td>${esc(vendLabel(v))}</td><td>${dLabel(v.fechamento)}</td><td class="small">${l ? nomeAnuncio(l) : ""}<div class="muted small">${l ? esc(String(l.source || "").toLowerCase()) : ""}</div></td><td class="n">${money(v.valor)}</td></tr>`; }).join("")}</tbody></table></div>
-    <p class="muted small" style="margin:8px 0 0">O cruzamento é pelo primeiro e último nome do cliente. Nomes muito comuns podem gerar uma ou outra ligação errada; confira na lista acima.</p></details></section>` : ""}`;
+  ${origemTabela}
+  ${vendidas.size || vendidasOrig.size ? `<section class="panel"><details><summary style="cursor:pointer"><strong>Ver as vendas atribuídas</strong> <span class="muted small">(${vendidas.size + vendidasOrig.size})</span></summary>
+    <div class="tablewrap" style="margin-top:10px"><table><thead><tr><th>Cliente</th><th>Vendedor</th><th>Fechada em</th><th>Origem</th><th class="n">Valor</th></tr></thead><tbody>${vendas.filter(v => vendidas.has(v.id) || vendidasOrig.has(v.id)).map(v => { const l = linhas.find(x => x.vs.some(y => y.id === v.id)), o = origensL.find(x => x.vs.some(y => y.id === v.id)); return `<tr><td>${esc(v.cliente)}<div>${destTag(v.destino)}</div></td><td>${esc(vendLabel(v))}</td><td>${dLabel(v.fechamento)}</td><td class="small">${l ? nomeAnuncio(l) : o ? esc(o.nome) : ""}<div class="muted small">${l ? "anúncio · " + esc(String(l.source || "").toLowerCase()) : o ? "pela mensagem" : ""}</div></td><td class="n">${money(v.valor)}</td></tr>`; }).join("")}</tbody></table></div>
+    <p class="muted small" style="margin:8px 0 0">A ligação é pelo telefone do cliente; quando não há telefone, pelo primeiro e último nome (nomes muito comuns podem gerar uma ou outra ligação errada).</p></details></section>` : ""}
+  ${editorOrigens}`;
 }
 function abrirConfigTrevor() {
   const c = S.comercial;
@@ -1753,6 +1776,7 @@ $("#main").addEventListener("change", async (e) => {
   const t = e.target;
   if (t.id === "n-semail") { $("#n-senha-box").hidden = !t.checked; if (t.checked && !$("#n-senha").value) $("#n-senha").value = gerarSenha(); return; }
   if (t.dataset.filter) { S.filtros[t.dataset.filter] = t.value; render(); return; }
+  if ("origens" in t.dataset) { const lista = t.value.split("\n").map(x => x.trim()).filter(Boolean).map(x => { const [nome, resto] = x.split(/:(.*)/); return { nome: nome.trim(), termos: (resto || nome).split(",").map(y => y.trim()).filter(Boolean) }; }).filter(o => o.nome); try { await salvarComercial({ origens: lista }, "Origens salvas"); render(); } catch (e) { toast(errMsg(e)); } return; }
   if ("ocultos" in t.dataset) { const lista = t.value.split("\n").map(x => x.trim()).filter(Boolean); try { await salvarComercial({ ocultos: lista }, "Lista salva"); render(); } catch (e) { toast(errMsg(e)); } return; }
   if ("ocultarRet" in t.dataset) { S.filtros.ocultarRetomados = t.checked; render(); return; }
   if (t.dataset.dispObs) { const d = dispDe(t.dataset.dispObs), obs = t.value.trim(); if ((d.obs || "") !== obs) { await salvarDisp(t.dataset.dispObs, { ...d, obs }); toast("Recado salvo"); } return; }
@@ -1837,7 +1861,7 @@ function urlPlanilha(link) {
   const gid = (String(link).match(/[#&?]gid=(\d+)/) || [])[1];
   return `https://docs.google.com/spreadsheets/d/${id}/export?format=csv${gid ? "&gid=" + gid : ""}`;
 }
-const CAMPOS_CRM = ["cliente", "destino", "vendedor", "vendedorNome", "casa", "valorBRL", "valorUSD", "cotacao", "semCotacao", "valor", "fechamento", "embarque", "retorno", "pax", "statusCrm", "pagoBRL", "saldoBRL", "pagoUSD", "saldoUSD", "origemLead", "conferir", "roteiro", "reembolsoBRL", "reembolsoUSD", "reembolsoDetalhe", "descontoBRL", "moedaCrm"];
+const CAMPOS_CRM = ["cliente", "destino", "vendedor", "vendedorNome", "casa", "valorBRL", "valorUSD", "cotacao", "semCotacao", "valor", "fechamento", "embarque", "retorno", "pax", "statusCrm", "pagoBRL", "saldoBRL", "pagoUSD", "saldoUSD", "origemLead", "conferir", "roteiro", "reembolsoBRL", "reembolsoUSD", "reembolsoDetalhe", "descontoBRL", "moedaCrm", "telefone"];
 // Chave para cruzar pessoas entre sistemas pelo nome: primeiro + último nome, sem acento (nomes de uma palavra só não contam)
 function chaveNome(nome) {
   const t = semAcento(nome).replace(/[^a-z ]+/g, " ").split(" ").filter(x => x.length > 1 && !["de", "da", "do", "das", "dos", "e"].includes(x));
@@ -1853,7 +1877,7 @@ function prepararVendas(txt, ctx) {
   const antigas = ctx.antigas || {}, membros = ctx.membros || {}, cotacoes = ctx.cotacoes || {};
   const linhas = lerCSV(txt); if (linhas.length < 2) throw new Error("A planilha de vendas está vazia.");
   const cab = linhas[0].map(semAcento), col_ = (nome) => cab.findIndex(h => h === nome || h.startsWith(nome));
-  const ix = { data: col_("data da venda"), dest: col_("destino"), rot: col_("roteiro"), cli: col_("cliente"), vend: col_("vendedor"), st: col_("status"), pax: col_("pax"), cheg: col_("chegada"), part: col_("partida"), tot: col_("valor final r$") >= 0 ? col_("valor final r$") : col_("total r$"), pago: col_("pago r$"), saldo: col_("saldo r$"), totU: col_("valor final us$") >= 0 ? col_("valor final us$") : col_("total us$"), subU: col_("subtotal us$"), adicU: col_("adicionais us$"), descU: col_("descontos us$"), reemb: col_("reembolsos r$"), reembU: col_("reembolsos us$"), reembD: col_("detalhe dos reembolsos"), desc: col_("descontos r$"), moeda: col_("moeda do preco"), pagoU: col_("pago us$"), saldoU: col_("saldo us$"), orig: col_("origem"), conf: col_("conferir"), conta: col_("conta no total"), cot: cab.findIndex(h => /^(cotacao|cambio|taxa de cambio)/.test(h)) };
+  const ix = { data: col_("data da venda"), dest: col_("destino"), rot: col_("roteiro"), cli: col_("cliente"), vend: col_("vendedor"), st: col_("status"), pax: col_("pax"), cheg: col_("chegada"), part: col_("partida"), tot: col_("valor final r$") >= 0 ? col_("valor final r$") : col_("total r$"), pago: col_("pago r$"), saldo: col_("saldo r$"), totU: col_("valor final us$") >= 0 ? col_("valor final us$") : col_("total us$"), subU: col_("subtotal us$"), adicU: col_("adicionais us$"), descU: col_("descontos us$"), reemb: col_("reembolsos r$"), reembU: col_("reembolsos us$"), reembD: col_("detalhe dos reembolsos"), desc: col_("descontos r$"), moeda: col_("moeda do preco"), tel: cab.findIndex(h => ["telefone", "phone_number", "phone", "celular", "whatsapp", "telefone do cliente"].includes(h)), pagoU: col_("pago us$"), saldoU: col_("saldo us$"), orig: col_("origem"), conf: col_("conferir"), conta: col_("conta no total"), cot: cab.findIndex(h => /^(cotacao|cambio|taxa de cambio)/.test(h)) };
   if (ix.data < 0 || ix.cli < 0 || ix.tot < 0) throw new Error("Não reconheci as colunas da planilha de vendas (faltam Data da venda, Cliente ou Valor final R$).");
   const v_ = (l, k) => ix[k] >= 0 ? (l[ix[k]] || "").trim() : "";
   const vistos = {}; let novas = 0, alteradas = 0, ignoradas = 0; const escritas = [];
@@ -1884,7 +1908,7 @@ function prepararVendas(txt, ctx) {
       fechamento, embarque: lerData(v_(l, "cheg")), retorno: lerData(v_(l, "part")), pax: Number(v_(l, "pax")) || null,
       statusCrm: v_(l, "st"), pagoBRL, saldoBRL, pagoUSD, saldoUSD,
       origemLead: v_(l, "orig"), conferir: v_(l, "conf"), roteiro: v_(l, "rot"),
-      reembolsoBRL: lerMoeda(v_(l, "reemb")), reembolsoUSD: usdCel("reembU"), reembolsoDetalhe: v_(l, "reembD"), descontoBRL: lerMoeda(v_(l, "desc")), moedaCrm: v_(l, "moeda")
+      reembolsoBRL: lerMoeda(v_(l, "reemb")), reembolsoUSD: usdCel("reembU"), reembolsoDetalhe: v_(l, "reembD"), descontoBRL: lerMoeda(v_(l, "desc")), moedaCrm: v_(l, "moeda"), telefone: v_(l, "tel").replace(/[^\d+]/g, "")
     };
     const mudou = !antigo || CAMPOS_CRM.some(k => JSON.stringify(antigo[k] ?? null) !== JSON.stringify(d[k] ?? null));
     if (!mudou) continue;
