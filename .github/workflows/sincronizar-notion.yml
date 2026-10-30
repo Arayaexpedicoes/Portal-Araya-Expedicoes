@@ -337,17 +337,21 @@ jobs:
           const mesSP = (d) => { const x = new Date(d.getTime() - 3 * 3600e3); return x.getUTCFullYear() + "-" + String(x.getUTCMonth() + 1).padStart(2, "0"); };
           const DIAG = {}; // contagem das respostas do Helena na busca por telefone (só números, para o registro)
           async function helena(params, url, aceita404) {
-            for (let tentativa = 1; tentativa <= 5; tentativa++) {
+            // aceita404 = busca por telefone: nunca derruba a rodada; se o Helena reclamar, espera e, no fim, só pula este telefone
+            const maxT = aceita404 ? 3 : 5;
+            for (let tentativa = 1; tentativa <= maxT; tentativa++) {
               let res;
               try { res = await fetch(url || (HELENA_API + "?" + params.toString()), { headers: { Authorization: "Bearer " + process.env.HELENA_TOKEN, Accept: "application/json" } }); }
-              catch (_) { await sleep(tentativa * 3000); continue; }
-              if (res.status === 429 || res.status >= 500) { await sleep((Number(res.headers.get("retry-after")) || tentativa * 3) * 1000); continue; }
+              catch (_) { if (aceita404) DIAG.falhaRede = (DIAG.falhaRede || 0) + 1; await sleep(tentativa * 3000); continue; }
+              if (aceita404 && res.status >= 500) { DIAG[res.status] = (DIAG[res.status] || 0) + 1; if (tentativa >= 2) return null; await sleep(2000); continue; }
+              if (res.status === 429 || res.status >= 500) { if (aceita404) DIAG[429] = (DIAG[429] || 0) + 1; await sleep(Math.max(Number(res.headers.get("retry-after")) || 0, aceita404 ? 20 : tentativa * 3) * 1000); continue; }
               if (aceita404) DIAG[res.status] = (DIAG[res.status] || 0) + 1;
               if (aceita404 && res.status >= 400 && res.status < 500 && ![401, 403, 429].includes(res.status)) return null;
               if (res.status === 401 || res.status === 403) throw new Falha("o Helena recusou o token. Confira o segredo HELENA_TOKEN (gerado em Ajustes > Integrações > Integração via API)");
               if (!res.ok) throw new Falha("o Helena respondeu com erro " + res.status);
               return res.json();
             }
+            if (aceita404) { DIAG.desistiu = (DIAG.desistiu || 0) + 1; return null; }
             throw new Falha("o Helena não respondeu depois de 5 tentativas");
           }
           async function contarMesHelena(ym) {
@@ -619,12 +623,12 @@ jobs:
           async function sessaoDoTelefone(tel) {
             const variantes = [tel, "+" + tel]; if (tel.length === 13 && tel[4] === "9") variantes.push(tel.slice(0, 4) + tel.slice(5)); // com "+" e número antigo sem o 9
             for (const v of variantes) {
-              const c0 = await helena(null, "https://api.wts.chat/core/v1/contact/phonenumber/" + encodeURIComponent(v), true); await sleep(150);
+              const c0 = await helena(null, "https://api.wts.chat/core/v1/contact/phonenumber/" + encodeURIComponent(v), true); await sleep(450);
               const c = c0 && (c0.id ? c0 : Array.isArray(c0.items) && c0.items[0] ? c0.items[0] : Array.isArray(c0) && c0[0] ? c0[0] : null);
               if (!c || !c.id) continue;
               DIAG.contatos = (DIAG.contatos || 0) + 1;
               const p = new URLSearchParams(); p.set("ContactId", c.id); p.set("PageSize", "50"); p.set("PageNumber", "1");
-              const r = await helena(p, null, true); await sleep(150);
+              const r = await helena(p, null, true); await sleep(450);
               const itens = (r && r.items) || []; if (!itens.length) { DIAG.contatoSemConversa = (DIAG.contatoSemConversa || 0) + 1; continue; }
               itens.sort((a, b) => String(b.lastInteractionDate || b.updatedAt || b.createdAt || "").localeCompare(String(a.lastInteractionDate || a.updatedAt || a.createdAt || "")));
               return itens[0].id;
@@ -638,12 +642,12 @@ jobs:
               try { const s = await getDoc(doc(db, "helena", "vinculos")); mapa = (s.exists() && s.data().mapa) || {}; } catch (_) {}
               const linhas = prepararOrcamentos(txtOrc, { antigos: {}, membros: {}, hojeD: hoje }).escritas
                 .filter(([, d]) => d.telefone && d.chegada >= hoje && semAcento(d.status).startsWith("orcamento"));
-              const gravar = []; let consultas = 0, achados = 0;
+              const gravar = []; let consultas = 0, achados = 0; const inicio = Date.now();
               for (const [id, d] of linhas) {
                 const tel = telefoneHelena(d.telefone); if (!tel) continue;
                 let v = mapa[tel];
                 const velho = !v || (!v.s && (Date.parse(hoje) - Date.parse(v.t || "2000-01-01")) / 864e5 >= 3);
-                if (velho) { if (consultas >= 120) continue; consultas++; v = mapa[tel] = { s: await sessaoDoTelefone(tel), t: hoje }; if (v.s) achados++; }
+                if (velho) { if (consultas >= 70 || Date.now() - inicio > 8 * 60 * 1000) continue; consultas++; v = mapa[tel] = { s: await sessaoDoTelefone(tel), t: hoje }; if (v.s) achados++; }
                 if (v.s && !(v.ids || []).includes(id)) { gravar.push([id, { helenaSessao: v.s }]); v.ids = [...(v.ids || []), id]; }
               }
               if (gravar.length) await gravarLotes(db, "orcamentos", gravar);
