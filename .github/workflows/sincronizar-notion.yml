@@ -356,7 +356,7 @@ jobs:
           }
           async function contarMesHelena(ym) {
             const ini = ym + "-01T00:00:00-03:00", fim = addMes(ym, 1) + "-01T00:00:00-03:00";
-            const porAgente = {}, campanhas = {}; let total = 0, semAtendente = 0, semCampanha = 0, pagina = 1;
+            const porAgente = {}, campanhas = {}, semUtm = []; let total = 0, semAtendente = 0, semCampanha = 0, pagina = 1;
             while (pagina <= 300) {
               const p = new URLSearchParams();
               p.set("CreatedAt.After", ini); p.set("CreatedAt.Before", fim); p.set("Type", "INDIVIDUAL");
@@ -370,11 +370,16 @@ jobs:
                 const u = sessao.utm || null;
                 if (u && (u.campaign || u.clid || u.content || u.headline || (u.source && !/^(organic|direct|direto)$/i.test(u.source)))) {
                   const k = [u.source || "", u.campaign || "", u.content || u.headline || ""].join("|");
-                  if (!campanhas[k]) campanhas[k] = { source: u.source || "", medium: u.medium || "", campaign: u.campaign || "", content: u.content || "", headline: u.headline || "", n: 0, nomes: [] };
+                  if (!campanhas[k]) campanhas[k] = { source: u.source || "", medium: u.medium || "", campaign: u.campaign || "", content: u.content || "", headline: u.headline || "", n: 0, nomes: [], telefones: [] };
                   campanhas[k].n++;
-                  const cd = sessao.contactDetails || {}, nk = chaveNome(cd.name || cd.displayName || cd.fullName || sessao.title || "");
+                  const cd = sessao.contactDetails || {}, nk = chaveNome(cd.name || cd.displayName || cd.fullName || sessao.title || ""), tel = telefoneHelena(cd.phonenumber || cd.phoneNumber || "");
                   if (nk && campanhas[k].nomes.length < 3000 && !campanhas[k].nomes.includes(nk)) campanhas[k].nomes.push(nk);
-                } else semCampanha++;
+                  if (tel && campanhas[k].telefones.length < 3000 && !campanhas[k].telefones.includes(tel)) campanhas[k].telefones.push(tel);
+                } else {
+                  semCampanha++;
+                  const cd = sessao.contactDetails || {};
+                  if (sessao.id) semUtm.push({ id: String(sessao.id), t: telefoneHelena(cd.phonenumber || cd.phoneNumber || ""), k: chaveNome(cd.name || sessao.title || "") });
+                }
                 const a = sessao.agentDetails || null;
                 const id = sessao.userId || (a && (a.userId || a.id));
                 if (!id) { semAtendente++; continue; }
@@ -386,17 +391,55 @@ jobs:
               if (!r.hasMorePages || !itens.length) break;
               pagina++; await sleep(200);
             }
-            return { mes: ym, total, semAtendente, porAgente, campanhas: Object.values(campanhas).sort((x, y) => y.n - x.n), semCampanha, atualizadoEm: new Date().toISOString() };
+            return { mes: ym, total, semAtendente, porAgente, campanhas: Object.values(campanhas).sort((x, y) => y.n - x.n), semCampanha, semUtm, atualizadoEm: new Date().toISOString() };
+          }
+          // Conversas sem anúncio: lê as primeiras mensagens e procura termos de origem (ex.: "vim do Status Viajante").
+          // Cada conversa é lida uma vez só (helena/msgs_AAAA-MM guarda o que já foi lido).
+          const ORIGENS_PADRAO = [{ nome: "Status Viajante", termos: ["status viajante"] }];
+          async function primeirasMensagens(id) {
+            const base = "https://api.wts.chat/chat/v1/session/" + encodeURIComponent(id) + "/message?PageNumber=1&PageSize=10&OrderDirection=ASCENDING";
+            let r = await helena(null, base + "&OrderBy=createdAt", true);
+            if (!r) r = await helena(null, base, true);
+            const itens = ((r && r.items) || []).slice().sort((a, b) => String(a.createdAt || a.timestamp || "").localeCompare(String(b.createdAt || b.timestamp || "")));
+            return itens.slice(0, 4).map((m) => m.text || "").join(" \n ");
+          }
+          async function lerOrigens(db, meses, origens) {
+            const termos = (origens || []).map((o) => ({ nome: o.nome, termos: (o.termos || []).map((t) => semAcento(t)).filter(Boolean) })).filter((o) => o.nome && o.termos.length);
+            let lidas = 0; const inicio = Date.now();
+            for (const d of meses.slice().reverse()) { // mês atual primeiro
+              let vistos = {};
+              try { const s = await getDoc(doc(db, "helena", "msgs_" + d.mes)); vistos = (s.exists() && s.data().vistos) || {}; } catch (_) {}
+              let novos = 0;
+              for (const x of d.semUtm) {
+                if (vistos[x.id] || lidas >= 150 || Date.now() - inicio > 6 * 60 * 1000) continue;
+                const texto = semAcento(await primeirasMensagens(x.id)); await sleep(300); lidas++; novos++;
+                const o = termos.find((o) => o.termos.some((t) => texto.includes(t)));
+                vistos[x.id] = { o: o ? o.nome : "", t: x.t || "", k: x.k || "" };
+              }
+              if (novos) try { await setDoc(doc(db, "helena", "msgs_" + d.mes), { vistos, atualizadoEm: new Date().toISOString() }); } catch (_) {}
+              const ag = {};
+              for (const x of d.semUtm) { const v = vistos[x.id]; if (!v || !v.o) continue; const g = ag[v.o] || (ag[v.o] = { nome: v.o, n: 0, telefones: [], nomes: [] }); g.n++; if (v.t && !g.telefones.includes(v.t)) g.telefones.push(v.t); if (v.k && !g.nomes.includes(v.k)) g.nomes.push(v.k); }
+              d.origens = Object.values(ag).sort((a, b) => b.n - a.n);
+              d.semUtmLidas = d.semUtm.filter((x) => vistos[x.id]).length; d.semUtmTotal = d.semUtm.length;
+            }
+            return lidas;
           }
           async function sincronizarHelena(db) {
             if (!process.env.HELENA_TOKEN) { console.log("Helena: sem o segredo HELENA_TOKEN no GitHub, pulado."); return; }
             try {
               const agora = mesSP(new Date());
-              for (const ym of [addMes(agora, -1), agora]) {
-                const d = await contarMesHelena(ym);
-                await setDoc(doc(db, "helena", "mes_" + ym), d);
-                console.log("Helena " + ym + ": " + d.total + " atendimentos novos, " + Object.keys(d.porAgente).length + " atendentes, " + d.semAtendente + " sem atendente; " + (d.total - d.semCampanha) + " vindos de campanhas (" + d.campanhas.length + " campanhas/anúncios).");
+              let origens = ORIGENS_PADRAO;
+              try { const s = await getDoc(doc(db, "config", "comercial")); if (s.exists() && Array.isArray(s.data().origens)) origens = s.data().origens; } catch (_) {}
+              const meses = [];
+              for (const ym of [addMes(agora, -1), agora]) meses.push(await contarMesHelena(ym));
+              let lidas = 0;
+              try { lidas = await lerOrigens(db, meses, origens); } catch (e) { console.log("Helena origens: não lidas — " + String((e && e.message) || e).slice(0, 150)); }
+              for (const d of meses) {
+                const { semUtm, ...grava } = d;
+                await setDoc(doc(db, "helena", "mes_" + d.mes), grava);
+                console.log("Helena " + d.mes + ": " + d.total + " atendimentos novos, " + Object.keys(d.porAgente).length + " atendentes, " + d.semAtendente + " sem atendente; " + (d.total - d.semCampanha) + " vindos de anúncios (" + d.campanhas.length + " anúncios); " + (d.semUtmLidas || 0) + " de " + (d.semUtmTotal || 0) + " conversas sem anúncio já lidas" + ((d.origens || []).length ? ", " + d.origens.map((o) => o.nome + ": " + o.n).join(", ") : "") + ".");
               }
+              if (lidas) console.log("Helena: " + lidas + " conversas sem anúncio lidas nesta rodada.");
             } catch (e) {
               console.log("Helena: não atualizado — " + ((e && e.message) || e) + ". O resto do portal segue normalmente.");
             }
@@ -453,7 +496,7 @@ jobs:
             const gid = (String(link).match(/[#&?]gid=(\d+)/) || [])[1];
             return `https://docs.google.com/spreadsheets/d/${id}/export?format=csv${gid ? "&gid=" + gid : ""}`;
           }
-          const CAMPOS_CRM = ["cliente", "destino", "vendedor", "vendedorNome", "casa", "valorBRL", "valorUSD", "cotacao", "semCotacao", "valor", "fechamento", "embarque", "retorno", "pax", "statusCrm", "pagoBRL", "saldoBRL", "pagoUSD", "saldoUSD", "origemLead", "conferir", "roteiro", "reembolsoBRL", "reembolsoUSD", "reembolsoDetalhe", "descontoBRL", "moedaCrm"];
+          const CAMPOS_CRM = ["cliente", "destino", "vendedor", "vendedorNome", "casa", "valorBRL", "valorUSD", "cotacao", "semCotacao", "valor", "fechamento", "embarque", "retorno", "pax", "statusCrm", "pagoBRL", "saldoBRL", "pagoUSD", "saldoUSD", "origemLead", "conferir", "roteiro", "reembolsoBRL", "reembolsoUSD", "reembolsoDetalhe", "descontoBRL", "moedaCrm", "telefone"];
           // Chave para cruzar pessoas entre sistemas pelo nome: primeiro + último nome, sem acento (nomes de uma palavra só não contam)
           function chaveNome(nome) {
             const t = semAcento(nome).replace(/[^a-z ]+/g, " ").split(" ").filter(x => x.length > 1 && !["de", "da", "do", "das", "dos", "e"].includes(x));
@@ -469,7 +512,7 @@ jobs:
             const antigas = ctx.antigas || {}, membros = ctx.membros || {}, cotacoes = ctx.cotacoes || {};
             const linhas = lerCSV(txt); if (linhas.length < 2) throw new Error("A planilha de vendas está vazia.");
             const cab = linhas[0].map(semAcento), col_ = (nome) => cab.findIndex(h => h === nome || h.startsWith(nome));
-            const ix = { data: col_("data da venda"), dest: col_("destino"), rot: col_("roteiro"), cli: col_("cliente"), vend: col_("vendedor"), st: col_("status"), pax: col_("pax"), cheg: col_("chegada"), part: col_("partida"), tot: col_("valor final r$") >= 0 ? col_("valor final r$") : col_("total r$"), pago: col_("pago r$"), saldo: col_("saldo r$"), totU: col_("valor final us$") >= 0 ? col_("valor final us$") : col_("total us$"), subU: col_("subtotal us$"), adicU: col_("adicionais us$"), descU: col_("descontos us$"), reemb: col_("reembolsos r$"), reembU: col_("reembolsos us$"), reembD: col_("detalhe dos reembolsos"), desc: col_("descontos r$"), moeda: col_("moeda do preco"), pagoU: col_("pago us$"), saldoU: col_("saldo us$"), orig: col_("origem"), conf: col_("conferir"), conta: col_("conta no total"), cot: cab.findIndex(h => /^(cotacao|cambio|taxa de cambio)/.test(h)) };
+            const ix = { data: col_("data da venda"), dest: col_("destino"), rot: col_("roteiro"), cli: col_("cliente"), vend: col_("vendedor"), st: col_("status"), pax: col_("pax"), cheg: col_("chegada"), part: col_("partida"), tot: col_("valor final r$") >= 0 ? col_("valor final r$") : col_("total r$"), pago: col_("pago r$"), saldo: col_("saldo r$"), totU: col_("valor final us$") >= 0 ? col_("valor final us$") : col_("total us$"), subU: col_("subtotal us$"), adicU: col_("adicionais us$"), descU: col_("descontos us$"), reemb: col_("reembolsos r$"), reembU: col_("reembolsos us$"), reembD: col_("detalhe dos reembolsos"), desc: col_("descontos r$"), moeda: col_("moeda do preco"), tel: cab.findIndex(h => ["telefone", "phone_number", "phone", "celular", "whatsapp", "telefone do cliente"].includes(h)), pagoU: col_("pago us$"), saldoU: col_("saldo us$"), orig: col_("origem"), conf: col_("conferir"), conta: col_("conta no total"), cot: cab.findIndex(h => /^(cotacao|cambio|taxa de cambio)/.test(h)) };
             if (ix.data < 0 || ix.cli < 0 || ix.tot < 0) throw new Error("Não reconheci as colunas da planilha de vendas (faltam Data da venda, Cliente ou Valor final R$).");
             const v_ = (l, k) => ix[k] >= 0 ? (l[ix[k]] || "").trim() : "";
             const vistos = {}; let novas = 0, alteradas = 0, ignoradas = 0; const escritas = [];
@@ -500,7 +543,7 @@ jobs:
                 fechamento, embarque: lerData(v_(l, "cheg")), retorno: lerData(v_(l, "part")), pax: Number(v_(l, "pax")) || null,
                 statusCrm: v_(l, "st"), pagoBRL, saldoBRL, pagoUSD, saldoUSD,
                 origemLead: v_(l, "orig"), conferir: v_(l, "conf"), roteiro: v_(l, "rot"),
-                reembolsoBRL: lerMoeda(v_(l, "reemb")), reembolsoUSD: usdCel("reembU"), reembolsoDetalhe: v_(l, "reembD"), descontoBRL: lerMoeda(v_(l, "desc")), moedaCrm: v_(l, "moeda")
+                reembolsoBRL: lerMoeda(v_(l, "reemb")), reembolsoUSD: usdCel("reembU"), reembolsoDetalhe: v_(l, "reembD"), descontoBRL: lerMoeda(v_(l, "desc")), moedaCrm: v_(l, "moeda"), telefone: v_(l, "tel").replace(/[^\d+]/g, "")
               };
               const mudou = !antigo || CAMPOS_CRM.some(k => JSON.stringify(antigo[k] ?? null) !== JSON.stringify(d[k] ?? null));
               if (!mudou) continue;
