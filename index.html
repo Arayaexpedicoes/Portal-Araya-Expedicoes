@@ -1251,12 +1251,14 @@ function cartaoPonto(u, pode) {
   const iso = isoDia(new Date()), e = escalaDoDia(u, iso), p = pontoDe(u, iso) || {}, w = trabalhado(p, iso), f = e.feriado;
   const prox = ETAPAS.find(([k]) => !p[k]);
   const escTxt = e.folga ? "Hoje é folga na sua escala. Se precisar trabalhar, registre normalmente." : `Sua escala hoje: ${hC(e.ini)} às ${hC(e.fim)}${e.pIni ? ` · almoço ${hC(e.pIni)} às ${hC(e.pFim)}` : ""}${e.ajuste ? " (dia ajustado)" : ""}`;
-  const botoes = !pode ? `<span class="muted small">Só a própria pessoa registra o ponto, pelo login dela.</span>`
-    : p.saida ? `<span class="pill ok">Dia encerrado</span>`
-    : `<button type="button" class="btn primary grande" data-act="bater-ponto" data-uid="${esc(u)}" data-etapa="${prox[0]}">Registrar ${prox[1].toLowerCase()}</button>${prox[0] === "pausaIni" ? `<button type="button" class="btn" data-act="bater-ponto" data-uid="${esc(u)}" data-etapa="saida">Registrar saída (sem almoço)</button>` : ""}`;
+  // na visualização da administradora ("Ver como") os botões aparecem iguais, mas desativados
+  const dis = pode ? "" : ' disabled title="Na visualização os botões ficam desativados. No login dela, funcionam."';
+  const botoes = p.saida ? `<span class="pill ok">Dia encerrado</span>`
+    : `<button type="button" class="btn primary grande" data-act="bater-ponto" data-uid="${esc(u)}" data-etapa="${prox[0]}"${dis}>Registrar ${prox[1].toLowerCase()}</button>${prox[0] === "pausaIni" ? `<button type="button" class="btn" data-act="bater-ponto" data-uid="${esc(u)}" data-etapa="saida"${dis}>Registrar saída (sem almoço)</button>` : ""}`;
   return `<section class="panel ponto-hoje"><div class="section-head"><div><h3>Hoje · ${DIAS_L[new Date().getDay()]}, ${dLabel(iso).slice(0, 5)}</h3><span class="muted small">${escTxt}</span></div>${f ? `<span class="pill warn">Feriado · ${esc(f.nome)}${f.facultativo ? " (facultativo)" : ""}</span>` : ""}</div>
     <div class="marcas">${ETAPAS.map(([k, t]) => `<div class="marca ${p[k] ? "on" : ""}"><span>${t}</span><strong>${p[k] ? hTxt(p[k]) : "—"}</strong></div>`).join("")}</div>
-    <div class="row">${botoes}${pode ? `<button type="button" class="btn ghost" data-act="corrigir-ponto" data-uid="${esc(u)}" data-iso="${iso}">Corrigir horários</button>` : ""}</div>
+    <div class="row">${botoes}<button type="button" class="btn ghost" data-act="corrigir-ponto" data-uid="${esc(u)}" data-iso="${iso}"${dis}>Corrigir horários</button></div>
+    ${pode ? "" : `<p class="muted small" style="margin:0">Você está na visualização: os botões aparecem como para ela, mas só funcionam no login dela. Para corrigir o ponto por aqui, use Disponibilidade → Escala e ponto (CLT).</p>`}
     ${w && w.min != null ? `<p class="muted small" style="margin:0">Trabalhado hoje: <strong>${durTxt(w.min)}</strong>${w.aberto ? " (até agora)" : ""} · previsto: ${durTxt(e.previsto)}${w.aberto ? "" : ` · saldo do dia: <strong>${durTxt(w.min - e.previsto, true)}</strong>`}</p>` : ""}
   </section>`;
 }
@@ -1273,13 +1275,13 @@ function painelFeriados() {
     <div class="feriados">${fs.map(([iso, f]) => `<div class="feriado"><div class="fd"><strong>${iso.slice(8, 10)}/${iso.slice(5, 7)}</strong><span>${DIAS_C[new Date(iso + "T12:00:00").getDay()]}</span></div><div><strong>${esc(f.nome)}</strong>${f.facultativo ? ' <span class="pill neutral">facultativo</span>' : ""}<div class="muted small">${ps.map(p => { const e = escalaDoDia(p, iso); return esc(nomeEsc(p)) + ": " + (e.folga ? "folga" : hC(e.ini) + "–" + hC(e.fim)); }).join(" · ")}</div></div></div>`).join("")}</div></section>`;
 }
 function painelPontoMes(u, M, admin) {
-  const r = resumoPonto(u, M), pode = admin || (u === S.email && !S.previewUid), hoje = isoDia(new Date());
+  const r = resumoPonto(u, M), pode = admin || (u === S.email && !S.previewUid), mostra = pode || !!S.previewUid, hoje = isoDia(new Date());
   const cel = (l) => {
     const { e, p, w } = l, f = e.feriado;
     const saldo = l.estado === "semreg" ? '<span class="pill warn">sem registro</span>' : l.estado === "incompleto" ? '<span class="pill warn">incompleto</span>' : l.estado === "andamento" ? '<span class="pill info">em andamento</span>' : l.saldo != null ? `<span class="${l.saldo > 0 ? "pos" : l.saldo < 0 ? "neg" : ""}">${durTxt(l.saldo, true)}</span>` : '<span class="muted">—</span>';
     return `<tr class="${f ? "fer" : ""} ${e.folga && !p ? "folga-l" : ""}"><td><strong>${dataCurta(l.iso)}</strong>${l.iso === hoje ? ' <span class="pill info">hoje</span>' : ""}${f ? `<div class="fer-nome">${esc(f.nome)}</div>` : ""}${p && p.ajustado ? `<div><span class="pill neutral" title="${esc((p.log || []).slice(-1).map(x => x.txt).join(""))}">ajustado</span></div>` : ""}</td>
       <td class="esc-c small">${e.folga ? "Folga" : hC(e.ini) + "–" + hC(e.fim)}</td><td>${hTxt(p && p.entrada)}</td><td class="alm">${p && (p.pausaIni || p.pausaFim) ? hTxt(p.pausaIni) + " – " + hTxt(p.pausaFim) : "—"}</td><td>${hTxt(p && p.saida)}</td>
-      <td class="n">${w && w.min != null ? durTxt(w.min) : "—"}</td><td class="n">${saldo}</td><td>${pode ? `<button type="button" class="btn sm ghost" data-act="corrigir-ponto" data-uid="${esc(u)}" data-iso="${l.iso}" title="Corrigir horários deste dia"><span class="l">Corrigir</span><span class="s">✎</span></button>` : ""}</td></tr>`;
+      <td class="n">${w && w.min != null ? durTxt(w.min) : "—"}</td><td class="n">${saldo}</td><td>${mostra ? `<button type="button" class="btn sm ghost" data-act="corrigir-ponto" data-uid="${esc(u)}" data-iso="${l.iso}" title="Corrigir horários deste dia"${pode ? "" : " disabled"}><span class="l">Corrigir</span><span class="s">✎</span></button>` : ""}</td></tr>`;
   };
   const sel = admin ? "" : `<div class="field"><label for="f-ponto-mes">Mês</label><select id="f-ponto-mes" data-filter="pontoMes">${Array.from({ length: 12 }, (_, i) => addM(ymNow(), -i)).map(m => `<option value="${m}" ${m === M ? "selected" : ""}>${ymLabel(m)}</option>`).join("")}</select></div>`;
   return `<section class="panel"><div class="section-head"><div><h3>${admin ? "Ponto · " + esc(nomeEsc(u)) : "Meu ponto"} · ${ymLong(M)}</h3><span class="muted small">O saldo compara as horas registradas com a escala de cada dia (só dias com entrada e saída completas).</span></div><div class="row" style="align-items:flex-end">${sel}<button type="button" class="btn sm" data-act="baixar-ponto" data-uid="${esc(u)}" data-ym="${M}">Baixar planilha</button></div></div>
