@@ -330,6 +330,11 @@ table.ponto .pos{color:var(--ok);font-weight:700} table.ponto .neg{color:var(--b
 .esc-linha .rot{min-width:170px;color:var(--muted)}
 .esc-linha input,.esc-linha select{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg)}
 @media (max-width:640px){ .marcas{grid-template-columns:repeat(2,minmax(0,1fr))} table.ponto .esc-c,table.ponto .alm{display:none} .esc-cel{min-width:0} .esc-linha .rot{min-width:100%} .btn.grande{width:100%} table.escala .esc-cel small{display:none} table.escala .esc-cel{padding:4px 6px;font-size:.8rem} table.escala .esc-cel b{white-space:nowrap} table.escala td,table.escala th{padding-left:4px;padding-right:4px} table.escala .dia{white-space:normal;font-size:.82rem} table.escala .dia .pill{display:none} table.ponto{font-size:.82rem} table.ponto td,table.ponto th{padding-left:6px;padding-right:6px} }
+.comp-frases{display:grid;gap:4px}.comp-frases p{margin:0}
+table.comp tr.atual td{background:color-mix(in srgb, var(--accent-soft) 55%, transparent)}
+table.comp .pos{color:var(--ok);font-weight:700} table.comp .neg{color:var(--bad);font-weight:700}
+table.comp .barcol{width:22%}
+@media (max-width:640px){ table.comp .barcol,table.comp .qcol{display:none} table.comp{font-size:.8rem} table.comp td,table.comp th{padding-left:5px;padding-right:5px} }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 
 .auth{min-height:calc(100vh - 140px);display:grid;place-items:center;padding-block:24px}
@@ -479,7 +484,7 @@ const col = (n) => S.db.collection(n);
 const docsOf = (snap) => snap.docs.map(d => ({ id: d.id, ...d.data() }));
 function setMembers(rows) { S.members = Object.fromEntries(rows.map(r => [r.id, { apelido: r.apelido || "", nomeCrm: r.nomeCrm || "", nomeHelena: r.nomeHelena || "", vendedora: r.vendedora !== false, supervisor: r.supervisor === true, bonus: r.bonus !== false, semEmail: r.semEmail === true, pct: r.pct == null ? null : Number(r.pct), abas: r.abas || {}, ativo: r.ativo !== false, uid: r.uid || null }])); }
 function setVendas(rows) { S.vendas = Object.fromEntries(rows.map(r => [r.id, { ...r, cliente: r.cliente || "", vendedor: r.vendedor, destino: r.destino || "", valor: Number(r.valor) || 0, pct: Number(r.pct) || 0, fechamento: r.fechamento || "", embarque: r.embarque || "", status: r.status || "ativa", pagaEm: r.pagaEm || null, origem: r.origem || "manual" }])); }
-function setAtend(rows) { S.atend = {}; for (const r of rows) (S.atend[r.mes] ||= { porPessoa: {} }).porPessoa[r.email] = r.n; }
+function setAtend(rows) { S.atend = {}; S.atendDocs = {}; S.atendMeta = {}; for (const r of rows) { (S.atend[r.mes] ||= { porPessoa: {} }).porPessoa[r.email] = r.n; S.atendDocs[r.mes + "__" + r.email] = r; if (r.nome || r.vende != null) S.atendMeta[r.email] = { nome: r.nome || "", vende: r.vende !== false }; } }
 function computeEquipe() {
   const hoje = ymNow(); const meses = [hoje, addM(hoje, -1), addM(hoje, -2)];
   const ativas = allVendas().filter(v => v.status !== "cancelada");
@@ -515,8 +520,9 @@ async function syncAtendHelena() {
   const hp = helenaPorMes(); const lote = S.db.batch(); let n = 0;
   for (const [mes, r] of Object.entries(hp)) for (const u of activeMembers()) {
     const v = r.porPessoa[u] || 0, atual = S.atend[mes] && S.atend[mes].porPessoa ? S.atend[mes].porPessoa[u] : undefined;
-    if (atual === v || (!v && atual == null)) continue;
-    lote.set(col("atendimentos").doc(mes + "__" + u), { mes, email: u, n: v, origem: "helena" }); n++;
+    const doc = (S.atendDocs || {})[mes + "__" + u], nome = label(u), vende = S.members[u].vendedora !== false;
+    if ((!v && atual == null) || (atual === v && doc && doc.nome === nome && doc.vende === vende)) continue;
+    lote.set(col("atendimentos").doc(mes + "__" + u), { mes, email: u, n: v, origem: "helena", nome, vende }); n++;
     (S.atend[mes] ||= { porPessoa: {} }).porPessoa[u] = v;
   }
   if (n) await lote.commit();
@@ -549,8 +555,11 @@ async function loadAll() {
   try { meSnap = await col("equipe").doc(me).get(); } catch (e) { if (e && e.code === "permission-denied") { S.members = {}; return; } throw e; }
   setMembers(meSnap.exists ? [{ id: me, ...meSnap.data() }] : []);
   if (!meSnap.exists || meSnap.data().ativo === false) return;
+  const souSupervisora = meSnap.data().supervisor === true;
   const [vs, at, ds, ps] = await Promise.all([col("vendas").where("vendedor", "==", me).get(), col("atendimentos").where("email", "==", me).get(), col("destinos").get(), col("passeios").get()]);
-  setVendas(docsOf(vs)); setAtend(docsOf(at)); S.destinos = docsOf(ds); S.passeios = docsOf(ps);
+  setVendas(docsOf(vs)); setAtend(docsOf(at));
+  // a supervisão vê os atendimentos de toda a equipe (se as regras novas ainda não foram publicadas, fica só com os próprios)
+  if (souSupervisora) { try { setAtend(docsOf(await col("atendimentos").get())); } catch (_) {} } S.destinos = docsOf(ds); S.passeios = docsOf(ps);
   await carregarTickets(); await carregarDisp(); await carregarEscala();
   const souSup = meSnap.data().supervisor === true;
   try { S.bonus = Object.fromEntries(docsOf(await (souSup ? col("bonus") : col("bonus").where("email", "==", me)).get()).map(b => [b.id, b])); } catch (_) { S.bonus = {}; }
@@ -743,6 +752,35 @@ function renderMember(data, viewingAs) {
   setMain(html);
 }
 
+// Comparativo do vendedor: mês atual (em andamento) contra os 2 ou 4 meses anteriores, no mês inteiro e no mesmo período (até o mesmo dia)
+function comparativoPainel(ativas, hoje) {
+  const n = S.filtros.compN === "2" ? 2 : 4, dia = new Date().getDate();
+  const linhas = Array.from({ length: n + 1 }, (_, i) => addM(hoje, -i)).map(m => {
+    const l = ativas.filter(v => ymOf(v.fechamento) === m), ate = l.filter(v => +String(v.fechamento).slice(8, 10) <= dia);
+    return { m, q: l.length, v: l.reduce((s, x) => s + (Number(x.valor) || 0), 0), vAte: ate.reduce((s, x) => s + (Number(x.valor) || 0), 0), qAte: ate.length };
+  });
+  const [cur, ...ant] = linhas, prev = ant[0], mx = Math.max(1, ...linhas.map(x => x.v));
+  const pct = (a, b) => b ? Math.round((a - b) / b * 100) : null;
+  const seta = (a, b) => { const p = pct(a, b); return p == null ? (a ? '<span class="pill ok">novo</span>' : '<span class="muted">—</span>') : `<span class="${p > 0 ? "pos" : p < 0 ? "neg" : ""}">${p > 0 ? "▲" : p < 0 ? "▼" : "="} ${Math.abs(p)}%</span>`; };
+  const nomeM = (m) => MESES_L[+m.slice(5) - 1];
+  const melhor = ant.reduce((a, x) => x.v > a.v ? x : a, ant[0]);
+  const passou = ant.filter(x => x.v > 0 && cur.v > x.v);
+  const pP = pct(cur.vAte, prev.vAte);
+  const frases = [
+    `Até hoje (dia ${dia}), você vendeu <strong>${money(cur.v)}</strong> em ${cur.q} ${cur.q === 1 ? "venda" : "vendas"}.`,
+    prev.vAte || cur.vAte ? (pP == null ? `No mesmo período de ${nomeM(prev.m)} você ainda não tinha vendas.` : pP === 0 ? `Igual ao mesmo período de ${nomeM(prev.m)}.` : `${pP > 0 ? "▲ " + pP + "% a mais" : "▼ " + Math.abs(pP) + "% a menos"} que no mesmo período de ${nomeM(prev.m)} (${money(prev.vAte)} até o dia ${dia}).`) : "",
+    passou.length ? `Você já passou o total de ${passou.map(x => nomeM(x.m)).join(", ").replace(/, ([^,]*)$/, " e $1")}. 🎉` : prev.v ? `Para igualar ${nomeM(prev.m)} inteiro, faltam <strong>${money(Math.max(0, prev.v - cur.v))}</strong>.` : "",
+    melhor && melhor.v ? `Seu melhor mês no período: <strong>${nomeM(melhor.m)}</strong>, com ${money(melhor.v)}.` : ""
+  ].filter(Boolean);
+  return `<section class="panel"><div class="section-head"><div><h3>Comparativo dos últimos meses</h3><span class="muted small">Valor vendido pela data de fechamento. Como ${nomeM(hoje)} ainda está em andamento, a coluna “Até o dia ${dia}” compara o mesmo período de cada mês.</span></div>
+    <nav class="subnav" aria-label="Período do comparativo">${[["2", "2 meses"], ["4", "4 meses"]].map(([k, t]) => `<button type="button" data-compn="${k}" aria-current="${String(n) === k}">${t}</button>`).join("")}</nav></div>
+    <div class="comp-frases">${frases.map(f => `<p>${f}</p>`).join("")}</div>
+    <div class="tablewrap"><table class="comp"><thead><tr><th>Mês</th><th class="n qcol">Vendas</th><th class="n">Valor vendido</th><th class="barcol"></th><th class="n">Até o dia ${dia}</th><th class="n">vs mês anterior</th></tr></thead><tbody>
+    ${linhas.map((x, i) => { const base = linhas[i + 1]; return `<tr class="${i === 0 ? "atual" : ""} ${x === melhor && x.v ? "melhor" : ""}"><td><strong>${ymLabel(x.m)}</strong>${i === 0 ? ' <span class="pill info">em andamento</span>' : x === melhor && x.v ? ' <span class="pill ok">melhor</span>' : ""}</td><td class="n qcol">${x.q}</td><td class="n">${money(x.v)}</td><td class="barcol"><div class="bar"><i style="width:${Math.round(x.v / mx * 100)}%"></i></div></td><td class="n">${money(x.vAte)}</td><td class="n">${base ? (i === 0 ? seta(x.vAte, base.vAte) : seta(x.v, base.v)) : '<span class="muted">—</span>'}</td></tr>`; }).join("")}
+    </tbody></table></div>
+    <p class="muted small" style="margin:0">No mês atual, a comparação com o anterior é feita até o mesmo dia; nos meses fechados, pelo mês inteiro.</p>
+  </section>`;
+}
 function memberInicio(data, vendas, hoje, viewingAs) {
   if (data.vendedora === false) {
     const nome = data.apelido || "", atend = data.atendimentos ? data.atendimentos[hoje] : null;
@@ -786,6 +824,7 @@ function memberInicio(data, vendas, hoje, viewingAs) {
     <div class="tile"><span class="k">Conversão</span><span class="v">${conv == null ? "—" : conv.toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + "%"}</span><span class="d">Vendas ÷ atendimentos do mês</span></div>
     <div class="tile feature"><span class="k">Comissão de ${MESES_L[+hoje.slice(5) - 1]}</span><span class="v">${money(comMes)}</span><span class="d">Paga em ${MESES_L[+addM(hoje, 1).slice(5) - 1]} · ${MESES_L[+addM(hoje, -1).slice(5) - 1]}: ${money(comAnt)}</span></div>
   </div>
+  ${comparativoPainel(ativas, hoje)}
   ${bonusHtml}
   ${meusOrcamentosPainel(meusOrc)}
   ${comissoesPorMesPainel(ativas, hoje)}
@@ -1078,7 +1117,7 @@ function ticketsView() {
 // ---------- administração ----------
 // Quem vende (recebe comissão e aparece nos relatórios de vendas). Camila e Juliana, por exemplo, não.
 const vendedoras = () => activeMembers().filter(u => S.members[u].vendedora !== false);
-const naoVende = (u) => !!(S.members[u] && S.members[u].vendedora === false);
+const naoVende = (u) => S.members[u] ? S.members[u].vendedora === false : !!(S.atendMeta && S.atendMeta[u] && S.atendMeta[u].vende === false);
 // Nomes que não aparecem nos relatórios (vendas e orçamentos de quem não tem cadastro, atendentes do Helena)
 const OCULTOS_PADRAO = ["Caroline Pachu", "Maju Malavolta", "Leticia Maciel", "Roberta Gameiro", "Thaís Santana", "Alvaro Penna", "Karol Marinho", "Raquel Theodoro"];
 const listaOcultos = () => Array.isArray(S.comercial.ocultos) ? S.comercial.ocultos : OCULTOS_PADRAO;
@@ -1477,7 +1516,6 @@ function ownerComercial() {
   const fat = soma(doMes), fatA = soma(ant), q = doMes.length, qA = ant.length;
   const ticket = q ? fat / q : 0, ticketA = qA ? fatA / qA : 0, pax = soma(doMes, "pax");
   const delta = (a, b) => b ? `<span class="delta">${a >= b ? "▲" : "▼"} ${Math.abs((a - b) / b * 100).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}% vs ${ymLabel(A)}</span>` : `<span class="delta">Sem base em ${ymLabel(A)}</span>`;
-  const meta = Number((S.comercial.metas || {})[M]) || 0;
   const meses = Array.from({ length: 12 }, (_, i) => addM(M, i - 11));
   const porMes = meses.map(m => { const l = ativas.filter(v => ymOf(v.fechamento) === m); return { m, q: l.length, v: soma(l) }; });
   const maxM = Math.max(1, ...porMes.map(x => x.v));
@@ -1502,10 +1540,6 @@ function ownerComercial() {
     <div class="tile"><span class="k">Ticket médio</span><span class="v">${money(ticket)}</span>${delta(ticket, ticketA)}</div>
     <div class="tile"><span class="k">Viajantes</span><span class="v">${pax || "—"}</span><span class="d">${pax ? "Passageiros das vendas do mês" : "A planilha não informou"}</span></div>
   </div>
-  <section class="panel"><div class="section-head"><div><h3>Meta de ${ymLong(M)}</h3>${meta ? `<span class="muted small">${money(fat)} de ${money(meta)} · ${(fat / meta * 100).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}%${fat < meta ? " · faltam " + money(meta - fat) : " · meta batida 🎉"}</span>` : `<span class="muted small">${admin ? "Defina um valor para acompanhar." : "A meta do mês ainda não foi definida."}</span>`}</div>
-    ${admin ? `<div class="field" style="width:180px"><label for="meta-mes">Meta (R$)</label><input type="number" min="0" step="1000" id="meta-mes" data-meta="${M}" value="${meta || ""}" placeholder="Ex.: 600000"></div>` : ""}</div>
-    ${meta ? `<div class="meta-bar" role="progressbar" aria-valuenow="${Math.round(fat / meta * 100)}" aria-valuemin="0" aria-valuemax="100"><i style="width:${Math.min(100, Math.round(fat / meta * 100))}%"></i></div>` : ""}
-  </section>
   <section class="panel"><h3>Valor vendido por mês</h3>
     <div class="colunas" role="img" aria-label="Valor vendido nos últimos 12 meses">${porMes.map(x => `<div class="c ${x.m === M ? "sel" : ""}" title="${ymLabel(x.m)}: ${x.q} ${x.q === 1 ? "venda" : "vendas"} · ${money(x.v)}"><div class="b" style="height:${Math.max(1, Math.round(x.v / maxM * 100))}%">${x.v ? `<span>${(x.v / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 0 })} mil</span>` : ""}</div><div class="m">${ymLabel(x.m).replace("/20", "/")}</div></div>`).join("")}</div>
     <details><summary class="muted small" style="cursor:pointer">Ver em tabela</summary><div class="tablewrap"><table><thead><tr><th>Mês</th><th class="n">Vendas</th><th class="n">Valor</th></tr></thead><tbody>${porMes.slice().reverse().map(x => `<tr><td>${ymLabel(x.m)}</td><td class="n">${x.q}</td><td class="n">${money(x.v)}</td></tr>`).join("")}</tbody></table></div></details>
@@ -1617,7 +1651,7 @@ function ownerFunil() {
   const admin = S.isAdmin && !S.previewUid;
   const orcs = orcLista(), vendas = listaEquipe().filter(v => v.status !== "cancelada");
   const pessoas = [...new Set([...(admin ? vendedoras() : []), ...orcs.map(o => o.vendedor), ...vendas.filter(v => ymOf(v.fechamento) === M).map(v => v.vendedor), ...Object.keys(((S.atend[M] || {}).porPessoa) || {})])].filter(u => u && !naoVende(u) && (admin ? S.members[u] : true));
-  const nomeDe = (u) => u === "__outros" ? "Outros (sem cadastro no portal ou venda da casa)" : (S.members[u] && S.members[u].apelido) || ((orcs.find(o => o.vendedor === u) || vendas.find(v => v.vendedor === u) || {}).vendedorNome) || u;
+  const nomeDe = (u) => u === "__outros" ? "Outros (sem cadastro no portal ou venda da casa)" : (S.members[u] && S.members[u].apelido) || (S.atendMeta && S.atendMeta[u] && S.atendMeta[u].nome) || ((orcs.find(o => o.vendedor === u) || vendas.find(v => v.vendedor === u) || {}).vendedorNome) || u;
   const semPlanilha = !S.comercial.planilhaOrc && !orcs.length, semData = orcs.length > 0 && !orcs.some(o => o.criado);
   const linhas = funilDados(M, pessoas, semData).filter(l => l.at || l.orc || l.vq).sort((a, b) => (b.vV - a.vV) || (b.orc - a.orc));
   { const oo = orcs.filter(o => !o.vendedor && (semData ? orcAberto(o, hojeD) : ymOf(o.criado) === M)), vo = vendas.filter(v => !v.vendedor && ymOf(v.fechamento) === M);
@@ -2053,6 +2087,7 @@ async function run(p, okMsg) { await p; await reload(okMsg); }
 $("#main").addEventListener("click", async (e) => {
   const go = e.target.closest("[data-tab-go]"); if (go) { S.tab = go.dataset.tabGo; render(); return; }
   const od = e.target.closest("[data-orcdest]"); if (od) { const k = od.dataset.orcdest; S.filtros.orcDest = S.filtros.orcDest === k ? "" : k; S.orcTodosAberto = !!(document.getElementById("orc-todos") || {}).open; render(); return; }
+  const cn = e.target.closest("[data-compn]"); if (cn) { S.filtros.compN = cn.dataset.compn; render(); return; }
   const ags = e.target.closest("[data-agsub]"); if (ags) { S.filtros.agSub = ags.dataset.agsub; try { localStorage.setItem("araya-agsub", S.filtros.agSub); } catch (_) {} render(); return; }
   const cs = e.target.closest("[data-comsub]"); if (cs) { S.filtros.comSub = cs.dataset.comsub; try { localStorage.setItem("araya-comsub", S.filtros.comSub); } catch (_) {} render(); return; }
   const dest = e.target.closest("[data-dest]"); if (dest) { S.filtros.destino = dest.dataset.dest; S.filtros.passeio = "__geral"; S.filtros.fichaTab = "resumo"; render(); return; }
@@ -2186,7 +2221,7 @@ $("#main").addEventListener("change", async (e) => {
       const atual = S.atend[mes] && S.atend[mes].porPessoa ? S.atend[mes].porPessoa[email] : undefined;
       if ((atual ?? null) === n) return;
       const ref = col("atendimentos").doc(mes + "__" + email);
-      if (n == null) await run(ref.delete()); else await run(ref.set({ mes, email, n }));
+      if (n == null) await run(ref.delete()); else await run(ref.set({ mes, email, n, nome: label(email), vende: (S.members[email] || {}).vendedora !== false }));
     } else if (t.id === "imp-passeios" && t.files && t.files[0]) {
       await importarPasseios(t.files[0]);
     }
