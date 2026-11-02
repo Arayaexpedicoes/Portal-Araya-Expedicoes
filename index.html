@@ -297,6 +297,39 @@ td.hojecol,th.hojecol{background:color-mix(in srgb, var(--accent-soft) 55%, tran
 .notice{font-size:.82rem;color:var(--muted);background:var(--surface-2);border-radius:10px;padding:8px 12px}
 .center{min-height:52vh;display:grid;place-items:center;text-align:center}
 .center .box{max-width:460px;display:grid;gap:10px;justify-items:center;background:var(--surface);border-radius:18px;padding:30px 26px;box-shadow:var(--shadow)}
+/* escala e ponto (CLT) */
+.ponto-hoje{border:1px solid color-mix(in srgb, var(--accent) 35%, transparent)}
+.marcas{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.marca{background:var(--surface-2);border-radius:12px;padding:10px 12px;display:grid;gap:2px}
+.marca span{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.marca strong{font-family:var(--display);font-size:1.35rem;font-variant-numeric:tabular-nums}
+.marca.on{background:var(--ok-soft)} .marca.on strong{color:var(--ok)}
+.marcas.edit input{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg)}
+.btn.grande{padding:11px 22px;font-size:.95rem}
+table.escala td,table.escala th{vertical-align:top}
+table.escala .dia{white-space:nowrap}
+.esc-cel{display:grid;gap:1px;text-align:left;font:inherit;font-size:.86rem;background:transparent;border:1px solid transparent;border-radius:8px;padding:4px 8px;color:var(--fg);min-width:96px}
+.esc-cel small{font-size:.72rem;color:var(--muted)}
+button.esc-cel{cursor:pointer;border-color:var(--line)} button.esc-cel:hover{background:var(--surface-2)}
+.esc-cel.folga{color:var(--muted);font-style:italic}
+.esc-cel.aj{outline:2px solid var(--warn);outline-offset:-2px}
+tr.fds td{background:color-mix(in srgb, var(--surface-2) 55%, transparent)}
+tr.fer td{background:var(--warn-soft)}
+.fer-nome{font-size:.74rem;font-weight:700;color:var(--warn)}
+tr.folga-l td{color:var(--muted)}
+table.ponto .pos{color:var(--ok);font-weight:700} table.ponto .neg{color:var(--bad);font-weight:700}
+.feriados{display:grid;gap:10px}
+.feriado{display:flex;gap:12px;align-items:flex-start}
+.feriado .fd{background:var(--warn-soft);color:var(--warn);border-radius:10px;padding:6px 10px;display:grid;text-align:center;min-width:58px;line-height:1.2}
+.feriado .fd span{font-size:.72rem}
+.pessoas-hoje{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.ph{background:var(--surface-2);border-radius:12px;padding:12px 14px;display:grid;gap:6px;justify-items:start}
+.cfg-esc{display:grid;gap:16px;margin-top:14px}
+.esc-pessoa{display:grid;gap:8px;border-top:1px solid var(--line);padding-top:12px}
+.esc-linha{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:.88rem}
+.esc-linha .rot{min-width:170px;color:var(--muted)}
+.esc-linha input,.esc-linha select{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg)}
+@media (max-width:640px){ .marcas{grid-template-columns:repeat(2,minmax(0,1fr))} table.ponto .esc-c,table.ponto .alm{display:none} .esc-cel{min-width:0} .esc-linha .rot{min-width:100%} .btn.grande{width:100%} table.escala .esc-cel small{display:none} table.escala .esc-cel{padding:4px 6px;font-size:.8rem} table.escala .esc-cel b{white-space:nowrap} table.escala td,table.escala th{padding-left:4px;padding-right:4px} table.escala .dia{white-space:normal;font-size:.82rem} table.escala .dia .pill{display:none} table.ponto{font-size:.82rem} table.ponto td,table.ponto th{padding-left:6px;padding-right:6px} }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 
 .auth{min-height:calc(100vh - 140px);display:grid;place-items:center;padding-block:24px}
@@ -412,7 +445,7 @@ const pill = (st) => { const [c, t] = STATUS_PILL[st] || ["neutral", st]; return
 const S = {
   auth: null, db: null, session: null, resumoAtual: "", email: "", isAdmin: false, ready: false, authMode: "entrar", authMsg: null, recovery: false,
   members: {}, vendas: {}, notas: {}, atend: {}, destinos: [], passeios: [], tickets: [], equipeRes: null,
-  comercial: { planilha: "", cotacoes: {}, metas: {}, ultimaImportacao: "", ultimoResultado: null }, importando: false, vendasEquipe: null, bonus: {}, disp: {}, dispErro: false, helena: [], orc: {}, retornos: {},
+  comercial: { planilha: "", cotacoes: {}, metas: {}, ultimaImportacao: "", ultimoResultado: null }, importando: false, vendasEquipe: null, bonus: {}, disp: {}, dispErro: false, escala: { cfg: { pessoas: {} }, cfgExiste: false, ajustes: {}, ponto: {}, erro: false }, helena: [], orc: {}, retornos: {},
   tab: null, previewUid: null,
   filtros: { vend: "", mes: "", busca: "", comMes: ymNow(), painelMes: ymNow(), destino: null, passeio: null, tourBusca: "", minhasMes: "", tkDest: null, tkItem: null, tkBusca: "", comMesC: ymNow() },
   pendingRender: false
@@ -501,7 +534,7 @@ async function loadAll() {
     setMembers(docsOf(eq)); setVendas(docsOf(vs)); setAtend(docsOf(at));
     S.notas = Object.fromEntries(docsOf(ns).map(r => [r.id, r.obs || ""]));
     S.destinos = docsOf(ds); S.passeios = docsOf(ps);
-    await carregarTickets(); await carregarDisp();
+    await carregarTickets(); await carregarDisp(); await carregarEscala();
     try { const c = await col("config").doc("comercial").get(); if (c.exists) S.comercial = { ...S.comercial, cotacoes: {}, metas: {}, ...c.data() }; } catch (_) {}
     try { S.bonus = Object.fromEntries(docsOf(await col("bonus").get()).map(b => [b.id, b])); } catch (_) { S.bonus = {}; }
     if (rs.exists) { const d = rs.data(); S.resumoAtual = JSON.stringify({ meses: d.meses, pessoas: d.pessoas }); }
@@ -518,7 +551,7 @@ async function loadAll() {
   if (!meSnap.exists || meSnap.data().ativo === false) return;
   const [vs, at, ds, ps] = await Promise.all([col("vendas").where("vendedor", "==", me).get(), col("atendimentos").where("email", "==", me).get(), col("destinos").get(), col("passeios").get()]);
   setVendas(docsOf(vs)); setAtend(docsOf(at)); S.destinos = docsOf(ds); S.passeios = docsOf(ps);
-  await carregarTickets(); await carregarDisp();
+  await carregarTickets(); await carregarDisp(); await carregarEscala();
   const souSup = meSnap.data().supervisor === true;
   try { S.bonus = Object.fromEntries(docsOf(await (souSup ? col("bonus") : col("bonus").where("email", "==", me)).get()).map(b => [b.id, b])); } catch (_) { S.bonus = {}; }
   S.vendasEquipe = null;
@@ -559,7 +592,7 @@ function setMain(html) { $("#main").innerHTML = html; if (html.includes("data-mi
 function centerMsg(t, p, extra = "") { $("#tabs").innerHTML = ""; setMain(`<div class="center"><div class="box"><h2>${esc(t)}</h2><p class="muted">${p}</p>${extra}</div></div>`); }
 
 function ownerTabs() { return [["painel", "Visão geral"], ["comercial", "Comercial"], ["comissoes", "Comissões"], ["atendimentos", "Atendimentos"], ["agenda", "Disponibilidade"], ["acessos", "Equipe e acessos"], ["passeios", "Passeios"], ["tickets", "Tickets"]]; }
-function memberTabs(data) { const ab = { ...ABAS_PADRAO, ...((data && data.abas) || {}) }; const t = ABAS.filter(([k]) => ab[k] && !(k === "vendas" && data && data.vendedora === false)); if (data && data.supervisor) t.splice(1, 0, ["comercial", "Comercial da equipe"]); return t; }
+function memberTabs(data) { const ab = { ...ABAS_PADRAO, ...((data && data.abas) || {}) }; const t = ABAS.filter(([k]) => ab[k] && !(k === "vendas" && data && data.vendedora === false)).map(([k, n]) => k === "agenda" && data && data.clt ? [k, "Minha jornada"] : [k, n]); if (data && data.supervisor) t.splice(1, 0, ["comercial", "Comercial da equipe"]); return t; }
 
 function render() {
   _orcCache.v = null;
@@ -702,7 +735,7 @@ function renderMember(data, viewingAs) {
   if (S.tab === "inicio") html += memberInicio(data, vendas, hoje, viewingAs);
   else if (S.tab === "comissoes") html += memberComissoes(data, vendas, hoje);
   else if (S.tab === "vendas") html += memberVendas(vendas);
-  else if (S.tab === "agenda") html += agendaView(viewingAs || S.email);
+  else if (S.tab === "agenda") html += data.clt ? jornadaView(viewingAs || S.email, !viewingAs) : agendaView(viewingAs || S.email);
   else if (S.tab === "passeios") html += passeiosView();
   else if (S.tab === "tickets") html += ticketsView();
   else if (S.tab === "comercial" && data.supervisor) html += comSubnav(true) + (S.filtros.comSub === "funil" ? ownerFunil() : ownerComercial());
@@ -713,9 +746,10 @@ function renderMember(data, viewingAs) {
 function memberInicio(data, vendas, hoje, viewingAs) {
   if (data.vendedora === false) {
     const nome = data.apelido || "", atend = data.atendimentos ? data.atendimentos[hoje] : null;
-    return `<div class="section-head"><div><h2>Olá${nome ? ", " + esc(nome.split(" ")[0]) : ""}</h2><p>Aqui você encontra as fichas dos passeios, os tickets e a disponibilidade da equipe.</p></div></div>
+    return `<div class="section-head"><div><h2>Olá${nome ? ", " + esc(nome.split(" ")[0]) : ""}</h2><p>Aqui você encontra as fichas dos passeios, os tickets e ${data.clt ? "a sua jornada" : "a disponibilidade da equipe"}.</p></div></div>
+    ${data.clt && !S.escala.erro ? cartaoPonto(data.uid, !viewingAs) : ""}
     ${atend != null ? `<div class="tiles"><div class="tile"><span class="k">Atendimentos no mês</span><span class="v">${atend}</span><span class="d">Conversas que você recebeu em ${ymLong(hoje)}</span></div></div>` : ""}
-    <div class="row">${[["passeios", "Passeios"], ["tickets", "Tickets"], ["agenda", "Disponibilidade"]].filter(([k]) => memberTabs(data).some(t => t[0] === k)).map(([k, t]) => `<button class="btn" data-tab-go="${k}">${t}</button>`).join("")}</div>`;
+    <div class="row">${memberTabs(data).filter(([k]) => ["passeios", "tickets", "agenda"].includes(k)).map(([k, t]) => `<button class="btn" data-tab-go="${k}">${t}</button>`).join("")}</div>`;
   }
   const ativas = vendas.filter(v => v.status !== "cancelada");
   const doMes = ativas.filter(v => ymOf(v.fechamento) === hoje);
@@ -1070,8 +1104,8 @@ async function salvarDisp(email, d) {
   try { await col("disponibilidade").doc(email).set(doc); } catch (e) { toast(errMsg(e)); await reload(); }
 }
 function pessoasDisp() {
-  if (S.isAdmin) return activeMembers().map(u => ({ u, nome: label(u), d: S.disp[u] || null }));
-  return Object.entries(S.disp).map(([u, d]) => ({ u, nome: d.nome || u, d })).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+  if (S.isAdmin) return activeMembers().map(u => ({ u, nome: label(u), d: naEscala(u) ? dispDaEscala(u) : (S.disp[u] || null) }));
+  return [...Object.entries(S.disp).filter(([u]) => !naEscala(u)).map(([u, d]) => ({ u, nome: d.nome || u, d })), ...pessoasEscala().map(u => ({ u, nome: nomeEsc(u), d: dispDaEscala(u) }))].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
 }
 function agendaEquipe(eu) {
   const dias = proxDias(7), agora = periodoAgora(), pessoas = pessoasDisp();
@@ -1106,6 +1140,254 @@ function agendaView(email) {
   return intro + `<div class="grid2">${semana}${prox}</div>` + agendaEquipe(email);
 }
 
+// ---------- escala e ponto: equipe CLT (pós-venda), que cumpre jornada com horário ----------
+const ANCORA_PADRAO = "2026-09-05"; // um sábado da "semana A" (na planilha antiga: 🔵 Camila no sábado / Juliana no domingo)
+const ETAPAS = [["entrada", "Entrada"], ["pausaIni", "Saída para o almoço"], ["pausaFim", "Volta do almoço"], ["saida", "Saída"]];
+const minDe = (t) => { const m = String(t || "").match(/^(\d{1,2}):(\d{2})/); return m ? +m[1] * 60 + +m[2] : null; };
+const hTxt = (t) => t ? String(t).slice(0, 5).replace(":", "h") : "—";
+const hC = (t) => { const m = minDe(t); if (m == null) return "—"; return String(Math.floor(m / 60)).padStart(2, "0") + "h" + (m % 60 ? String(m % 60).padStart(2, "0") : ""); };
+const durTxt = (min, sinal) => { if (min == null) return "—"; const a = Math.abs(Math.round(min)); return (min < 0 ? "−" : sinal && min > 0 ? "+" : "") + Math.floor(a / 60) + "h" + String(a % 60).padStart(2, "0"); };
+const agoraHM = () => { const d = new Date(); return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); };
+const diasDoMes = (ym) => { const [y, m] = ym.split("-").map(Number); return Array.from({ length: new Date(y, m, 0).getDate() }, (_, i) => `${ym}-${String(i + 1).padStart(2, "0")}`); };
+const dataCurta = (iso) => DIAS_C[new Date(iso + "T12:00:00").getDay()] + " " + iso.slice(8, 10) + "/" + iso.slice(5, 7);
+function horarioPadrao(apelido) {
+  const n = semAcento(apelido), fds = { ini: "08:00", fim: "17:00", pIni: "12:00", pFim: "13:00" };
+  if (n.startsWith("camila")) return { semana: { ini: "12:00", fim: "20:00", pIni: "16:00", pFim: "17:00" }, fds, sabadoA: true };
+  if (n.startsWith("juliana")) return { semana: { ini: "08:00", fim: "17:00", pIni: "12:00", pFim: "14:00" }, fds, sabadoA: false };
+  return { semana: { ini: "08:00", fim: "17:00", pIni: "12:00", pFim: "13:00" }, fds, sabadoA: false };
+}
+const escCfg = () => S.escala.cfg || {};
+const naEscala = (u) => !!(escCfg().pessoas || {})[u];
+const nomeEsc = (u) => (S.members[u] && S.members[u].apelido) || ((escCfg().pessoas || {})[u] || {}).nome || u;
+const pessoasEscala = () => Object.keys(escCfg().pessoas || {}).filter(u => !S.isAdmin || (S.members[u] && S.members[u].ativo !== false)).sort((a, b) => nomeEsc(a).localeCompare(nomeEsc(b), "pt-BR"));
+// Feriados nacionais (fixos + móveis pela Páscoa) e os locais que a administradora cadastrar
+function pascoa(y) {
+  const a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451);
+  return new Date(y, Math.floor((h + l - 7 * m + 114) / 31) - 1, ((h + l - 7 * m + 114) % 31) + 1, 12);
+}
+let _ferCache = {};
+function feriadosDoAno(y) {
+  if (_ferCache[y]) return _ferCache[y];
+  const f = {}, add = (iso, nome, facultativo) => { f[iso] = { nome, facultativo: !!facultativo }; };
+  [["01-01", "Confraternização Universal"], ["04-21", "Tiradentes"], ["05-01", "Dia do Trabalho"], ["09-07", "Independência do Brasil"], ["10-12", "Nossa Senhora Aparecida"], ["11-02", "Finados"], ["11-15", "Proclamação da República"], ["11-20", "Dia da Consciência Negra"], ["12-25", "Natal"]].forEach(([md, n]) => add(y + "-" + md, n));
+  const p = pascoa(y), rel = (n) => { const d = new Date(p); d.setDate(d.getDate() + n); return isoDia(d); };
+  add(rel(-48), "Carnaval", true); add(rel(-47), "Carnaval", true); add(rel(-2), "Sexta-feira Santa"); add(rel(60), "Corpus Christi", true);
+  String(escCfg().feriadosExtra || "").split("\n").forEach(l => {
+    const m = l.trim().match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{4}))?\s*[-–:]?\s*(.*)$/); if (!m || (m[3] && +m[3] !== y)) return;
+    add(`${y}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`, m[4].trim() || "Feriado local", false);
+  });
+  return (_ferCache[y] = f);
+}
+const feriado = (iso) => feriadosDoAno(+iso.slice(0, 4))[iso] || null;
+function proximosFeriados(n) { const out = [], d = new Date(); d.setHours(12, 0, 0, 0); for (let i = 0; i < 400 && out.length < n; i++) { const iso = isoDia(d), f = feriado(iso); if (f) out.push([iso, f]); d.setDate(d.getDate() + 1); } return out; }
+// Fim de semana em revezamento: na semana A, quem tem "sabadoA" trabalha no sábado e folga no domingo; a outra pessoa, o contrário. Na semana seguinte inverte.
+function semanaA(iso) {
+  const d = new Date(iso + "T12:00:00"), dow = d.getDay(), sab = new Date(d); sab.setDate(d.getDate() + (dow === 0 ? -1 : 6 - dow));
+  const sem = Math.round((sab - new Date((escCfg().ancora || ANCORA_PADRAO) + "T12:00:00")) / (7 * 864e5));
+  return ((sem % 2) + 2) % 2 === 0;
+}
+function duracao(e) {
+  const i = minDe(e.ini), f = minDe(e.fim); if (i == null || f == null) return 0;
+  let t = f - i; if (t < 0) t += 1440;
+  const pi = minDe(e.pIni), pf = minDe(e.pFim); if (pi != null && pf != null && pf > pi) t -= pf - pi;
+  return t;
+}
+function escalaDoDia(u, iso, semAjuste) {
+  const p = (escCfg().pessoas || {})[u]; if (!p) return null;
+  const dow = new Date(iso + "T12:00:00").getDay(), fds = dow === 0 || dow === 6;
+  let r = fds ? ((dow === 6) === (semanaA(iso) === !!p.sabadoA) ? { ...(p.fds || {}) } : { folga: true }) : { ...(p.semana || {}) };
+  const aj = semAjuste ? null : S.escala.ajustes[u + "__" + iso];
+  if (aj) r = aj.folga ? { folga: true } : { ini: aj.ini, fim: aj.fim, pIni: aj.pIni, pFim: aj.pFim };
+  r.ajuste = aj || null; r.feriado = feriado(iso); r.previsto = r.folga ? 0 : duracao(r);
+  return r;
+}
+const horarioBase = (u, iso) => { const p = (escCfg().pessoas || {})[u] || {}, dow = new Date(iso + "T12:00:00").getDay(); return (dow === 0 || dow === 6 ? p.fds : p.semana) || {}; };
+const celEscala = (e) => e.folga ? "Folga" : `<b>${hC(e.ini)}–${hC(e.fim)}</b>${e.pIni ? `<small>almoço ${hC(e.pIni)}–${hC(e.pFim)}</small>` : ""}`;
+const pontoDe = (u, iso) => S.escala.ponto[u + "__" + iso] || null;
+// Horas trabalhadas no dia: (saída − entrada) − almoço. Hoje, com o dia aberto, conta até agora.
+function trabalhado(p, iso) {
+  if (!p || !p.entrada) return null;
+  const e = minDe(p.entrada); let s = minDe(p.saida), aberto = false;
+  if (s == null) { if (iso !== isoDia(new Date())) return { min: null, incompleto: true }; s = minDe(agoraHM()); aberto = true; }
+  let t = s - e; if (t < 0) t += 1440;
+  const pi = minDe(p.pausaIni), pf = minDe(p.pausaFim);
+  if (pi != null) { const fimP = pf != null ? pf : aberto ? s : null; if (fimP == null) return { min: null, incompleto: true }; if (fimP > pi) t -= fimP - pi; }
+  return { min: Math.max(0, t), aberto };
+}
+// dias sem registro só contam a partir de quando o ponto passou a ser feito pelo portal
+const inicioPonto = () => escCfg().inicioPonto || Object.values(S.escala.ponto).map(p => p.data).filter(Boolean).sort()[0] || isoDia(new Date());
+function resumoPonto(u, ym) {
+  const hoje = isoDia(new Date()), ini = inicioPonto(), r = { trab: 0, prev: 0, saldo: 0, semReg: 0, incompletos: 0, ferMin: 0, ferDias: 0, ajustados: 0, linhas: [] };
+  for (const iso of diasDoMes(ym)) {
+    if (iso > hoje) break;
+    const e = escalaDoDia(u, iso), p = pontoDe(u, iso), w = trabalhado(p, iso);
+    const l = { iso, e, p, w, saldo: null, estado: "" };
+    if (p && p.ajustado) r.ajustados++;
+    if (w && w.min != null && !w.aberto) { l.saldo = w.min - e.previsto; r.trab += w.min; r.prev += e.previsto; r.saldo += l.saldo; if (e.feriado && !e.feriado.facultativo) { r.ferMin += w.min; r.ferDias++; } }
+    else if (w && w.aberto) l.estado = "andamento";
+    else if (w && w.incompleto) { l.estado = "incompleto"; r.incompletos++; }
+    else if (!p && e.previsto && iso < hoje && iso >= ini) { l.estado = "semreg"; r.semReg++; }
+    else if (e.folga) l.estado = "folga";
+    r.linhas.push(l);
+  }
+  return r;
+}
+function statusHoje(u) {
+  const iso = isoDia(new Date()), e = escalaDoDia(u, iso), p = pontoDe(u, iso);
+  if (!p || !p.entrada) return e.folga ? ["neutral", "Folga hoje"] : minDe(agoraHM()) > minDe(e.ini) + 10 ? ["warn", "Ainda não registrou a entrada"] : ["neutral", "Entra às " + hC(e.ini)];
+  if (p.saida) return ["ok", "Encerrou às " + hTxt(p.saida)];
+  if (p.pausaIni && !p.pausaFim) return ["info", "No almoço desde " + hTxt(p.pausaIni)];
+  return ["ok", "Trabalhando desde " + hTxt(p.entrada)];
+}
+// Para a previsão "Quem deve estar online": a escala vira manhã / tarde / noite
+function dispDaEscala(u) {
+  const excecoes = {};
+  proxDias(14).forEach(d => { const iso = isoDia(d), e = escalaDoDia(u, iso), o = { m: false, t: false, n: false }; if (!e.folga) { const i = minDe(e.ini), f = minDe(e.fim); PERIODOS.forEach(([k, , , a, b]) => { if (i < b * 60 && f > a * 60) o[k] = true; }); } excecoes[iso] = o; });
+  return { semana: {}, excecoes, obs: "Pós-venda · escala" };
+}
+
+function cartaoPonto(u, pode) {
+  const iso = isoDia(new Date()), e = escalaDoDia(u, iso), p = pontoDe(u, iso) || {}, w = trabalhado(p, iso), f = e.feriado;
+  const prox = ETAPAS.find(([k]) => !p[k]);
+  const escTxt = e.folga ? "Hoje é folga na sua escala. Se precisar trabalhar, registre normalmente." : `Sua escala hoje: ${hC(e.ini)} às ${hC(e.fim)}${e.pIni ? ` · almoço ${hC(e.pIni)} às ${hC(e.pFim)}` : ""}${e.ajuste ? " (dia ajustado)" : ""}`;
+  const botoes = !pode ? `<span class="muted small">Só a própria pessoa registra o ponto, pelo login dela.</span>`
+    : p.saida ? `<span class="pill ok">Dia encerrado</span>`
+    : `<button type="button" class="btn primary grande" data-act="bater-ponto" data-uid="${esc(u)}" data-etapa="${prox[0]}">Registrar ${prox[1].toLowerCase()}</button>${prox[0] === "pausaIni" ? `<button type="button" class="btn" data-act="bater-ponto" data-uid="${esc(u)}" data-etapa="saida">Registrar saída (sem almoço)</button>` : ""}`;
+  return `<section class="panel ponto-hoje"><div class="section-head"><div><h3>Hoje · ${DIAS_L[new Date().getDay()]}, ${dLabel(iso).slice(0, 5)}</h3><span class="muted small">${escTxt}</span></div>${f ? `<span class="pill warn">Feriado · ${esc(f.nome)}${f.facultativo ? " (facultativo)" : ""}</span>` : ""}</div>
+    <div class="marcas">${ETAPAS.map(([k, t]) => `<div class="marca ${p[k] ? "on" : ""}"><span>${t}</span><strong>${p[k] ? hTxt(p[k]) : "—"}</strong></div>`).join("")}</div>
+    <div class="row">${botoes}${pode ? `<button type="button" class="btn ghost" data-act="corrigir-ponto" data-uid="${esc(u)}" data-iso="${iso}">Corrigir horários</button>` : ""}</div>
+    ${w && w.min != null ? `<p class="muted small" style="margin:0">Trabalhado hoje: <strong>${durTxt(w.min)}</strong>${w.aberto ? " (até agora)" : ""} · previsto: ${durTxt(e.previsto)}${w.aberto ? "" : ` · saldo do dia: <strong>${durTxt(w.min - e.previsto, true)}</strong>`}</p>` : ""}
+  </section>`;
+}
+function painelEscala(dias, titulo, editavel, eu) {
+  const ps = pessoasEscala(), hoje = isoDia(new Date());
+  return `<section class="panel"><div class="section-head"><div><h3>${titulo}</h3><span class="muted small">${editavel ? "Clique num dia para trocar folga, mudar o horário ou dar folga no feriado. Contorno amarelo: dia diferente do padrão." : "Feriados em destaque. Contorno amarelo: dia diferente do padrão (troca de folga, horário especial)."}</span></div></div>
+    <div class="tablewrap"><table class="escala"><thead><tr><th>Dia</th>${ps.map(p => `<th>${esc(nomeEsc(p))}${p === eu ? ' <span class="muted small">(você)</span>' : ""}</th>`).join("")}</tr></thead><tbody>
+    ${dias.map(iso => { const f = feriado(iso), d = new Date(iso + "T12:00:00"), fds = d.getDay() === 0 || d.getDay() === 6; return `<tr class="${f ? "fer" : ""} ${fds ? "fds" : ""}"><td class="dia ${iso === hoje ? "hojecol" : ""}"><strong>${dataCurta(iso)}</strong>${iso === hoje ? ' <span class="pill info">hoje</span>' : ""}${f ? `<div class="fer-nome">${esc(f.nome)}${f.facultativo ? " · ponto facultativo" : ""}</div>` : ""}</td>${ps.map(p => { const e = escalaDoDia(p, iso), cls = `esc-cel ${e.ajuste ? "aj" : ""} ${e.folga ? "folga" : ""}`, tt = esc((e.ajuste && e.ajuste.obs) || ""); return `<td class="${iso === hoje ? "hojecol" : ""}">${editavel ? `<button type="button" class="${cls}" data-act="editar-escala" data-uid="${esc(p)}" data-iso="${iso}" title="${tt}">${celEscala(e)}</button>` : `<span class="${cls}" title="${tt}">${celEscala(e)}</span>`}</td>`; }).join("")}</tr>`; }).join("")}
+    </tbody></table></div></section>`;
+}
+function painelFeriados() {
+  const ps = pessoasEscala(), fs = proximosFeriados(6);
+  return `<section class="panel"><div class="section-head"><div><h3>Próximos feriados</h3><span class="muted small">Nacionais${escCfg().feriadosExtra ? " e locais" : ""}. Carnaval e Corpus Christi são ponto facultativo.</span></div></div>
+    <div class="feriados">${fs.map(([iso, f]) => `<div class="feriado"><div class="fd"><strong>${iso.slice(8, 10)}/${iso.slice(5, 7)}</strong><span>${DIAS_C[new Date(iso + "T12:00:00").getDay()]}</span></div><div><strong>${esc(f.nome)}</strong>${f.facultativo ? ' <span class="pill neutral">facultativo</span>' : ""}<div class="muted small">${ps.map(p => { const e = escalaDoDia(p, iso); return esc(nomeEsc(p)) + ": " + (e.folga ? "folga" : hC(e.ini) + "–" + hC(e.fim)); }).join(" · ")}</div></div></div>`).join("")}</div></section>`;
+}
+function painelPontoMes(u, M, admin) {
+  const r = resumoPonto(u, M), pode = admin || (u === S.email && !S.previewUid), hoje = isoDia(new Date());
+  const cel = (l) => {
+    const { e, p, w } = l, f = e.feriado;
+    const saldo = l.estado === "semreg" ? '<span class="pill warn">sem registro</span>' : l.estado === "incompleto" ? '<span class="pill warn">incompleto</span>' : l.estado === "andamento" ? '<span class="pill info">em andamento</span>' : l.saldo != null ? `<span class="${l.saldo > 0 ? "pos" : l.saldo < 0 ? "neg" : ""}">${durTxt(l.saldo, true)}</span>` : '<span class="muted">—</span>';
+    return `<tr class="${f ? "fer" : ""} ${e.folga && !p ? "folga-l" : ""}"><td><strong>${dataCurta(l.iso)}</strong>${l.iso === hoje ? ' <span class="pill info">hoje</span>' : ""}${f ? `<div class="fer-nome">${esc(f.nome)}</div>` : ""}${p && p.ajustado ? `<div><span class="pill neutral" title="${esc((p.log || []).slice(-1).map(x => x.txt).join(""))}">ajustado</span></div>` : ""}</td>
+      <td class="esc-c small">${e.folga ? "Folga" : hC(e.ini) + "–" + hC(e.fim)}</td><td>${hTxt(p && p.entrada)}</td><td class="alm">${p && (p.pausaIni || p.pausaFim) ? hTxt(p.pausaIni) + " – " + hTxt(p.pausaFim) : "—"}</td><td>${hTxt(p && p.saida)}</td>
+      <td class="n">${w && w.min != null ? durTxt(w.min) : "—"}</td><td class="n">${saldo}</td><td>${pode ? `<button type="button" class="btn sm ghost" data-act="corrigir-ponto" data-uid="${esc(u)}" data-iso="${l.iso}" title="Corrigir horários deste dia"><span class="l">Corrigir</span><span class="s">✎</span></button>` : ""}</td></tr>`;
+  };
+  const sel = admin ? "" : `<div class="field"><label for="f-ponto-mes">Mês</label><select id="f-ponto-mes" data-filter="pontoMes">${Array.from({ length: 12 }, (_, i) => addM(ymNow(), -i)).map(m => `<option value="${m}" ${m === M ? "selected" : ""}>${ymLabel(m)}</option>`).join("")}</select></div>`;
+  return `<section class="panel"><div class="section-head"><div><h3>${admin ? "Ponto · " + esc(nomeEsc(u)) : "Meu ponto"} · ${ymLong(M)}</h3><span class="muted small">O saldo compara as horas registradas com a escala de cada dia (só dias com entrada e saída completas).</span></div><div class="row" style="align-items:flex-end">${sel}<button type="button" class="btn sm" data-act="baixar-ponto" data-uid="${esc(u)}" data-ym="${M}">Baixar planilha</button></div></div>
+    <div class="tiles">
+      <div class="tile"><span class="k">Horas trabalhadas</span><span class="v">${durTxt(r.trab)}</span><span class="d">previsto nesses dias: ${durTxt(r.prev)}</span></div>
+      <div class="tile feature"><span class="k">Saldo do mês</span><span class="v">${durTxt(r.saldo, true)}</span><span class="d">horas a mais (+) ou a menos (−) que a escala</span></div>
+      <div class="tile"><span class="k">Dias sem registro</span><span class="v">${r.semReg + r.incompletos}</span><span class="d">${r.semReg} sem ponto · ${r.incompletos} incompletos</span></div>
+      <div class="tile"><span class="k">Trabalho em feriado</span><span class="v">${durTxt(r.ferMin)}</span><span class="d">${r.ferDias} ${r.ferDias === 1 ? "dia" : "dias"} (sem contar os facultativos)</span></div>
+    </div>
+    ${r.linhas.length ? `<div class="tablewrap"><table class="ponto"><thead><tr><th>Dia</th><th class="esc-c">Escala</th><th>Entrada</th><th class="alm">Almoço</th><th>Saída</th><th class="n">Trabalhado</th><th class="n">Saldo</th><th></th></tr></thead><tbody>${r.linhas.slice().reverse().map(cel).join("")}</tbody></table></div>` : `<div class="empty"><strong>Nenhum dia neste mês ainda</strong></div>`}
+  </section>`;
+}
+function jornadaView(u, pode) {
+  const intro = `<div class="section-head"><div><h2>Minha jornada</h2><p>Sua escala, os feriados e o registro de ponto. Registre entrada, almoço e saída pelos botões. Se esquecer de marcar ou sair mais tarde, use “Corrigir horários” e conte o motivo.</p></div></div>`;
+  if (S.escala.erro) return intro + `<div class="banner warn-b"><span>Esta seção ainda está sendo ativada. Tente de novo mais tarde.</span></div>`;
+  if (!naEscala(u)) return intro + `<div class="empty"><strong>Você ainda não está na escala</strong><span>Fale com a Letícia.</span></div>`;
+  const M = S.filtros.pontoMes || ymNow();
+  return intro + cartaoPonto(u, pode) + `<div class="grid2">${painelEscala(proxDias(14).map(isoDia), "Escala dos próximos 14 dias", false, u)}${painelFeriados()}</div>` + painelPontoMes(u, M, false);
+}
+function agSubnav() {
+  const s = S.filtros.agSub === "escala" ? "escala" : "disp";
+  return `<nav class="subnav" aria-label="Seções da disponibilidade">${[["disp", "Disponibilidade (PJ)"], ["escala", "Escala e ponto (CLT)"]].map(([k, t]) => `<button type="button" data-agsub="${k}" aria-current="${k === s}">${t}</button>`).join("")}</nav>`;
+}
+function configEscalaPainel(aberto) {
+  const c = escCfg(), ps = c.pessoas || {};
+  const tm = (u, g, k) => `<input type="time" step="300" value="${esc((ps[u][g] || {})[k] || "")}" data-esc-campo="${g}.${k}" data-uid="${esc(u)}" aria-label="${g === "semana" ? "Segunda a sexta" : "Fim de semana"} ${k}">`;
+  return `<section class="panel"><details ${aberto ? "open" : ""}><summary style="cursor:pointer"><strong>Configurar a escala</strong> <span class="muted small">(quem está na escala, horários padrão, revezamento do fim de semana e feriados locais)</span></summary>
+    <div class="cfg-esc">
+      <div class="field"><label>Quem está na escala (CLT)</label><div class="toggles">${activeMembers().map(u => `<label class="toggle"><input type="checkbox" data-esc-pessoa="${esc(u)}" ${ps[u] ? "checked" : ""}>${esc(label(u))}</label>`).join("")}</div><span class="muted small">Para essas pessoas, a aba “Disponibilidade” vira “Minha jornada”, com a escala e o ponto.</span></div>
+      ${Object.keys(ps).filter(u => S.members[u]).map(u => `<div class="esc-pessoa"><strong>${esc(label(u))}</strong>
+        <div class="esc-linha"><span class="rot">Segunda a sexta</span>${tm(u, "semana", "ini")}<span>às</span>${tm(u, "semana", "fim")}<span>almoço</span>${tm(u, "semana", "pIni")}<span>às</span>${tm(u, "semana", "pFim")}</div>
+        <div class="esc-linha"><span class="rot">Fim de semana</span>${tm(u, "fds", "ini")}<span>às</span>${tm(u, "fds", "fim")}<span>almoço</span>${tm(u, "fds", "pIni")}<span>às</span>${tm(u, "fds", "pFim")}</div>
+        <div class="esc-linha"><span class="rot">Na semana A, trabalha no</span><select data-esc-campo="sabadoA" data-uid="${esc(u)}"><option value="1" ${ps[u].sabadoA ? "selected" : ""}>sábado (folga no domingo)</option><option value="0" ${!ps[u].sabadoA ? "selected" : ""}>domingo (folga no sábado)</option></select></div></div>`).join("")}
+      <div class="field"><label for="esc-ancora">Um sábado da semana A</label><input type="date" id="esc-ancora" data-esc-ancora value="${esc(c.ancora || ANCORA_PADRAO)}" style="max-width:200px"><span class="muted small">O revezamento do fim de semana alterna toda semana a partir desta data. Esta semana é a ${semanaA(isoDia(new Date())) ? "A" : "B"}.</span></div>
+      <div class="field"><label for="esc-fer">Feriados locais (além dos nacionais)</label><textarea id="esc-fer" data-esc-feriados rows="3" placeholder="Um por linha. Ex.:&#10;20/01 São Sebastião&#10;23/04 São Jorge">${esc(c.feriadosExtra || "")}</textarea><span class="muted small">Sem o ano, vale para todos os anos. Os nacionais já entram sozinhos (Carnaval e Corpus Christi como ponto facultativo).</span></div>
+    </div></details></section>`;
+}
+function escalaAdmin() {
+  const M = S.filtros.escMes || ymNow(), ps = pessoasEscala(), hoje = isoDia(new Date());
+  const meses = Array.from({ length: 12 }, (_, i) => addM(ymNow(), 3 - i));
+  const head = `<div class="section-head"><div><h2>Escala e ponto</h2><p>Jornada da equipe CLT (pós-venda): a escala de cada dia, os feriados em destaque e o ponto que cada pessoa registra no portal.</p></div><div class="field"><label for="f-esc-mes">Mês</label><select id="f-esc-mes" data-filter="escMes">${meses.map(m => `<option value="${m}" ${m === M ? "selected" : ""}>${ymLabel(m)}</option>`).join("")}</select></div></div>`;
+  if (S.escala.erro) return head + `<div class="banner warn-b"><span>Para ativar esta parte, publique as regras novas do Firestore (arquivo regras-firestore).</span></div>`;
+  if (!ps.length) return head + `<div class="empty"><strong>Ninguém na escala ainda</strong><span>Marque abaixo quem é CLT.</span></div>` + configEscalaPainel(true);
+  const agora = `<section class="panel"><div class="section-head"><div><h3>Agora</h3><span class="muted small">Pelo ponto registrado hoje.</span></div></div><div class="pessoas-hoje">${ps.map(u => { const [c, t] = statusHoje(u), e = escalaDoDia(u, hoje); return `<div class="ph"><strong>${esc(nomeEsc(u))}</strong><span class="pill ${c}">${t}</span><span class="muted small">${e.folga ? "Folga na escala" : "Escala " + hC(e.ini) + "–" + hC(e.fim)}</span></div>`; }).join("")}</div></section>`;
+  return head + agora + painelEscala(diasDoMes(M), "Escala de " + ymLong(M), true, null) + ps.map(u => painelPontoMes(u, M, true)).join("") + configEscalaPainel(false);
+}
+async function salvarEscalaCfg(cfg, msg) {
+  S.escala.cfg = cfg; S.escala.cfgExiste = true; _ferCache = {}; render();
+  try { await col("config").doc("escala").set(cfg); if (msg) toast(msg); } catch (e) { toast(errMsg(e)); await reload(); }
+}
+async function baterPonto(u, etapa) {
+  const iso = isoDia(new Date()), id = u + "__" + iso, { id: _x, ...atual } = S.escala.ponto[id] || {}, hora = agoraHM();
+  if (atual[etapa]) return toast("Esse horário já foi registrado. Para mudar, use “Corrigir horários”.");
+  const rot = (ETAPAS.find(x => x[0] === etapa) || [, etapa])[1];
+  const novo = { ...atual, email: u, data: iso, [etapa]: hora, log: [...(atual.log || []), { em: new Date().toISOString(), por: S.email, txt: rot + " " + hora }] };
+  S.escala.ponto[id] = novo; render();
+  try { await col("ponto").doc(id).set(novo); toast(rot + " registrada às " + hTxt(hora)); } catch (e) { delete S.escala.ponto[id]; if (atual.email) S.escala.ponto[id] = atual; render(); toast(errMsg(e)); }
+}
+function abrirAjusteEscala(u, iso) {
+  const e = escalaDoDia(u, iso), pad = escalaDoDia(u, iso, true), aj = e.ajuste, f = e.feriado, h = e.folga ? horarioBase(u, iso) : e;
+  const t = (id, v) => `<input type="time" step="300" id="${id}" value="${esc(v || "")}">`;
+  $("#layer").innerHTML = `<div class="overlay" data-close><div class="dialog" style="max-width:540px">
+    <div class="section-head"><h2>${esc(nomeEsc(u))} · ${DIAS_L[new Date(iso + "T12:00:00").getDay()]}, ${dLabel(iso)}</h2><button type="button" class="btn sm ghost" data-close-btn>Fechar</button></div>
+    ${f ? `<div class="banner warn-b"><span>Feriado: <strong>${esc(f.nome)}</strong>${f.facultativo ? " (ponto facultativo)" : ""}. Se ela trabalhar, as horas aparecem como “trabalho em feriado” no ponto do mês.</span></div>` : ""}
+    <div class="toggles"><label class="toggle"><input type="radio" name="aj-tipo" value="trab" ${!e.folga ? "checked" : ""}>Trabalha</label><label class="toggle"><input type="radio" name="aj-tipo" value="folga" ${e.folga ? "checked" : ""}>Folga</label></div>
+    <div class="esc-linha"><span>Das</span>${t("aj-ini", h.ini)}<span>às</span>${t("aj-fim", h.fim)}<span>almoço</span>${t("aj-pini", h.pIni)}<span>às</span>${t("aj-pfim", h.pFim)}</div>
+    <div class="field"><label for="aj-obs">Motivo (opcional)</label><input type="text" id="aj-obs" maxlength="140" value="${esc((aj && aj.obs) || "")}" placeholder="Ex.: troca de folga com a colega"></div>
+    <p class="muted small" style="margin:0">Padrão deste dia: ${pad.folga ? "folga" : `${hC(pad.ini)} às ${hC(pad.fim)}${pad.pIni ? `, almoço ${hC(pad.pIni)} às ${hC(pad.pFim)}` : ""}`}.</p>
+    <div class="row" style="justify-content:flex-end">${aj ? `<button type="button" class="btn ghost" data-act="padrao-escala" data-uid="${esc(u)}" data-iso="${iso}">Voltar ao padrão</button>` : ""}<button type="button" class="btn primary" data-act="salvar-ajuste-escala" data-uid="${esc(u)}" data-iso="${iso}">Salvar</button></div>
+  </div></div>`;
+}
+function abrirCorrigirPonto(u, iso) {
+  const p = pontoDe(u, iso) || {}, e = escalaDoDia(u, iso);
+  $("#layer").innerHTML = `<div class="overlay" data-close><div class="dialog" style="max-width:560px">
+    <div class="section-head"><h2>Ponto · ${DIAS_L[new Date(iso + "T12:00:00").getDay()]}, ${dLabel(iso)}</h2><button type="button" class="btn sm ghost" data-close-btn>Fechar</button></div>
+    <p class="muted small" style="margin:0">${S.isAdmin && u !== S.email ? esc(nomeEsc(u)) + " · " : ""}Escala do dia: ${e.folga ? "folga" : `${hC(e.ini)} às ${hC(e.fim)}${e.pIni ? `, almoço ${hC(e.pIni)} às ${hC(e.pFim)}` : ""}`}. Deixe em branco o que não houve (ex.: dia sem almoço).</p>
+    <div class="marcas edit">${ETAPAS.map(([k, t]) => `<label class="marca"><span>${t}</span><input type="time" data-pt="${k}" value="${esc(p[k] || "")}"></label>`).join("")}</div>
+    <div class="field"><label for="pt-motivo">Motivo do ajuste</label><input type="text" id="pt-motivo" maxlength="160" placeholder="Ex.: atendi uma cliente em viagem até 17h20"></div>
+    <p class="small" id="pt-erro" style="color:var(--bad);margin:0" hidden></p>
+    ${(p.log || []).length ? `<details><summary class="small" style="cursor:pointer">Histórico deste dia (${p.log.length})</summary><ul class="small muted" style="margin:8px 0 0;padding-left:18px">${p.log.map(x => `<li>${esc(new Date(x.em).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }))} · ${esc(x.txt)}${x.por && x.por !== u ? " · por " + esc(x.por) : ""}</li>`).join("")}</ul></details>` : ""}
+    <div class="row" style="justify-content:flex-end"><button type="button" class="btn primary" data-act="salvar-ponto" data-uid="${esc(u)}" data-iso="${iso}">Salvar</button></div>
+  </div></div>`;
+}
+function baixarPontoCSV(u, ym) {
+  const r = resumoPonto(u, ym), q = (x) => `"${String(x ?? "").replace(/"/g, '""')}"`;
+  const linhas = [["Data", "Dia", "Escala", "Entrada", "Saída almoço", "Volta almoço", "Saída", "Trabalhado", "Previsto", "Saldo", "Feriado", "Ajustado", "Último ajuste"]];
+  r.linhas.forEach(({ iso, e, p, w, saldo, estado }) => linhas.push([dLabel(iso), DIAS_L[new Date(iso + "T12:00:00").getDay()], e.folga ? "Folga" : hC(e.ini) + "-" + hC(e.fim), hTxt(p && p.entrada), hTxt(p && p.pausaIni), hTxt(p && p.pausaFim), hTxt(p && p.saida), w && w.min != null ? durTxt(w.min) : estado === "semreg" ? "sem registro" : "", durTxt(e.previsto), saldo != null ? durTxt(saldo, true) : "", e.feriado ? e.feriado.nome + (e.feriado.facultativo ? " (facultativo)" : "") : "", p && p.ajustado ? "sim" : "", p && p.ajustado ? ((p.log || []).slice(-1)[0] || {}).txt || "" : ""]));
+  linhas.push([]); linhas.push(["Total", "", "", "", "", "", "", durTxt(r.trab), durTxt(r.prev), durTxt(r.saldo, true), "Trabalho em feriado: " + durTxt(r.ferMin)]);
+  const blob = new Blob(["﻿" + linhas.map(l => l.map(q).join(";")).join("\r\n")], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `ponto-${semAcento(nomeEsc(u)).replace(/[^a-z0-9]+/g, "-")}-${ym}.csv`; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+async function carregarEscala() {
+  const E = { cfg: null, cfgExiste: false, ajustes: {}, ponto: {}, erro: false };
+  try { const c = await col("config").doc("escala").get(); E.cfgExiste = c.exists; E.cfg = c.exists ? c.data() : null; } catch (_) { E.erro = !S.isAdmin; }
+  if (!E.cfg) E.cfg = { ancora: ANCORA_PADRAO, pessoas: {}, feriadosExtra: "" };
+  S.escala = E; _ferCache = {};
+  if (E.erro) return;
+  try { E.ajustes = Object.fromEntries(docsOf(await col("escala").get()).map(d => [d.id, d])); } catch (_) { if (S.isAdmin) E.erro = true; }
+  if (S.isAdmin || naEscala(S.email)) {
+    try { E.ponto = Object.fromEntries(docsOf(await (S.isAdmin ? col("ponto") : col("ponto").where("email", "==", S.email)).get()).map(d => [d.id, d])); } catch (_) { if (S.isAdmin) E.erro = true; }
+  }
+  // primeira vez: monta a escala com as pessoas do pós-venda e os horários da planilha antiga
+  if (S.isAdmin && !E.erro && !E.cfgExiste) {
+    const ids = activeMembers().filter(u => /^(camila|juliana)/.test(semAcento(label(u))));
+    if (ids.length) { E.cfg = { ancora: ANCORA_PADRAO, feriadosExtra: "", inicioPonto: isoDia(new Date()), pessoas: Object.fromEntries(ids.map(u => [u, { nome: label(u), ...horarioPadrao(label(u)) }])) }; try { await col("config").doc("escala").set(E.cfg); E.cfgExiste = true; } catch (_) {} }
+  }
+}
+
 function comSubnav(semVendas) {
   const itens = [["resumo", "Resumo"], ["funil", "Atendimentos e orçamentos"], ...(semVendas ? [] : [["campanhas", "Campanhas"], ["vendas", "Vendas"]])];
   const sub = itens.some(([k]) => k === S.filtros.comSub) ? S.filtros.comSub : "resumo";
@@ -1119,7 +1401,7 @@ function renderOwner() {
   else if (S.tab === "comercial") html = comSubnav() + (S.filtros.comSub === "vendas" ? ownerVendas() : S.filtros.comSub === "funil" ? ownerFunil() : S.filtros.comSub === "campanhas" ? ownerCampanhas() : ownerComercial());
   else if (S.tab === "comissoes") html = ownerComissoes();
   else if (S.tab === "atendimentos") html = ownerAtendimentos();
-  else if (S.tab === "agenda") html = agendaView(null);
+  else if (S.tab === "agenda") html = agSubnav() + (S.filtros.agSub === "escala" ? escalaAdmin() : agendaView(null));
   else if (S.tab === "acessos") html = ownerAcessos();
   else if (S.tab === "passeios") html = passeiosView();
   else if (S.tab === "tickets") html = ticketsView();
@@ -1725,6 +2007,36 @@ $("#layer").addEventListener("click", async (e) => {
     } catch (err) { toast(errMsg(err)); }
     return;
   }
+  const aes = e.target.closest('[data-act="salvar-ajuste-escala"], [data-act="padrao-escala"]');
+  if (aes) {
+    const u = aes.dataset.uid, iso = aes.dataset.iso, id = u + "__" + iso, ref = col("escala").doc(id);
+    try {
+      if (aes.dataset.act === "padrao-escala") { await ref.delete(); delete S.escala.ajustes[id]; closeLayer(); render(); toast("Dia voltou ao padrão"); return; }
+      const folga = ($('#layer input[name="aj-tipo"]:checked') || {}).value === "folga", obs = $("#aj-obs").value.trim();
+      const d = folga ? { folga: true } : { folga: false, ini: $("#aj-ini").value, fim: $("#aj-fim").value, pIni: $("#aj-pini").value, pFim: $("#aj-pfim").value };
+      if (!folga && (!d.ini || !d.fim)) { toast("Preencha o horário de início e de fim."); return; }
+      const pad = escalaDoDia(u, iso, true);
+      const igual = folga ? !!pad.folga : (!pad.folga && ["ini", "fim", "pIni", "pFim"].every(k => (pad[k] || "") === (d[k] || "")));
+      if (igual && !obs) { if (S.escala.ajustes[id]) await ref.delete(); delete S.escala.ajustes[id]; }
+      else { const doc = { email: u, data: iso, ...d, obs, em: new Date().toISOString(), por: S.email }; await ref.set(doc); S.escala.ajustes[id] = doc; }
+      closeLayer(); render(); toast("Escala salva");
+    } catch (err) { toast(errMsg(err)); }
+    return;
+  }
+  const spt = e.target.closest('[data-act="salvar-ponto"]');
+  if (spt) {
+    const u = spt.dataset.uid, iso = spt.dataset.iso, id = u + "__" + iso, { id: _x, ...atual } = S.escala.ponto[id] || {}, erro = $("#pt-erro");
+    const novo = {}; document.querySelectorAll("#layer [data-pt]").forEach(i => { novo[i.dataset.pt] = i.value || null; });
+    const mud = ETAPAS.filter(([k]) => (novo[k] || "") !== (atual[k] || ""));
+    if (!mud.length) { closeLayer(); return; }
+    const motivo = $("#pt-motivo").value.trim();
+    if (!motivo) { erro.hidden = false; erro.textContent = "Conte o motivo do ajuste (fica no histórico do dia)."; return; }
+    if (novo.saida && !novo.entrada) { erro.hidden = false; erro.textContent = "Preencha também a entrada."; return; }
+    const txt = "Ajuste: " + mud.map(([k, t]) => `${t} ${atual[k] ? hTxt(atual[k]) : "vazio"} → ${novo[k] ? hTxt(novo[k]) : "vazio"}`).join("; ") + " · Motivo: " + motivo;
+    const doc = { ...atual, email: u, data: iso, ...novo, ajustado: true, log: [...(atual.log || []), { em: new Date().toISOString(), por: S.email, txt }] };
+    try { await col("ponto").doc(id).set(doc); S.escala.ponto[id] = doc; closeLayer(); render(); toast("Ponto corrigido"); } catch (err) { erro.hidden = false; erro.textContent = errMsg(err); }
+    return;
+  }
   const del = e.target.closest('[data-act="excluir-venda"]');
   if (del) {
     if (del.dataset.confirm !== "1") { del.dataset.confirm = "1"; del.textContent = "Confirmar exclusão"; return; }
@@ -1739,6 +2051,7 @@ async function run(p, okMsg) { await p; await reload(okMsg); }
 $("#main").addEventListener("click", async (e) => {
   const go = e.target.closest("[data-tab-go]"); if (go) { S.tab = go.dataset.tabGo; render(); return; }
   const od = e.target.closest("[data-orcdest]"); if (od) { const k = od.dataset.orcdest; S.filtros.orcDest = S.filtros.orcDest === k ? "" : k; S.orcTodosAberto = !!(document.getElementById("orc-todos") || {}).open; render(); return; }
+  const ags = e.target.closest("[data-agsub]"); if (ags) { S.filtros.agSub = ags.dataset.agsub; try { localStorage.setItem("araya-agsub", S.filtros.agSub); } catch (_) {} render(); return; }
   const cs = e.target.closest("[data-comsub]"); if (cs) { S.filtros.comSub = cs.dataset.comsub; try { localStorage.setItem("araya-comsub", S.filtros.comSub); } catch (_) {} render(); return; }
   const dest = e.target.closest("[data-dest]"); if (dest) { S.filtros.destino = dest.dataset.dest; S.filtros.passeio = "__geral"; S.filtros.fichaTab = "resumo"; render(); return; }
   const tour = e.target.closest("[data-tourid]"); if (tour) { S.filtros.passeio = tour.dataset.tourid; S.filtros.fichaTab = "resumo"; render(); return; }
@@ -1758,6 +2071,10 @@ $("#main").addEventListener("click", async (e) => {
     else if (act === "ver-conferir") abrirConferir();
     else if (act === "ver-fora") abrirFora();
     else if (act === "editar-venda") openVenda(id);
+    else if (act === "bater-ponto") { b.disabled = true; await baterPonto(uid, b.dataset.etapa); }
+    else if (act === "corrigir-ponto") abrirCorrigirPonto(uid, b.dataset.iso);
+    else if (act === "editar-escala") abrirAjusteEscala(uid, b.dataset.iso);
+    else if (act === "baixar-ponto") baixarPontoCSV(uid, b.dataset.ym);
     else if (act === "copiar-ficha") { try { await navigator.clipboard.writeText(b.dataset.texto); toast("Texto copiado. É só colar no WhatsApp do cliente."); } catch (_) { toast("Não deu para copiar automaticamente."); } }
     else if (act === "helena-tel") {
       window.open("https://web.helena.run/chat2/sessions", "_blank", "noopener");
@@ -1838,6 +2155,13 @@ $("#main").addEventListener("change", async (e) => {
   if (t.dataset.filter) { S.filtros[t.dataset.filter] = t.value; render(); return; }
   if ("origens" in t.dataset) { const lista = t.value.split("\n").map(x => x.trim()).filter(Boolean).map(x => { const [nome, resto] = x.split(/:(.*)/); return { nome: nome.trim(), termos: (resto || nome).split(",").map(y => y.trim()).filter(Boolean) }; }).filter(o => o.nome); try { await salvarComercial({ origens: lista }, "Origens salvas"); render(); } catch (e) { toast(errMsg(e)); } return; }
   if ("ocultos" in t.dataset) { const lista = t.value.split("\n").map(x => x.trim()).filter(Boolean); try { await salvarComercial({ ocultos: lista }, "Lista salva"); render(); } catch (e) { toast(errMsg(e)); } return; }
+  if (t.dataset.escPessoa || "escCampo" in t.dataset || "escAncora" in t.dataset || "escFeriados" in t.dataset) {
+    const cfg = JSON.parse(JSON.stringify({ ancora: ANCORA_PADRAO, feriadosExtra: "", ...escCfg(), pessoas: escCfg().pessoas || {} }));
+    if (t.dataset.escPessoa) { const u = t.dataset.escPessoa; cfg.inicioPonto ||= isoDia(new Date()); if (t.checked) cfg.pessoas[u] = { nome: label(u), ...horarioPadrao(label(u)) }; else delete cfg.pessoas[u]; await salvarEscalaCfg(cfg, t.checked ? label(u) + " entrou na escala" : label(u) + " saiu da escala"); return; }
+    if ("escCampo" in t.dataset) { const p = cfg.pessoas[t.dataset.uid]; if (!p) return; const [g, k] = t.dataset.escCampo.split("."); if (g === "sabadoA") p.sabadoA = t.value === "1"; else { p[g] = { ...(p[g] || {}), [k]: t.value }; } p.nome = label(t.dataset.uid); await salvarEscalaCfg(cfg, "Escala salva"); return; }
+    if ("escAncora" in t.dataset) { if (!t.value) return; const d = new Date(t.value + "T12:00:00"), dow = d.getDay(); d.setDate(d.getDate() + (dow === 0 ? -1 : 6 - dow)); cfg.ancora = isoDia(d); await salvarEscalaCfg(cfg, "Revezamento salvo"); return; }
+    if ("escFeriados" in t.dataset) { cfg.feriadosExtra = t.value.trim(); await salvarEscalaCfg(cfg, "Feriados salvos"); return; }
+  }
   if ("ocultarRet" in t.dataset) { S.filtros.ocultarRetomados = t.checked; render(); return; }
   if (t.dataset.dispObs) { const d = dispDe(t.dataset.dispObs), obs = t.value.trim(); if ((d.obs || "") !== obs) { await salvarDisp(t.dataset.dispObs, { ...d, obs }); toast("Recado salvo"); } return; }
   try {
@@ -2137,7 +2461,7 @@ function payloadFor(uid) {
   if (abas.equipe) {
     equipe = S.isAdmin ? computeEquipe().pessoas : S.equipeRes;
   }
-  return { apelido: cfg.apelido || "", pct: cfg.pct ?? 0, abas, vendas, atendimentos, equipe, uid, supervisor: cfg.supervisor === true, bonus: cfg.bonus !== false, vendedora: cfg.vendedora !== false };
+  return { apelido: cfg.apelido || "", pct: cfg.pct ?? 0, abas, vendas, atendimentos, equipe, uid, supervisor: cfg.supervisor === true, bonus: cfg.bonus !== false, vendedora: cfg.vendedora !== false, clt: naEscala(uid) };
 }
 
 // ---------- início ----------
@@ -2149,7 +2473,7 @@ async function start(user) {
   try {
     try { await col("config").doc("admin").get(); S.isAdmin = true; } catch (_) { S.isAdmin = false; }
     await loadAll();
-    try { S.tab = localStorage.getItem("araya-tab-" + (S.isAdmin ? "o" : "m")); S.filtros.comSub = localStorage.getItem("araya-comsub") || "resumo"; } catch (_) {}
+    try { S.tab = localStorage.getItem("araya-tab-" + (S.isAdmin ? "o" : "m")); S.filtros.comSub = localStorage.getItem("araya-comsub") || "resumo"; S.filtros.agSub = localStorage.getItem("araya-agsub") || "disp"; } catch (_) {}
     S.ready = true; render();
     talvezSincronizarTrevor();
   } catch (e) { centerMsg("O portal não carregou", "Recarregue a página. Se continuar, avise a Letícia.", `<button class="btn" data-act="sair">Sair</button>`); }
