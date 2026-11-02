@@ -1393,7 +1393,7 @@ function ownerCampanhas() {
   const M = S.filtros.comMesC || ymNow();
   const h = (S.helena || []).find(x => x.mes === M);
   const meses = (S.helena || []).map(x => x.mes).filter(Boolean).sort().reverse();
-  const head = `<div class="section-head"><div><h2>Campanhas</h2><p>Leads que chegaram pelo Helena vindos de anúncios (UTM) e as vendas que geraram. Conta como venda do anúncio a venda fechada no mês por um cliente que chegou por aquele anúncio neste mês ou no anterior, ligada pelo telefone do cliente (e, se não houver telefone, pelo nome), mesmo que tenha fechado outro destino.</p></div>
+  const head = `<div class="section-head"><div><h2>Campanhas</h2><p>Leads que chegaram pelo Helena vindos de anúncios e as vendas que geraram. O total de vendas segue a origem marcada no CRM; o Helena mostra de qual anúncio cada cliente veio (neste mês ou no anterior), ligado pelo telefone ou pelo nome, mesmo que tenha fechado outro destino.</p></div>
     <div class="field"><label for="f-camp-mes">Mês</label><select id="f-camp-mes" data-filter="comMesC">${(meses.includes(M) ? meses : [M, ...meses]).map(m => `<option value="${m}" ${m === M ? "selected" : ""}>${ymLabel(m)}</option>`).join("")}</select></div></div>`;
   if (!h || !h.campanhas) return head + `<div class="empty"><strong>Sem dados de campanha em ${ymLabel(M)}</strong><span>O robô do Helena guarda as campanhas do mês atual e do anterior a partir da próxima execução.</span></div>`;
   const hAnt = (S.helena || []).find(x => x.mes === addM(M, -1)) || {};
@@ -1403,22 +1403,38 @@ function ownerCampanhas() {
   const telVenda = (v) => telNacional(v.telefone) || telOrc[String(v.roteiro)] || "";
   const orcs = orcLista().filter(o => ymOf(o.criado) === M);
   const juntar = (lista, listaAnt, chave) => lista.map(c => { const k = chave(c); const ant = (listaAnt || []).find(x => chave(x) === k) || {}; return { ...c, telSet: new Set([...(c.telefones || []), ...(ant.telefones || [])]), nomeSet: new Set([...(c.nomes || []), ...(ant.nomes || [])]) }; });
+  // A origem anotada no CRM (coluna "Origem" do Trevor) é a fonte oficial; o Helena diz de qual anúncio a pessoa veio
+  const ehAnuncio = (v) => /anuncio|trafego|patrocinad/.test(semAcento(v.origemLead));
+  const origOutra = (v) => !!semAcento(v.origemLead) && !ehAnuncio(v);
+  const temOrigemCrm = vendas.some(v => semAcento(v.origemLead));
+  // nome: o Helena guarda "primeiro + último" do contato do WhatsApp, que costuma ser mais curto que o nome do CRM
+  // (ex.: "Suely Pereira" × "Suely Pereira de Souza"), então vale o primeiro nome + qualquer sobrenome do CRM
+  const STOP = ["de", "da", "do", "das", "dos", "e"];
+  const chavesNome = (nome) => { const t = semAcento(nome).replace(/[^a-z ]+/g, " ").split(" ").filter(x => x.length > 1 && !STOP.includes(x)); return t.length > 1 ? t.slice(1).map(s => t[0] + " " + s) : []; };
+  const poolAd = vendas.filter(v => !origOutra(v)), poolOrig = vendas.filter(v => !ehAnuncio(v));
   const usadas = new Set();
-  const atribui = (g) => { // por telefone primeiro; pelo nome só se a venda ainda não foi atribuída
-    const vs = vendas.filter(v => { const t = telVenda(v); return t && g.telSet.has(t); });
-    vs.forEach(v => usadas.add(v.id));
-    return vs;
-  };
-  const atribuiNome = (g, jaVs) => vendas.filter(v => !usadas.has(v.id) && !jaVs.includes(v) && g.nomeSet.has(chaveNome(v.cliente)));
+  const porTel = (g, pool) => { const vs = pool.filter(v => { const t = telVenda(v); return !usadas.has(v.id) && t && g.telSet.has(t); }); vs.forEach(v => usadas.add(v.id)); return vs; };
+  const porNome = (g, pool) => { const vs = pool.filter(v => !usadas.has(v.id) && chavesNome(v.cliente).some(k => g.nomeSet.has(k))); vs.forEach(v => usadas.add(v.id)); return vs; };
   const orcsDe = (g) => orcs.filter(o => (o.telefone && g.telSet.has(telNacional(o.telefone))) || (o.cliente && g.nomeSet.has(chaveNome(o.cliente))));
   const chaveCamp = (c) => [c.source, c.campaign, c.content || c.headline].join("|");
   const base = juntar(h.campanhas, hAnt.campanhas, chaveCamp), baseOrig = juntar(h.origens || [], hAnt.origens, c => c.nome);
-  [...base, ...baseOrig].forEach(g => { g.vs = atribui(g); });
-  [...base, ...baseOrig].forEach(g => { const extra = atribuiNome(g, g.vs); extra.forEach(v => usadas.add(v.id)); g.vs = [...g.vs, ...extra]; g.os = orcsDe(g); g.vV = g.vs.reduce((a, v) => a + (Number(v.valor) || 0), 0); });
+  base.forEach(g => { g.vs = porTel(g, poolAd); }); baseOrig.forEach(g => { g.vs = porTel(g, poolOrig); });
+  base.forEach(g => { g.vs = [...g.vs, ...porNome(g, poolAd)]; }); baseOrig.forEach(g => { g.vs = [...g.vs, ...porNome(g, poolOrig)]; });
+  [...base, ...baseOrig].forEach(g => { g.os = orcsDe(g); g.vV = g.vs.reduce((a, v) => a + (Number(v.valor) || 0), 0); });
   const linhas = base.map(c => ({ ...c, dest: destinoDaCampanha(c) })), origensL = baseOrig;
   const grupos = {}; linhas.forEach(l => (grupos[l.dest] ||= []).push(l));
   const ordem = Object.entries(grupos).map(([d, ls]) => [d, ls, ls.reduce((a, l) => a + l.n, 0), ls.reduce((a, l) => a + l.vs.length, 0), ls.reduce((a, l) => a + l.vV, 0)]).sort((a, b) => b[4] - a[4] || b[2] - a[2]);
-  const leads = linhas.reduce((a, l) => a + l.n, 0), vendidas = new Set(linhas.flatMap(l => l.vs.map(v => v.id))), vendidasOrig = new Set(origensL.flatMap(l => l.vs.map(v => v.id))), valor = vendas.filter(v => vendidas.has(v.id)).reduce((a, v) => a + (Number(v.valor) || 0), 0);
+  const leads = linhas.reduce((a, l) => a + l.n, 0), vendidas = new Set(linhas.flatMap(l => l.vs.map(v => v.id))), vendidasOrig = new Set(origensL.flatMap(l => l.vs.map(v => v.id)));
+  const vendCrmAd = vendas.filter(ehAnuncio), idsCrmAd = new Set(vendCrmAd.map(v => v.id));
+  const naoAchadas = vendCrmAd.filter(v => !vendidas.has(v.id)), possiveis = [...vendidas].filter(id => !idsCrmAd.has(id));
+  const totalAd = temOrigemCrm ? vendCrmAd.length : vendidas.size;
+  const valor = vendas.filter(v => temOrigemCrm ? idsCrmAd.has(v.id) : vendidas.has(v.id)).reduce((a, v) => a + (Number(v.valor) || 0), 0);
+  const somaV = (l) => l.reduce((a, v) => a + (Number(v.valor) || 0), 0);
+  const porOrigCrm = {}; vendas.forEach(v => { const k = String(v.origemLead || "").trim() || "Sem origem no CRM"; (porOrigCrm[k] ||= []).push(v); });
+  const origemCrmTabela = temOrigemCrm ? `<section class="panel"><div class="section-head"><div><h3>Origem das vendas no CRM</h3><span class="muted small">Como cada venda de ${ymLabel(M)} foi marcada na coluna “Origem” do CRM. É a contagem oficial; o Helena mostra de qual anúncio ou influenciadora a conversa veio.</span></div></div>
+    <div class="tablewrap"><table><thead><tr><th>Origem</th><th class="n">Vendas</th><th class="n">Valor vendido</th><th class="n">Achadas no Helena</th></tr></thead><tbody>${Object.entries(porOrigCrm).sort((a, b) => (a[0] === "Sem origem no CRM") - (b[0] === "Sem origem no CRM") || b[1].length - a[1].length).map(([k, vs]) => `<tr><td><strong>${esc(k)}</strong></td><td class="n">${vs.length}</td><td class="n">${money(somaV(vs))}</td><td class="n">${vs.filter(v => vendidas.has(v.id) || vendidasOrig.has(v.id)).length}</td></tr>`).join("")}</tbody></table></div></section>` : "";
+  const naoAchadasTabela = naoAchadas.length ? `<section class="panel"><div class="section-head"><div><h3>Vendas de anúncio sem conversa achada no Helena</h3><span class="muted small">Marcadas como anúncio no CRM, mas o cliente não aparece entre os leads de anúncio do Helena deste mês ou do anterior. Costuma ser outro número, nome diferente no WhatsApp ou lead mais antigo. A venda conta normalmente no total.</span></div><span class="pill neutral">${naoAchadas.length}</span></div>
+    <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Vendedor</th><th>Fechada em</th><th class="n">Valor</th></tr></thead><tbody>${naoAchadas.map(v => `<tr><td>${esc(v.cliente)}<div>${destTag(v.destino)}</div></td><td>${esc(vendLabel(v))}</td><td>${dLabel(v.fechamento)}</td><td class="n">${money(v.valor)}</td></tr>`).join("")}</tbody></table></div></section>` : "";
   const temOrc = orcs.length > 0;
   const origemTabela = origensL.length ? `<section class="panel"><div class="section-head"><div><h3>Influenciadoras e indicações</h3><span class="muted small">Conversas sem anúncio cuja primeira mensagem cita a origem (ex.: “vim do Status Viajante”). ${h.semUtmTotal ? `${(h.semUtmLidas || 0).toLocaleString("pt-BR")} de ${h.semUtmTotal.toLocaleString("pt-BR")} conversas sem anúncio do mês já foram lidas.` : ""}</span></div><span class="pill ${vendidasOrig.size ? "ok" : "neutral"}">${vendidasOrig.size} ${vendidasOrig.size === 1 ? "venda" : "vendas"}</span></div>
     <div class="tablewrap"><table><thead><tr><th>Origem</th><th class="n">Leads</th>${temOrc ? '<th class="n">Orçamentos</th>' : ""}<th class="n">Vendas</th><th class="n">Conversão</th><th class="n">Valor vendido</th></tr></thead><tbody>${origensL.map(l => `<tr><td><strong>${esc(l.nome)}</strong>${l.vs.length ? `<div class="muted small">Fechou: ${[...new Set(l.vs.map(v => v.destino))].map(x => esc(x)).join(", ")}</div>` : ""}</td><td class="n">${l.n}</td>${temOrc ? `<td class="n">${l.os.length}</td>` : ""}<td class="n">${l.vs.length}</td><td class="n">${pctTxt(l.n ? l.vs.length / l.n * 100 : null)}</td><td class="n">${money(l.vV)}</td></tr>`).join("")}</tbody></table></div></section>` : "";
@@ -1436,17 +1452,19 @@ function ownerCampanhas() {
   return head + `
   <div class="tiles">
     <div class="tile"><span class="k">Leads de campanhas</span><span class="v">${leads.toLocaleString("pt-BR")}</span><span class="d">${(h.semCampanha || 0).toLocaleString("pt-BR")} chegaram sem campanha (orgânico, indicação, direto)</span></div>
-    <div class="tile"><span class="k">Vendas das campanhas</span><span class="v">${vendidas.size}</span><span class="d">${money(valor)} vendidos em ${ymLabel(M)}</span></div>
-    <div class="tile feature"><span class="k">Conversão</span><span class="v">${pctTxt(leads ? vendidas.size / leads * 100 : null)}</span><span class="d">Vendas ÷ leads de campanhas</span></div>
+    <div class="tile"><span class="k">Vendas de anúncio</span><span class="v">${totalAd}</span><span class="d">${money(valor)} vendidos em ${ymLabel(M)}${temOrigemCrm ? ` · ${vendCrmAd.length - naoAchadas.length} ${vendCrmAd.length - naoAchadas.length === 1 ? "ligada" : "ligadas"} a um anúncio no Helena${possiveis.length ? ` · +${possiveis.length} ${possiveis.length === 1 ? "possível" : "possíveis"} sem origem no CRM` : ""}` : ""}</span></div>
+    <div class="tile feature"><span class="k">Conversão</span><span class="v">${pctTxt(leads ? totalAd / leads * 100 : null)}</span><span class="d">Vendas de anúncio ÷ leads de campanhas</span></div>
   </div>
+  ${origemCrmTabela}
   ${ordem.map(([d, ls, n, q, v]) => `<section class="panel"><div class="section-head"><div><h3>${d === "Geral / outros" ? esc(d) : `<span class="dest" style="${dc(d)};font-size:inherit;font-weight:inherit;color:inherit">${esc(d)}</span>`}</h3><span class="muted small">${n.toLocaleString("pt-BR")} leads · ${q} ${q === 1 ? "venda" : "vendas"} · ${money(v)}</span></div><span class="pill ${q ? "ok" : "neutral"}">${pctTxt(n ? q / n * 100 : null)}</span></div>
     <div class="tablewrap"><table><thead><tr><th>Anúncio</th><th>Origem</th><th class="n">Leads</th>${temOrc ? '<th class="n">Orçamentos</th>' : ""}<th class="n">Vendas</th><th class="n">Conversão</th><th class="n">Valor vendido</th></tr></thead>
     <tbody>${ls.sort((a, b) => b.vV - a.vV || b.n - a.n).map(l => `<tr><td><strong>${tituloAnuncio(l)}</strong>${detalheAnuncio(l)}${l.vs.length ? `<div class="muted small">Fechou: ${[...new Set(l.vs.map(v => v.destino))].map(x => esc(x)).join(", ")}</div>` : ""}</td><td class="small">${esc(String(l.source || "—").toLowerCase().replace(/^./, c => c.toUpperCase()))}<div class="muted small">${codigo(l)}</div></td><td class="n">${l.n}</td>${temOrc ? `<td class="n">${l.os.length}</td>` : ""}<td class="n">${l.vs.length}</td><td class="n">${pctTxt(l.n ? l.vs.length / l.n * 100 : null)}</td><td class="n">${money(l.vV)}</td></tr>`).join("")}</tbody></table></div>
   </section>`).join("")}
+  ${naoAchadasTabela}
   ${origemTabela}
-  ${vendidas.size || vendidasOrig.size ? `<section class="panel"><details><summary style="cursor:pointer"><strong>Ver as vendas atribuídas</strong> <span class="muted small">(${vendidas.size + vendidasOrig.size})</span></summary>
-    <div class="tablewrap" style="margin-top:10px"><table><thead><tr><th>Cliente</th><th>Vendedor</th><th>Fechada em</th><th>Origem</th><th class="n">Valor</th></tr></thead><tbody>${vendas.filter(v => vendidas.has(v.id) || vendidasOrig.has(v.id)).map(v => { const l = linhas.find(x => x.vs.some(y => y.id === v.id)), o = origensL.find(x => x.vs.some(y => y.id === v.id)); return `<tr><td>${esc(v.cliente)}<div>${destTag(v.destino)}</div></td><td>${esc(vendLabel(v))}</td><td>${dLabel(v.fechamento)}</td><td class="small">${l ? nomeAnuncio(l) : o ? esc(o.nome) : ""}<div class="muted small">${l ? "anúncio · " + esc(String(l.source || "").toLowerCase()) : o ? "pela mensagem" : ""}</div></td><td class="n">${money(v.valor)}</td></tr>`; }).join("")}</tbody></table></div>
-    <p class="muted small" style="margin:8px 0 0">A ligação é pelo telefone do cliente; quando não há telefone, pelo primeiro e último nome (nomes muito comuns podem gerar uma ou outra ligação errada).</p></details></section>` : ""}
+  ${vendidas.size || vendidasOrig.size || vendCrmAd.length ? (() => { const lista = vendas.filter(v => vendidas.has(v.id) || vendidasOrig.has(v.id) || idsCrmAd.has(v.id)); return `<section class="panel"><details><summary style="cursor:pointer"><strong>Conferir venda a venda</strong> <span class="muted small">(${lista.length})</span></summary>
+    <div class="tablewrap" style="margin-top:10px"><table><thead><tr><th>Cliente</th><th>Vendedor</th><th>Fechada em</th><th>Origem no CRM</th><th>Conversa no Helena</th><th class="n">Valor</th></tr></thead><tbody>${lista.map(v => { const l = linhas.find(x => x.vs.some(y => y.id === v.id)), o = origensL.find(x => x.vs.some(y => y.id === v.id)); return `<tr><td>${esc(v.cliente)}<div>${destTag(v.destino)}</div></td><td>${esc(vendLabel(v))}</td><td>${dLabel(v.fechamento)}</td><td class="small">${v.origemLead ? esc(v.origemLead) : '<span class="pill warn">sem origem</span>'}</td><td class="small">${l ? nomeAnuncio(l) : o ? esc(o.nome) : '<span class="muted">não achada</span>'}<div class="muted small">${l ? "anúncio · " + esc(String(l.source || "").toLowerCase()) : o ? "pela mensagem" : ""}</div></td><td class="n">${money(v.valor)}</td></tr>`; }).join("")}</tbody></table></div>
+    <p class="muted small" style="margin:8px 0 0">O Helena é ligado à venda pelo telefone do cliente; sem telefone, pelo primeiro nome + um sobrenome (nomes muito comuns podem gerar uma ou outra ligação errada). Quando aparecer “sem origem”, vale marcar a origem no CRM para a contagem oficial ficar certa.</p></details></section>`; })() : ""}
   ${editorOrigens}`;
 }
 function abrirConfigTrevor() {
