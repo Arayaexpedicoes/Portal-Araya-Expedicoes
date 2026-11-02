@@ -2094,7 +2094,9 @@ function alertasComerciais() {
   const semCadastro = [...new Set(vs.filter(v => !v.vendedor && !v.casa && v.vendedorNome && !oculto(v.vendedorNome)).map(v => v.vendedorNome))];
   const conferir = vs.filter(v => v.conferir);
   const ids = S.comercial.idsPlanilha; const naPlanilha = ids && ids.length ? new Set(ids) : null;
-  const fora = naPlanilha ? vs.filter(v => !naPlanilha.has(v.id)) : [];
+  // só avisa de vendas que importam para a conferência pelo portal (a partir de set/2026: fechadas ou com viagem desde então)
+  const INICIO_CONFERENCIA = "2026-09-01";
+  const fora = naPlanilha ? vs.filter(v => !naPlanilha.has(v.id) && ((v.fechamento || "") >= INICIO_CONFERENCIA || (v.retorno || v.embarque || "") >= INICIO_CONFERENCIA)) : [];
   return { semCot, comUsd, semCadastro, conferir, fora };
 }
 function bannersComerciais(completo) {
