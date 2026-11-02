@@ -989,7 +989,9 @@ function fichaHtml(f, dest, isDest) {
     const linhas = (k) => String(sec[k] || "").split("\n");
     const ehMidia = (l) => /^\[\[(foto|nvideo|video):/.test(l.trim()), ehArq = (l) => /^\[\[arquivo:/.test(l.trim());
     const texto = (k) => linhas(k).filter(l => !ehMidia(l) && !ehArq(l)).join("\n").trim();
-    const ordem = ["descricao", "inclui", "atencao", "gastronomia", "galeria", "documentos", "guia"];
+    const ordem = ["descricao", "inclui", "gatilho", "tecnica", "atencao", "guia", "gastronomia", "galeria", "documentos"];
+    // Ficha técnica: o tópico novo + os nomes antigos ("Características e atenção" e "Guia interno")
+    const tecnicaTxt = ["tecnica", "atencao", "guia"].map(k => texto(k)).filter(Boolean).join("\n\n");
     const midias = [], arqs = [];
     ordem.forEach(k => linhas(k).forEach(l => { if (ehMidia(l) && !midias.includes(l.trim())) midias.push(l.trim()); if (ehArq(l) && !arqs.includes(l.trim())) arqs.push(l.trim()); }));
     const fotosL = midias.filter(l => l.startsWith("[[foto:")), vidsL = midias.filter(l => !l.startsWith("[[foto:"));
@@ -998,27 +1000,27 @@ function fichaHtml(f, dest, isDest) {
     const topicos = [
       ["resumo", "Resumo", texto("descricao") || fatos.length],
       ["inclui", "O que inclui", texto("inclui")],
-      ["atencao", "Atenção", texto("atencao")],
+      ["gatilho", "Gatilho de venda", texto("gatilho")],
+      ["tecnica", "Ficha técnica", tecnicaTxt],
       ["gastronomia", "Gastronomia", texto("gastronomia")],
       ["galeria", `Fotos e vídeos${midias.length ? " · " + midias.length : ""}`, midias.length || texto("galeria")],
-      ["documentos", `Documentos${docs.length ? " · " + docs.length : ""}`, docs.length || docsTexto],
-      ["guia", "Guia interno", texto("guia")]
+      ["documentos", `Documentos${docs.length ? " · " + docs.length : ""}`, docs.length || docsTexto]
     ].filter(t => t[2]);
     const atual = topicos.some(t => t[0] === S.filtros.fichaTab) ? S.filtros.fichaTab : (topicos[0] || [])[0];
     abasHtml = topicos.length > 1 ? `<nav class="subnav ficha-abas" aria-label="Tópicos da ficha">${topicos.map(([k, t]) => `<button type="button" data-fichatab="${k}" aria-current="${k === atual}">${t}</button>`).join("")}</nav>` : "";
     const prose = (txt) => `<div class="prose">${md(txt, fmap, amap)}</div>`;
     if (atual === "resumo") corpo = texto("descricao") ? prose(texto("descricao")) : `<p class="muted">Sem descrição nesta ficha.</p>`;
     else if (atual === "inclui") corpo = `<section class="fcard inclui">${prose(texto("inclui"))}</section>`;
-    else if (atual === "atencao") corpo = `<section class="fcard atencao">${prose(texto("atencao"))}</section>`;
+    else if (atual === "gatilho") corpo = `<section class="fsec guia"><span class="guia-tag">Argumentos de venda · uso interno</span>${prose(texto("gatilho"))}</section>`;
+    else if (atual === "tecnica") corpo = prose(tecnicaTxt);
     else if (atual === "gastronomia") corpo = prose(texto("gastronomia"));
     else if (atual === "galeria") corpo = (fotosL.length ? `<div class="prose">${md(fotosL.join("\n"), fmap, amap)}</div>` : "") + (vidsL.length ? `<h4 class="fh">Vídeos</h4><div class="prose">${md(vidsL.join("\n"), fmap, amap)}</div>` : "") + (texto("galeria") ? prose(texto("galeria")) : "")
       + `<p class="muted small" style="margin:0">Para incluir: no Notion, arraste a foto ou o vídeo para baixo do título “Fotos e vídeos” desta ficha; a legenda é a opção “Legenda” da imagem.</p>`;
     else if (atual === "documentos") corpo = `<div class="docs">${docs.map(a => `<a class="doc" href="${esc(a.url)}" target="_blank" rel="noopener"><span class="doc-ico" aria-hidden="true">${/\.pdf(\?|$)/i.test(a.nome || a.url) ? "PDF" : "DOC"}</span><span class="doc-txt"><strong>${esc(a.legenda || String(a.nome || "Documento").replace(/\.[a-z0-9]{2,4}$/i, ""))}</strong><span class="muted small">${esc(a.nome || "")}</span></span><span class="doc-abrir">Abrir ↗</span></a>`).join("")}</div>${docsTexto ? prose(docsTexto) : ""}
       <p class="muted small" style="margin:0">Para incluir: no Notion, crie o título “Documentos” na ficha e solte ali o PDF (ficha técnica, mapa, regulamento).</p>`;
-    else if (atual === "guia") corpo = `<section class="fsec guia"><span class="guia-tag">Uso interno · não enviar ao cliente</span>${prose(texto("guia"))}</section>`;
-    // texto pronto para o cliente (sem guia interno)
+    // texto pronto para o cliente: resumo e o que inclui (sem gatilho de venda nem ficha técnica, que têm informação interna)
     const plano = (t) => String(t || "").split("\n").map(l => l.replace(/\*\*/g, "").replace(/\[([^\]]+)\]\(([^)]+)\)/g, "$1").replace(/^#{2,6}\s+/, "").replace(/^>\s?/, "").replace(/^[-•]\s+/, "• ")).join("\n").replace(/\n{3,}/g, "\n\n").trim();
-    const partes = [`*${titulo}*`, f.subtitulo || "", fatos.filter(([k]) => k !== "Preço").map(([k, v]) => `${k}: ${v}`).join(" · "), plano(texto("descricao")), texto("inclui") ? "*O que inclui*\n" + plano(texto("inclui")) : "", texto("atencao") ? "*Importante*\n" + plano(texto("atencao")) : ""].filter(Boolean);
+    const partes = [`*${titulo}*`, f.subtitulo || "", fatos.filter(([k]) => k !== "Preço").map(([k, v]) => `${k}: ${v}`).join(" · "), plano(texto("descricao")), texto("inclui") ? "*O que inclui*\n" + plano(texto("inclui")) : ""].filter(Boolean);
     copiar = `<button type="button" class="btn sm" data-act="copiar-ficha" data-texto="${esc(partes.join("\n\n"))}">Copiar texto para o cliente</button>`;
   } else {
     const txt = isDest ? f.resumo : f.conteudo;
