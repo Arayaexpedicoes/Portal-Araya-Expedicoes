@@ -72,11 +72,16 @@ jobs:
             "Atacama e Uyuni": ["atacama-uyuni", 7],
           };
           const SECOES = {
-            "descricao": "descricao", "o que inclui": "inclui", "inclui": "inclui",
-            "caracteristicas e atencao": "atencao", "atencao": "atencao",
-            "gastronomia": "gastronomia", "guia interno": "guia",
+            // tópicos da ficha (nov/2026): Resumo, O que inclui, Gatilho de venda, Ficha técnica, Gastronomia, Fotos e vídeos, Documentos
+            "resumo": "descricao", "descricao": "descricao",
+            "o que inclui": "inclui", "inclui": "inclui",
+            "gatilho de venda": "gatilho", "caracteristicas e gatilhos de venda": "gatilho", "gatilhos de venda": "gatilho", "gatilho": "gatilho", "gatilhos": "gatilho",
+            "ficha tecnica": "tecnica", "fichas tecnicas": "tecnica",
+            // nomes antigos continuam valendo (entram na Ficha técnica do portal)
+            "caracteristicas e atencao": "atencao", "atencao": "atencao", "guia interno": "guia",
+            "gastronomia": "gastronomia",
             "fotos e videos": "galeria", "fotos": "galeria", "videos": "galeria", "galeria": "galeria",
-            "documentos": "documentos", "documento": "documentos", "ficha tecnica": "documentos", "fichas tecnicas": "documentos", "arquivos": "documentos", "anexos": "documentos", "materiais": "documentos",
+            "documentos": "documentos", "documento": "documentos", "arquivos": "documentos", "anexos": "documentos", "materiais": "documentos",
           };
           const norm = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
           const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
