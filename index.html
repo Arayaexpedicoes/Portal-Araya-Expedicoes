@@ -336,6 +336,8 @@ table.comp .pos{color:var(--ok);font-weight:700} table.comp .neg{color:var(--bad
 table.comp .barcol{width:22%}
 @media (max-width:640px){ table.comp .barcol,table.comp .qcol{display:none} table.comp{font-size:.8rem} table.comp td,table.comp th{padding-left:5px;padding-right:5px} }
 .ficha-abas button.vazio{opacity:.5;font-weight:500}
+.resumo-lista{margin:0;padding-left:18px;display:grid;gap:6px}
+table.termo td,table.termo th{white-space:nowrap} tr.termo-det td{padding-top:0;border-top:0}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 
 .auth{min-height:calc(100vh - 140px);display:grid;place-items:center;padding-block:24px}
@@ -451,7 +453,7 @@ const pill = (st) => { const [c, t] = STATUS_PILL[st] || ["neutral", st]; return
 const S = {
   auth: null, db: null, session: null, resumoAtual: "", email: "", isAdmin: false, ready: false, authMode: "entrar", authMsg: null, recovery: false,
   members: {}, vendas: {}, notas: {}, atend: {}, destinos: [], passeios: [], tickets: [], equipeRes: null,
-  comercial: { planilha: "", cotacoes: {}, metas: {}, ultimaImportacao: "", ultimoResultado: null }, importando: false, vendasEquipe: null, bonus: {}, disp: {}, dispErro: false, escala: { cfg: { pessoas: {} }, cfgExiste: false, ajustes: {}, ponto: {}, erro: false }, helena: [], orc: {}, retornos: {},
+  comercial: { planilha: "", cotacoes: {}, metas: {}, ultimaImportacao: "", ultimoResultado: null }, importando: false, vendasEquipe: null, bonus: {}, disp: {}, dispErro: false, escala: { cfg: { pessoas: {} }, cfgExiste: false, ajustes: {}, ponto: {}, meses: {}, erro: false }, backup: null, helena: [], orc: {}, retornos: {},
   tab: null, previewUid: null,
   filtros: { vend: "", mes: "", busca: "", comMes: ymNow(), painelMes: ymNow(), destino: null, passeio: null, tourBusca: "", minhasMes: "", tkDest: null, tkItem: null, tkBusca: "", comMesC: ymNow() },
   pendingRender: false
@@ -548,6 +550,7 @@ async function loadAll() {
     try { S.helena = docsOf(await col("helena").get()); } catch (_) { S.helena = []; }
     try { S.orc = Object.fromEntries(docsOf(await col("orcamentos").get()).map(d => [d.id, d])); } catch (_) { S.orc = {}; }
     try { S.retornos = Object.fromEntries(docsOf(await col("retornos").get()).map(d => [d.id, d])); } catch (_) { S.retornos = {}; }
+    try { const b = await col("config").doc("backup").get(); S.backup = b.exists ? b.data() : {}; } catch (_) { S.backup = {}; }
     try { await syncAtendHelena(); } catch (_) { /* tenta de novo no próximo carregamento */ }
     try { await syncResumo(); } catch (_) { /* tenta de novo no próximo carregamento */ }
     return;
@@ -816,6 +819,7 @@ function memberInicio(data, vendas, hoje, viewingAs) {
   }
   return `
   <div class="section-head"><div><h2>Olá${nome ? ", " + esc(nome.split(" ")[0]) : ""}</h2><p>Seus números de ${ymLong(hoje)}. Vendas contam pela data de fechamento.</p></div></div>
+  ${data.supervisor ? resumoSemanaPainel() : ""}
   <div class="tiles">
     <div class="tile"><span class="k">Atendimentos no mês</span><span class="v">${atend ?? "—"}</span><span class="d">${atend == null ? "Ainda não lançados" : "Conversas que você recebeu no mês"}</span></div>
     ${(() => { const temData = meusOrc.some(o => o.criado), ab = meusOrc.filter(o => orcAberto(o, new Date().toISOString().slice(0, 10))); return temData
@@ -1046,6 +1050,75 @@ function fichaHtml(f, dest, isDest) {
     ${rev ? `<p class="rev">${rev}</p>` : ""}
   </article>`;
 }
+// ---------- termômetro das fichas: quanto de cada tópico já foi preenchido no Notion ----------
+const TOPICOS_FICHA = [["descricao", "Resumo"], ["inclui", "O que inclui"], ["gatilho", "Gatilho de venda"], ["tecnica", "Ficha técnica"], ["gastronomia", "Gastronomia"], ["galeria", "Fotos e vídeos"], ["documentos", "Documentos"]];
+function topicosDaFicha(f) {
+  const sc = f.secoes || {}, t = (k) => String(sc[k] || "").replace(/\[\[[^\]]+\]\]/g, "").trim(), tudo = Object.values(sc).join("\n");
+  return { descricao: !!t("descricao"), inclui: !!t("inclui"), gatilho: !!t("gatilho"), tecnica: !!(t("tecnica") || t("atencao") || t("guia")), gastronomia: !!t("gastronomia"), galeria: /\[\[(foto|video|nvideo):/.test(tudo), documentos: /\[\[arquivo:/.test(tudo) || !!t("documentos") };
+}
+const verGestao = () => S.isAdmin ? (!S.previewUid || !!(S.members[S.previewUid] || {}).supervisor) : !!(S.members[S.email] && S.members[S.email].supervisor);
+const souAdminReal = () => S.isAdmin && !S.previewUid;
+function termometroFichas() {
+  const ds = [...S.destinos].sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
+  const porDest = ds.map(d => { const fichas = [{ ...d, nome: "Visão geral", _dest: d.id, _id: "__geral" }, ...S.passeios.filter(p => p.destino === d.id).sort((a, b) => (a.ordem || 0) - (b.ordem || 0)).map(p => ({ ...p, _dest: d.id, _id: p.id }))].map(f => ({ f, t: topicosDaFicha(f) })); return { d, fichas }; });
+  const total = porDest.reduce((a, x) => a + x.fichas.length * TOPICOS_FICHA.length, 0), cheios = porDest.reduce((a, x) => a + x.fichas.reduce((b, y) => b + Object.values(y.t).filter(Boolean).length, 0), 0);
+  return { porDest, pct: total ? Math.round(cheios / total * 100) : 0 };
+}
+function termometroPainel() {
+  const { porDest, pct } = termometroFichas(), aberto = !!S.filtros.verTermo;
+  const cor = (n, d) => { const r = d ? n / d : 0; return r >= 1 ? "ok" : r >= .5 ? "warn" : "bad"; };
+  return `<section class="panel"><div class="section-head"><div><h3>Preenchimento das fichas · ${pct}%</h3><span class="muted small">Quantos passeios já têm cada tópico preenchido no Notion. Só a gestão vê.</span></div><button type="button" class="btn sm" data-act="ver-termometro">${aberto ? "Esconder" : "Ver por destino"}</button></div>
+    <div class="meta-bar" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"><i style="width:${pct}%"></i></div>
+    ${aberto ? `<div class="tablewrap"><table class="termo"><thead><tr><th>Destino</th>${TOPICOS_FICHA.map(([, n]) => `<th class="n">${n}</th>`).join("")}</tr></thead><tbody>
+      ${porDest.map(({ d, fichas }) => `<tr><td><strong>${esc(d.nome)}</strong><div class="muted small">${fichas.length} fichas</div></td>${TOPICOS_FICHA.map(([k]) => { const n = fichas.filter(x => x.t[k]).length; return `<td class="n"><span class="pill ${cor(n, fichas.length)}">${n}/${fichas.length}</span></td>`; }).join("")}</tr>
+        <tr class="termo-det"><td colspan="${TOPICOS_FICHA.length + 1}"><details><summary class="small" style="cursor:pointer">O que falta em ${esc(d.nome)}</summary><ul class="small" style="margin:6px 0 0;padding-left:18px">${fichas.filter(x => Object.values(x.t).some(v => !v)).map(x => `<li><button type="button" class="linkbtn" data-irficha="${esc(x.f._dest)}|${esc(x.f._id)}">${esc(x.f.nome)}</button> <span class="muted">· falta ${TOPICOS_FICHA.filter(([k]) => !x.t[k]).map(([, n]) => n).join(", ")}</span></li>`).join("") || "<li>Tudo preenchido 🎉</li>"}</ul></details></td></tr>`).join("")}
+    </tbody></table></div>` : ""}
+  </section>`;
+}
+
+// ---------- resumo da semana (Visão geral) ----------
+function resumoSemana() {
+  const hojeD = isoDia(new Date()), d7 = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return isoDia(d); };
+  const ini = d7(6), iniAnt = d7(13), fimAnt = d7(7);
+  const ativas = listaEquipe().filter(v => v.status !== "cancelada");
+  const sem = ativas.filter(v => v.fechamento >= ini && v.fechamento <= hojeD), ant = ativas.filter(v => v.fechamento >= iniAnt && v.fechamento <= fimAnt);
+  const soma = (l) => l.reduce((a, v) => a + (Number(v.valor) || 0), 0);
+  const esfr = {}; orcLista().filter(o => orcAberto(o, hojeD) && o.criado && diasEntre(o.criado, hojeD) > 7 && !(S.retornos || {})[o.id]).forEach(o => { const k = o.vendedor ? ((S.members[o.vendedor] && S.members[o.vendedor].apelido) || (S.atendMeta && S.atendMeta[o.vendedor] && S.atendMeta[o.vendedor].nome) || o.vendedorNome || o.vendedor) : (o.vendedorNome || "Sem vendedor"); if (oculto(k)) return; (esfr[k] ||= { q: 0, v: 0 }); esfr[k].q++; esfr[k].v += Number(o.valor) || 0; });
+  const ponto = !souAdminReal() ? [] : pessoasEscala().map(u => { let sr = 0; for (let i = 1; i <= 7; i++) { const iso = d7(i); if (iso < ((escCfg().inicioPonto) || iso)) continue; const e = escalaDoDia(u, iso), p = pontoDe(u, iso), w = trabalhado(p, iso); if ((e.previsto && !p) || (w && w.incompleto)) sr++; } return { u, sr }; }).filter(x => x.sr);
+  const M = ymNow(), semOrigem = ativas.filter(v => v.origem === "crm" && ymOf(v.fechamento) === M && !String(v.origemLead || "").trim());
+  const termo = termometroFichas().pct;
+  const bkDias = S.backup && S.backup.em ? diasEntre(S.backup.em.slice(0, 10), hojeD) : null;
+  return { ini, sem, ant, soma, esfr, ponto, semOrigem, termo, bkDias };
+}
+function resumoSemanaPainel() {
+  const r = resumoSemana(), vS = r.soma(r.sem), vA = r.soma(r.ant);
+  const delta = vA ? Math.round((vS - vA) / vA * 100) : null;
+  const esfr = Object.entries(r.esfr).sort((a, b) => b[1].q - a[1].q);
+  const itens = [
+    `<strong>Vendas dos últimos 7 dias:</strong> ${r.sem.length} · ${money(vS)}${delta == null ? "" : ` (${delta >= 0 ? "▲" : "▼"} ${Math.abs(delta)}% vs. 7 dias anteriores, ${money(vA)})`}`,
+    esfr.length ? `<strong>Orçamentos esfriando</strong> (mais de 7 dias sem retomar): ${esfr.map(([k, x]) => `${esc(k)} ${x.q}`).join(" · ")}` : `<strong>Orçamentos esfriando:</strong> nenhum`,
+    !souAdminReal() ? "" : r.ponto.length ? `<strong>Ponto:</strong> ${r.ponto.map(x => `${esc(nomeEsc(x.u))} com ${x.sr} ${x.sr === 1 ? "dia" : "dias"} sem registro completo`).join(" · ")} na última semana` : (pessoasEscala().length ? `<strong>Ponto:</strong> tudo registrado na última semana` : ""),
+    r.semOrigem.length ? `<strong>${r.semOrigem.length} ${r.semOrigem.length === 1 ? "venda" : "vendas"} de ${MESES_L[+ymNow().slice(5) - 1]} sem origem</strong> marcada no CRM` : "",
+    `<strong>Fichas no Notion:</strong> ${r.termo}% preenchidas`,
+    !souAdminReal() ? "" : `<strong>Cópia de segurança:</strong> ${r.bkDias == null ? "nunca feita" : r.bkDias === 0 ? "feita hoje" : `última há ${r.bkDias} ${r.bkDias === 1 ? "dia" : "dias"}`}`
+  ].filter(Boolean);
+  const plano = "*Resumo da semana · Araya*\n" + itens.map(t => "• " + t.replace(/<[^>]+>/g, "").replace(/&amp;/g, "&")).join("\n");
+  return `<section class="panel resumo-sem"><div class="section-head"><div><h3>Resumo da semana</h3><span class="muted small">Os pontos que pedem atenção nos últimos 7 dias.</span></div><div class="row"><button type="button" class="btn sm" data-act="copiar-resumo" data-texto="${esc(plano)}">Copiar resumo</button>${souAdminReal() && (r.bkDias == null || r.bkDias >= 7) ? `<button type="button" class="btn sm primary" data-act="baixar-backup">Fazer cópia de segurança</button>` : ""}</div></div>
+    <ul class="resumo-lista">${itens.map(t => `<li>${t}</li>`).join("")}</ul></section>`;
+}
+
+// ---------- cópia de segurança: baixa todos os dados do portal num arquivo ----------
+async function baixarBackup() {
+  const cols = ["equipe", "vendas", "vendasNotas", "atendimentos", "bonus", "orcamentos", "retornos", "disponibilidade", "escala", "ponto", "pontoMes", "config"];
+  const dados = { geradoEm: new Date().toISOString(), por: S.email, colecoes: {} };
+  toast("Gerando a cópia de segurança…");
+  for (const c of cols) { try { dados.colecoes[c] = Object.fromEntries(docsOf(await col(c).get()).map(d => [d.id, d])); } catch (_) { dados.colecoes[c] = null; } }
+  const blob = new Blob([JSON.stringify(dados, null, 1)], { type: "application/json" });
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `portal-araya-backup-${isoDia(new Date())}.json`; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 800);
+  S.backup = { em: new Date().toISOString(), por: S.email };
+  try { await col("config").doc("backup").set(S.backup); } catch (_) {}
+  render(); toast("Cópia salva no seu computador (pasta Downloads). Guarde num lugar seguro.");
+}
 function passeiosView() {
   const ds = [...S.destinos].sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
   if (!ds.length) return `<div class="section-head"><div><h2>Passeios</h2></div></div><div class="empty"><strong>As fichas ainda não chegaram</strong><span>${S.isAdmin ? "Elas vêm do banco “Fichas de Passeios · Portal Araya” no Notion. Assim que o robô rodar pela primeira vez, aparecem aqui." : "As fichas dos passeios aparecem aqui assim que forem publicadas."}</span></div>`;
@@ -1060,6 +1133,7 @@ function passeiosView() {
   return `
   <div class="section-head"><div><h2>Passeios</h2><p>Fichas de cada destino, atualizadas a partir do Notion.</p></div>
     <div class="field" style="min-width:min(260px,100%)"><label for="f-tour">Buscar neste destino</label><input type="search" id="f-tour" placeholder="Ex.: almoço, altitude, ingresso" value="${esc(S.filtros.tourBusca)}"></div></div>
+  ${verGestao() ? termometroPainel() : ""}
   <div class="chips" role="group" aria-label="Destinos">${ds.map(d => `<button type="button" class="chip" style="${dc(d.id)}" data-dest="${esc(d.id)}" aria-pressed="${d.id === dest.id}">${esc(d.nome)}</button>`).join("")}</div>
   <div class="tour" style="${dc(dest.id)}">
     <section class="panel" style="padding:8px"><div class="tourlist">
@@ -1265,12 +1339,14 @@ function trabalhado(p, iso) {
 // dias sem registro só contam a partir de quando o ponto passou a ser feito pelo portal
 const inicioPonto = () => escCfg().inicioPonto || Object.values(S.escala.ponto).map(p => p.data).filter(Boolean).sort()[0] || isoDia(new Date());
 function resumoPonto(u, ym) {
-  const hoje = isoDia(new Date()), ini = inicioPonto(), r = { trab: 0, prev: 0, saldo: 0, semReg: 0, incompletos: 0, ferMin: 0, ferDias: 0, ajustados: 0, linhas: [] };
+  const hoje = isoDia(new Date()), ini = inicioPonto(), r = { trab: 0, prev: 0, saldo: 0, semReg: 0, incompletos: 0, ferMin: 0, ferDias: 0, ajustados: 0, diasTrab: 0, diasEscala: 0, linhas: [] };
   for (const iso of diasDoMes(ym)) {
     if (iso > hoje) break;
     const e = escalaDoDia(u, iso), p = pontoDe(u, iso), w = trabalhado(p, iso);
     const l = { iso, e, p, w, saldo: null, estado: "" };
     if (p && p.ajustado) r.ajustados++;
+    if (p && p.entrada) r.diasTrab++; // dia trabalhado = teve entrada registrada (vale para o vale-alimentação)
+    if (e.previsto) r.diasEscala++;
     if (w && w.min != null && !w.aberto) { l.saldo = w.min - e.previsto; r.trab += w.min; r.prev += e.previsto; r.saldo += l.saldo; if (e.feriado && !e.feriado.facultativo) { r.ferMin += w.min; r.ferDias++; } }
     else if (w && w.aberto) l.estado = "andamento";
     else if (w && w.incompleto) { l.estado = "incompleto"; r.incompletos++; }
@@ -1321,8 +1397,14 @@ function painelFeriados() {
   return `<section class="panel"><div class="section-head"><div><h3>Próximos feriados</h3><span class="muted small">Nacionais${escCfg().feriadosExtra ? " e locais" : ""}. Carnaval e Corpus Christi são ponto facultativo.</span></div></div>
     <div class="feriados">${fs.map(([iso, f]) => `<div class="feriado"><div class="fd"><strong>${iso.slice(8, 10)}/${iso.slice(5, 7)}</strong><span>${DIAS_C[new Date(iso + "T12:00:00").getDay()]}</span></div><div><strong>${esc(f.nome)}</strong>${f.facultativo ? ' <span class="pill neutral">facultativo</span>' : ""}<div class="muted small">${ps.map(p => { const e = escalaDoDia(p, iso); return esc(nomeEsc(p)) + ": " + (e.folga ? "folga" : hC(e.ini) + "–" + hC(e.fim)); }).join(" · ")}</div></div></div>`).join("")}</div></section>`;
 }
+// Fechamento do mês: trava o ponto daquele mês e leva o saldo para o banco de horas
+const fechamento = (u, ym) => (S.escala.meses || {})[ym + "__" + u] || null;
+function bancoAntes(u, ym) { const ant = Object.values(S.escala.meses || {}).filter(m => m.email === u && m.ym < ym).sort((a, b) => a.ym.localeCompare(b.ym)).pop(); return ant ? (Number(ant.bancoFinal) || 0) : 0; }
+function bancoDoMes(u, ym, r) { const f = fechamento(u, ym); return f ? { banco: Number(f.bancoFinal) || 0, fechado: true, f } : { banco: bancoAntes(u, ym) + (r || resumoPonto(u, ym)).saldo, fechado: false, f: null }; }
+const minDeTxt = (t) => { const m = String(t || "").trim().match(/^(-|−)?\s*(\d{1,3})(?:[:h](\d{1,2}))?$/); if (!m) return null; const v = (+m[2]) * 60 + (+(m[3] || 0)); return m[1] ? -v : v; };
 function painelPontoMes(u, M, admin) {
-  const r = resumoPonto(u, M), pode = admin || (u === S.email && !S.previewUid), mostra = pode || !!S.previewUid, hoje = isoDia(new Date());
+  const r = resumoPonto(u, M), fech = fechamento(u, M), bk = bancoDoMes(u, M, r);
+  const pode = (admin || (u === S.email && !S.previewUid)) && !(fech && !admin), mostra = pode || !!S.previewUid || !!fech, hoje = isoDia(new Date());
   const cel = (l) => {
     const { e, p, w } = l, f = e.feriado;
     const saldo = l.estado === "semreg" ? '<span class="pill warn">sem registro</span>' : l.estado === "incompleto" ? '<span class="pill warn">incompleto</span>' : l.estado === "andamento" ? '<span class="pill info">em andamento</span>' : l.saldo != null ? `<span class="${l.saldo > 0 ? "pos" : l.saldo < 0 ? "neg" : ""}">${durTxt(l.saldo, true)}</span>` : '<span class="muted">—</span>';
@@ -1331,10 +1413,13 @@ function painelPontoMes(u, M, admin) {
       <td class="n">${w && w.min != null ? durTxt(w.min) : "—"}</td><td class="n">${saldo}</td><td>${mostra ? `<button type="button" class="btn sm ghost" data-act="corrigir-ponto" data-uid="${esc(u)}" data-iso="${l.iso}" title="Corrigir horários deste dia"${pode ? "" : " disabled"}><span class="l">Corrigir</span><span class="s">✎</span></button>` : ""}</td></tr>`;
   };
   const sel = admin ? "" : `<div class="field"><label for="f-ponto-mes">Mês</label><select id="f-ponto-mes" data-filter="pontoMes">${Array.from({ length: 12 }, (_, i) => addM(ymNow(), -i)).map(m => `<option value="${m}" ${m === M ? "selected" : ""}>${ymLabel(m)}</option>`).join("")}</select></div>`;
-  return `<section class="panel"><div class="section-head"><div><h3>${admin ? "Ponto · " + esc(nomeEsc(u)) : "Meu ponto"} · ${ymLong(M)}</h3><span class="muted small">O saldo compara as horas registradas com a escala de cada dia (só dias com entrada e saída completas).</span></div><div class="row" style="align-items:flex-end">${sel}<button type="button" class="btn sm" data-act="baixar-ponto" data-uid="${esc(u)}" data-ym="${M}">Baixar planilha</button></div></div>
+  return `<section class="panel"><div class="section-head"><div><h3>${admin ? "Ponto · " + esc(nomeEsc(u)) : "Meu ponto"} · ${ymLong(M)}</h3><span class="muted small">O saldo compara as horas registradas com a escala de cada dia (só dias com entrada e saída completas).</span></div><div class="row" style="align-items:flex-end">${sel}${fech ? `<span class="pill ok" title="Fechado por ${esc(fech.por || "")}">Mês fechado em ${dLabel(String(fech.fechadoEm || "").slice(0, 10)).slice(0, 5)}</span>` : ""}${admin ? (fech ? `<button type="button" class="btn sm ghost" data-act="reabrir-mes" data-uid="${esc(u)}" data-ym="${M}">Reabrir</button>` : `<button type="button" class="btn sm primary" data-act="fechar-mes" data-uid="${esc(u)}" data-ym="${M}">Fechar o mês</button>`) : ""}<button type="button" class="btn sm" data-act="baixar-ponto" data-uid="${esc(u)}" data-ym="${M}">Baixar planilha</button></div></div>
+    ${fech && !admin ? `<div class="banner"><span>Este mês já foi fechado. Se precisar corrigir algum dia, fale com a Letícia.</span></div>` : ""}
     <div class="tiles">
+      <div class="tile feature"><span class="k">Dias trabalhados</span><span class="v">${r.diasTrab}</span><span class="d">dias com entrada registrada · base do vale-alimentação (${r.diasEscala} na escala até ${M === ymNow() ? "hoje" : "o fim do mês"})</span></div>
+      <div class="tile"><span class="k">Banco de horas</span><span class="v">${durTxt(bk.banco, true)}</span><span class="d">${bk.fechado ? "saldo acumulado no fechamento" + (Number(bk.f.compensado) ? ` (já descontadas ${durTxt(Number(bk.f.compensado))} pagas/compensadas)` : "") : "meses fechados + saldo deste mês até agora"}</span></div>
       <div class="tile"><span class="k">Horas trabalhadas</span><span class="v">${durTxt(r.trab)}</span><span class="d">previsto nesses dias: ${durTxt(r.prev)}</span></div>
-      <div class="tile feature"><span class="k">Saldo do mês</span><span class="v">${durTxt(r.saldo, true)}</span><span class="d">horas a mais (+) ou a menos (−) que a escala</span></div>
+      <div class="tile"><span class="k">Saldo do mês</span><span class="v">${durTxt(r.saldo, true)}</span><span class="d">horas a mais (+) ou a menos (−) que a escala</span></div>
       <div class="tile"><span class="k">Dias sem registro</span><span class="v">${r.semReg + r.incompletos}</span><span class="d">${r.semReg} sem ponto · ${r.incompletos} incompletos</span></div>
       <div class="tile"><span class="k">Trabalho em feriado</span><span class="v">${durTxt(r.ferMin)}</span><span class="d">${r.ferDias} ${r.ferDias === 1 ? "dia" : "dias"} (sem contar os facultativos)</span></div>
     </div>
@@ -1373,7 +1458,11 @@ function escalaAdmin() {
   if (S.escala.erro) return head + `<div class="banner warn-b"><span>Para ativar esta parte, publique as regras novas do Firestore (arquivo regras-firestore).</span></div>`;
   if (!ps.length) return head + `<div class="empty"><strong>Ninguém na escala ainda</strong><span>Marque abaixo quem é CLT.</span></div>` + configEscalaPainel(true);
   const agora = `<section class="panel"><div class="section-head"><div><h3>Agora</h3><span class="muted small">Pelo ponto registrado hoje.</span></div></div><div class="pessoas-hoje">${ps.map(u => { const [c, t] = statusHoje(u), e = escalaDoDia(u, hoje); return `<div class="ph"><strong>${esc(nomeEsc(u))}</strong><span class="pill ${c}">${t}</span><span class="muted small">${e.folga ? "Folga na escala" : "Escala " + hC(e.ini) + "–" + hC(e.fim)}</span></div>`; }).join("")}</div></section>`;
-  return head + agora + painelEscala(diasDoMes(M), "Escala de " + ymLong(M), true, null) + ps.map(u => painelPontoMes(u, M, true)).join("") + configEscalaPainel(false);
+  const folha = `<section class="panel"><div class="section-head"><div><h3>Resumo para a folha · ${ymLong(M)}</h3><span class="muted small">Dias trabalhados (base do vale-alimentação) e horas de cada pessoa. Feche o mês depois de conferir: o ponto daquele mês fica travado e o saldo vai para o banco de horas.</span></div><button type="button" class="btn sm" data-act="baixar-folha" data-ym="${M}">Baixar planilha da folha</button></div>
+    <div class="tablewrap"><table><thead><tr><th>Pessoa</th><th class="n">Dias trabalhados</th><th class="n">Horas trabalhadas</th><th class="n">Saldo do mês</th><th class="n">Banco de horas</th><th class="n">Em feriado</th><th>Situação</th></tr></thead><tbody>
+    ${ps.map(u => { const r = resumoPonto(u, M), bk = bancoDoMes(u, M, r), f = fechamento(u, M); return `<tr><td><strong>${esc(nomeEsc(u))}</strong>${r.semReg + r.incompletos ? `<div class="muted small">${r.semReg + r.incompletos} ${r.semReg + r.incompletos === 1 ? "dia" : "dias"} sem registro completo</div>` : ""}</td><td class="n"><strong>${r.diasTrab}</strong></td><td class="n">${durTxt(r.trab)}</td><td class="n">${durTxt(r.saldo, true)}</td><td class="n">${durTxt(bk.banco, true)}</td><td class="n">${r.ferDias ? `${r.ferDias} · ${durTxt(r.ferMin)}` : "—"}</td><td>${f ? `<span class="pill ok">Fechado</span>` : `<span class="pill neutral">Aberto</span>`}</td></tr>`; }).join("")}
+    </tbody></table></div></section>`;
+  return head + agora + folha + painelEscala(diasDoMes(M), "Escala de " + ymLong(M), true, null) + ps.map(u => painelPontoMes(u, M, true)).join("") + configEscalaPainel(false);
 }
 async function salvarEscalaCfg(cfg, msg) {
   S.escala.cfg = cfg; S.escala.cfgExiste = true; _ferCache = {}; render();
@@ -1383,7 +1472,7 @@ async function baterPonto(u, etapa) {
   const iso = isoDia(new Date()), id = u + "__" + iso, { id: _x, ...atual } = S.escala.ponto[id] || {}, hora = agoraHM();
   if (atual[etapa]) return toast("Esse horário já foi registrado. Para mudar, use “Corrigir horários”.");
   const rot = (ETAPAS.find(x => x[0] === etapa) || [, etapa])[1];
-  const novo = { ...atual, email: u, data: iso, [etapa]: hora, log: [...(atual.log || []), { em: new Date().toISOString(), por: S.email, txt: rot + " " + hora }] };
+  const novo = { ...atual, email: u, data: iso, ym: iso.slice(0, 7), [etapa]: hora, log: [...(atual.log || []), { em: new Date().toISOString(), por: S.email, txt: rot + " " + hora }] };
   S.escala.ponto[id] = novo; render();
   try { await col("ponto").doc(id).set(novo); toast(rot + " registrada às " + hTxt(hora)); } catch (e) { delete S.escala.ponto[id]; if (atual.email) S.escala.ponto[id] = atual; render(); toast(errMsg(e)); }
 }
@@ -1399,6 +1488,31 @@ function abrirAjusteEscala(u, iso) {
     <p class="muted small" style="margin:0">Padrão deste dia: ${pad.folga ? "folga" : `${hC(pad.ini)} às ${hC(pad.fim)}${pad.pIni ? `, almoço ${hC(pad.pIni)} às ${hC(pad.pFim)}` : ""}`}.</p>
     <div class="row" style="justify-content:flex-end">${aj ? `<button type="button" class="btn ghost" data-act="padrao-escala" data-uid="${esc(u)}" data-iso="${iso}">Voltar ao padrão</button>` : ""}<button type="button" class="btn primary" data-act="salvar-ajuste-escala" data-uid="${esc(u)}" data-iso="${iso}">Salvar</button></div>
   </div></div>`;
+}
+function abrirFecharMes(u, ym) {
+  const r = resumoPonto(u, ym), ant = bancoAntes(u, ym), fimMes = diasDoMes(ym).pop(), cedo = isoDia(new Date()) <= fimMes;
+  $("#layer").innerHTML = `<div class="overlay" data-close><div class="dialog" style="max-width:540px">
+    <div class="section-head"><h2>Fechar ${ymLong(ym)} · ${esc(nomeEsc(u))}</h2><button type="button" class="btn sm ghost" data-close-btn>Fechar</button></div>
+    ${cedo ? `<div class="banner warn-b"><span>O mês ainda não terminou. Se fechar agora, os dias que faltam não poderão ser registrados por ela.</span></div>` : ""}
+    ${r.semReg + r.incompletos ? `<div class="banner warn-b"><span>Há ${r.semReg + r.incompletos} ${r.semReg + r.incompletos === 1 ? "dia" : "dias"} sem registro completo. Confira antes de fechar.</span></div>` : ""}
+    <div class="tablewrap"><table><tbody>
+      <tr><td>Dias trabalhados (vale-alimentação)</td><td class="n"><strong>${r.diasTrab}</strong></td></tr>
+      <tr><td>Horas trabalhadas</td><td class="n">${durTxt(r.trab)}</td></tr>
+      <tr><td>Saldo do mês</td><td class="n">${durTxt(r.saldo, true)}</td></tr>
+      <tr><td>Banco de horas antes deste mês</td><td class="n">${durTxt(ant, true)}</td></tr>
+      <tr><td>Trabalho em feriado</td><td class="n">${r.ferDias ? r.ferDias + " · " + durTxt(r.ferMin) : "—"}</td></tr>
+    </tbody></table></div>
+    <div class="field"><label for="fm-comp">Horas pagas ou compensadas neste fechamento (opcional)</label><input type="text" id="fm-comp" placeholder="Ex.: 2:30 (saem do banco de horas)" style="max-width:240px"></div>
+    <p class="small" id="fm-erro" style="color:var(--bad);margin:0" hidden></p>
+    <div class="row" style="justify-content:flex-end"><button type="button" class="btn primary" data-act="confirmar-fechar-mes" data-uid="${esc(u)}" data-ym="${ym}">Fechar o mês</button></div>
+  </div></div>`;
+}
+function baixarFolhaCSV(ym) {
+  const q = (x) => `"${String(x ?? "").replace(/"/g, '""')}"`;
+  const linhas = [["Pessoa", "Mês", "Dias trabalhados (VA)", "Dias na escala", "Horas trabalhadas", "Horas previstas", "Saldo do mês", "Banco de horas", "Dias em feriado", "Horas em feriado", "Dias sem registro", "Situação"]];
+  pessoasEscala().forEach(u => { const r = resumoPonto(u, ym), bk = bancoDoMes(u, ym, r); linhas.push([nomeEsc(u), ymLabel(ym), r.diasTrab, r.diasEscala, durTxt(r.trab), durTxt(r.prev), durTxt(r.saldo, true), durTxt(bk.banco, true), r.ferDias, durTxt(r.ferMin), r.semReg + r.incompletos, bk.fechado ? "Fechado" : "Aberto"]); });
+  const blob = new Blob(["\ufeff" + linhas.map(l => l.map(q).join(";")).join("\r\n")], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `folha-ponto-${ym}.csv`; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
 }
 function abrirCorrigirPonto(u, iso) {
   const p = pontoDe(u, iso) || {}, e = escalaDoDia(u, iso);
@@ -1417,11 +1531,12 @@ function baixarPontoCSV(u, ym) {
   const linhas = [["Data", "Dia", "Escala", "Entrada", "Saída almoço", "Volta almoço", "Saída", "Trabalhado", "Previsto", "Saldo", "Feriado", "Ajustado", "Último ajuste"]];
   r.linhas.forEach(({ iso, e, p, w, saldo, estado }) => linhas.push([dLabel(iso), DIAS_L[new Date(iso + "T12:00:00").getDay()], e.folga ? "Folga" : hC(e.ini) + "-" + hC(e.fim), hTxt(p && p.entrada), hTxt(p && p.pausaIni), hTxt(p && p.pausaFim), hTxt(p && p.saida), w && w.min != null ? durTxt(w.min) : estado === "semreg" ? "sem registro" : "", durTxt(e.previsto), saldo != null ? durTxt(saldo, true) : "", e.feriado ? e.feriado.nome + (e.feriado.facultativo ? " (facultativo)" : "") : "", p && p.ajustado ? "sim" : "", p && p.ajustado ? ((p.log || []).slice(-1)[0] || {}).txt || "" : ""]));
   linhas.push([]); linhas.push(["Total", "", "", "", "", "", "", durTxt(r.trab), durTxt(r.prev), durTxt(r.saldo, true), "Trabalho em feriado: " + durTxt(r.ferMin)]);
+  linhas.push(["Dias trabalhados (vale-alimentação)", r.diasTrab]); linhas.push(["Banco de horas", durTxt(bancoDoMes(u, ym, r).banco, true)]);
   const blob = new Blob(["﻿" + linhas.map(l => l.map(q).join(";")).join("\r\n")], { type: "text/csv;charset=utf-8" });
   const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `ponto-${semAcento(nomeEsc(u)).replace(/[^a-z0-9]+/g, "-")}-${ym}.csv`; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
 }
 async function carregarEscala() {
-  const E = { cfg: null, cfgExiste: false, ajustes: {}, ponto: {}, erro: false };
+  const E = { cfg: null, cfgExiste: false, ajustes: {}, ponto: {}, meses: {}, erro: false };
   try { const c = await col("config").doc("escala").get(); E.cfgExiste = c.exists; E.cfg = c.exists ? c.data() : null; } catch (_) { E.erro = !S.isAdmin; }
   if (!E.cfg) E.cfg = { ancora: ANCORA_PADRAO, pessoas: {}, feriadosExtra: "" };
   S.escala = E; _ferCache = {};
@@ -1429,6 +1544,7 @@ async function carregarEscala() {
   try { E.ajustes = Object.fromEntries(docsOf(await col("escala").get()).map(d => [d.id, d])); } catch (_) { if (S.isAdmin) E.erro = true; }
   if (S.isAdmin || naEscala(S.email)) {
     try { E.ponto = Object.fromEntries(docsOf(await (S.isAdmin ? col("ponto") : col("ponto").where("email", "==", S.email)).get()).map(d => [d.id, d])); } catch (_) { if (S.isAdmin) E.erro = true; }
+    try { E.meses = Object.fromEntries(docsOf(await (S.isAdmin ? col("pontoMes") : col("pontoMes").where("email", "==", S.email)).get()).map(d => [d.id, d])); } catch (_) { E.meses = {}; }
   }
   // primeira vez: monta a escala com as pessoas do pós-venda e os horários da planilha antiga
   if (S.isAdmin && !E.erro && !E.cfgExiste) {
@@ -1486,6 +1602,7 @@ function ownerPainel() {
   ${!mem.length ? `<div class="banner"><span>Ninguém da equipe tem acesso ainda. Comece por <strong>Equipe e acessos</strong>.</span><button class="btn sm primary" data-tab-go="acessos">Cadastrar a equipe</button></div>` : ""}
   ${pend.length ? `<div class="banner"><span>Falta definir o percentual de comissão de ${pend.map(u => `<strong>${esc(label(u))}</strong>`).join(", ")}.</span><button class="btn sm" data-tab-go="acessos">Definir agora</button></div>` : ""}
   ${semNome.length ? `<div class="banner"><span>${semNome.length === 1 ? "Uma pessoa está" : semNome.length + " pessoas estão"} sem “Nome no portal”.</span><button class="btn sm" data-tab-go="acessos">Preencher</button></div>` : ""}
+  ${resumoSemanaPainel()}
   <div class="tiles">
     <div class="tile"><span class="k">Vendas fechadas</span><span class="v">${tot.q}</span><span class="d">${money(tot.val)}</span></div>
     <div class="tile"><span class="k">Atendimentos</span><span class="v">${tot.at || "—"}</span><span class="d">${tot.at ? "Conversão de " + (tot.q / tot.at * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + "%" : "Ainda não lançados"}</span></div>
@@ -2067,6 +2184,15 @@ $("#layer").addEventListener("click", async (e) => {
     } catch (err) { toast(errMsg(err)); }
     return;
   }
+  const cfm = e.target.closest('[data-act="confirmar-fechar-mes"]');
+  if (cfm) {
+    const u = cfm.dataset.uid, ym = cfm.dataset.ym, r = resumoPonto(u, ym), ant = bancoAntes(u, ym), erro = $("#fm-erro");
+    const txt = $("#fm-comp").value.trim(), comp = txt ? minDeTxt(txt) : 0;
+    if (comp == null) { erro.hidden = false; erro.textContent = "Escreva as horas como 2:30 (duas horas e meia)."; return; }
+    const doc = { ym, email: u, nome: nomeEsc(u), fechadoEm: new Date().toISOString(), por: S.email, diasTrab: r.diasTrab, diasEscala: r.diasEscala, trab: r.trab, prev: r.prev, saldo: r.saldo, ferDias: r.ferDias, ferMin: r.ferMin, semRegistro: r.semReg + r.incompletos, bancoAnterior: ant, compensado: comp, bancoFinal: ant + r.saldo - comp };
+    try { await col("pontoMes").doc(ym + "__" + u).set(doc); S.escala.meses[ym + "__" + u] = doc; closeLayer(); render(); toast("Mês fechado"); } catch (err) { erro.hidden = false; erro.textContent = errMsg(err); }
+    return;
+  }
   const spt = e.target.closest('[data-act="salvar-ponto"]');
   if (spt) {
     const u = spt.dataset.uid, iso = spt.dataset.iso, id = u + "__" + iso, { id: _x, ...atual } = S.escala.ponto[id] || {}, erro = $("#pt-erro");
@@ -2077,7 +2203,7 @@ $("#layer").addEventListener("click", async (e) => {
     if (!motivo) { erro.hidden = false; erro.textContent = "Conte o motivo do ajuste (fica no histórico do dia)."; return; }
     if (novo.saida && !novo.entrada) { erro.hidden = false; erro.textContent = "Preencha também a entrada."; return; }
     const txt = "Ajuste: " + mud.map(([k, t]) => `${t} ${atual[k] ? hTxt(atual[k]) : "vazio"} → ${novo[k] ? hTxt(novo[k]) : "vazio"}`).join("; ") + " · Motivo: " + motivo;
-    const doc = { ...atual, email: u, data: iso, ...novo, ajustado: true, log: [...(atual.log || []), { em: new Date().toISOString(), por: S.email, txt }] };
+    const doc = { ...atual, email: u, data: iso, ym: iso.slice(0, 7), ...novo, ajustado: true, log: [...(atual.log || []), { em: new Date().toISOString(), por: S.email, txt }] };
     try { await col("ponto").doc(id).set(doc); S.escala.ponto[id] = doc; closeLayer(); render(); toast("Ponto corrigido"); } catch (err) { erro.hidden = false; erro.textContent = errMsg(err); }
     return;
   }
@@ -2096,6 +2222,7 @@ $("#main").addEventListener("click", async (e) => {
   const go = e.target.closest("[data-tab-go]"); if (go) { S.tab = go.dataset.tabGo; render(); return; }
   const od = e.target.closest("[data-orcdest]"); if (od) { const k = od.dataset.orcdest; S.filtros.orcDest = S.filtros.orcDest === k ? "" : k; S.orcTodosAberto = !!(document.getElementById("orc-todos") || {}).open; render(); return; }
   const cn = e.target.closest("[data-compn]"); if (cn) { S.filtros.compN = cn.dataset.compn; render(); return; }
+  const irf = e.target.closest("[data-irficha]"); if (irf) { const [dd, ii] = irf.dataset.irficha.split("|"); S.filtros.destino = dd; S.filtros.passeio = ii; S.filtros.fichaTab = "resumo"; S.filtros.tourBusca = ""; render(); const t = document.querySelector(".tour"); if (t) t.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
   const ags = e.target.closest("[data-agsub]"); if (ags) { S.filtros.agSub = ags.dataset.agsub; try { localStorage.setItem("araya-agsub", S.filtros.agSub); } catch (_) {} render(); return; }
   const cs = e.target.closest("[data-comsub]"); if (cs) { S.filtros.comSub = cs.dataset.comsub; try { localStorage.setItem("araya-comsub", S.filtros.comSub); } catch (_) {} render(); return; }
   const dest = e.target.closest("[data-dest]"); if (dest) { S.filtros.destino = dest.dataset.dest; S.filtros.passeio = "__geral"; S.filtros.fichaTab = "resumo"; render(); return; }
@@ -2117,9 +2244,20 @@ $("#main").addEventListener("click", async (e) => {
     else if (act === "ver-fora") abrirFora();
     else if (act === "editar-venda") openVenda(id);
     else if (act === "bater-ponto") { b.disabled = true; await baterPonto(uid, b.dataset.etapa); }
-    else if (act === "corrigir-ponto") abrirCorrigirPonto(uid, b.dataset.iso);
+    else if (act === "corrigir-ponto") { if (!S.isAdmin && fechamento(uid, b.dataset.iso.slice(0, 7))) { toast("Este mês já foi fechado. Fale com a Letícia."); return; } abrirCorrigirPonto(uid, b.dataset.iso); }
     else if (act === "editar-escala") abrirAjusteEscala(uid, b.dataset.iso);
     else if (act === "baixar-ponto") baixarPontoCSV(uid, b.dataset.ym);
+    else if (act === "baixar-folha") baixarFolhaCSV(b.dataset.ym);
+    else if (act === "fechar-mes") abrirFecharMes(uid, b.dataset.ym);
+    else if (act === "reabrir-mes") {
+      const ym = b.dataset.ym, depois = Object.values(S.escala.meses).some(m => m.email === uid && m.ym > ym);
+      if (depois) { toast("Reabra primeiro os meses seguintes, porque o banco de horas deles depende deste."); return; }
+      if (b.dataset.confirm !== "1") { b.dataset.confirm = "1"; b.textContent = "Confirmar reabertura"; return; }
+      await col("pontoMes").doc(ym + "__" + uid).delete(); delete S.escala.meses[ym + "__" + uid]; render(); toast("Mês reaberto");
+    }
+    else if (act === "baixar-backup") await baixarBackup();
+    else if (act === "copiar-resumo") { try { await navigator.clipboard.writeText(b.dataset.texto); toast("Resumo copiado"); } catch (_) { toast("Não deu para copiar automaticamente."); } }
+    else if (act === "ver-termometro") { S.filtros.verTermo = !S.filtros.verTermo; render(); }
     else if (act === "copiar-ficha") { try { await navigator.clipboard.writeText(b.dataset.texto); toast("Texto copiado. É só colar no WhatsApp do cliente."); } catch (_) { toast("Não deu para copiar automaticamente."); } }
     else if (act === "helena-tel") {
       window.open("https://web.helena.run/chat2/sessions", "_blank", "noopener");
