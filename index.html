@@ -1156,13 +1156,45 @@ function detectarDestino(t) {
   if (/atacama|uyuni/.test(n)) return "Atacama e Uyuni";
   return "";
 }
-// Sugestão de resposta no tom da Araya: agradece, cita o que a pessoa destacou; nas notas baixas, acolhe e chama para conversar
+// Lê o texto frase a frase e separa o que foi elogio do que foi crítica (ex.: "alguns restaurantes muito bons, outros nem tanto" é crítica, não elogio)
+const SEM_CRITICA = /nao tenho (absolutamente )?(nada|nenhuma)[^.!?]*(reclamar|negativ|critica|ressalva)|nao tenho do que reclamar|nada (de )?negativo|nada (pra|para) melhorar|nenhuma (critica|ressalva|dor de cabeca)|zero perrengue|sem nenhum estresse/g;
+const MARCA_CRITICA = /\bporem\b|\bcontudo\b|\bentretanto\b|infelizmente|senti falta|sentimos falta|faltou|faltaram|nem tanto|deixou a desejar|deixaram a desejar|poderia(m)? ter sido|poderia(m)? melhorar|decepc|frustr|insatisf|\bruim\b|pessim|nao gostei|esperava mais|sem padrao|abaixo do|desorganiz|demorou|demora\b|atrasou|atrasad|cansativ|muitas horas|mal organizad|confus|descaso|nao cumpri|nao recebemos|nao tivemos/;
+const TEMAS = [
+  ["lanche", /lanche|box|fome|aliment/, "a falta de um lanche nos trajetos longos", "a alimentação ao longo do dia"],
+  ["restaurante", /restaurante|comida|almoc|jantar|refeic|culinaria|gastronom/, "a variação na qualidade dos restaurantes", "os restaurantes escolhidos"],
+  ["hotel", /hotel|hoteis|hospedag|quarto|pousada/, "a hospedagem", "a hospedagem"],
+  ["guia", /\bguia/, "o trabalho do guia", "o guia"],
+  ["transporte", /transfer|traslado|motorista|onibus|\bvan\b|carro|transporte/, "o transporte", "o transporte"],
+  ["tempo", /demor|espera|muitas horas|cansativ|correria|ritmo|atras/, "o tempo de deslocamento", "o ritmo do roteiro"],
+  ["comunicacao", /comunica|responder|resposta|retorno da equipe|atendimento|whats/, "a comunicação com a nossa equipe", "o atendimento da equipe"],
+  ["preco", /preco|caro|valor|custo/, "o custo-benefício", "o custo-benefício"],
+  ["padrao", /padrao|expectativ|esperava/, "o padrão que você esperava da Araya", "o padrão da Araya"],
+];
+function lerAvaliacao(txt) {
+  const frases = String(txt || "").split(/(?<=[.!?…])\s+|\n+/).map(s => s.trim()).filter(Boolean);
+  const crit = [], elog = [];
+  for (const f of frases) {
+    const t = semAcento(f).replace(SEM_CRITICA, " ").replace(/nao foi ruim/g, " ");
+    // "o hotel era bom, mas o guia atrasou": o que vem antes do "mas/porém" é elogio, o que vem depois é a crítica
+    const m = t.match(/^(.*?)[,;]?\s*\b(mas|porem|contudo|entretanto)\b(.*)$/);
+    if (m && (m[2] !== "mas" || MARCA_CRITICA.test(m[3]) || /\b(atras|demor|confus|falt|nao\b)/.test(m[3]))) { if (m[1].trim()) elog.push(m[1]); crit.push(m[3] || t); continue; }
+    (MARCA_CRITICA.test(t) ? crit : elog).push(t);
+  }
+  const temas = (lista) => TEMAS.filter(([, re]) => lista.some(s => re.test(s)));
+  const tc = temas(crit), te = temas(elog).filter(x => !tc.includes(x));
+  return { critica: crit.length > 0, temasCritica: tc, temasElogio: te, voltou: /ja (tinha )?(ido|viajado|fiz|feito)|segunda (viagem|vez|expedicao)|terceira|mais uma vez|de novo|novamente|como fiz|ja viajei/.test(semAcento(txt)) };
+}
+const listaPt = (arr) => arr.length <= 1 ? (arr[0] || "") : arr.slice(0, -1).join(", ") + " e " + arr[arr.length - 1];
+// Sugestão de resposta no tom da Araya: agradece, cita o que a pessoa destacou; quando há crítica (mesmo com 4 ou 5 estrelas), reconhece cada ponto e chama para conversar
 function sugerirResposta(a, v) {
   v = v || 0;
   const pick = (arr) => arr[v % arr.length];
-  const nome = String((a && a.autor) || "").trim().split(/\s+/)[0] || "";
+  let nome = String((a && a.autor) || "").trim().split(/\s+/)[0] || "";
+  if (nome.length < 2 || !/[aeiouáéíóúâêôãõ]/i.test(nome) || /^(.)\1+$/i.test(nome)) nome = ""; // "Hhh", iniciais etc.
+  else nome = nome.charAt(0).toUpperCase() + nome.slice(1).toLowerCase();
   const ola = nome ? `Olá, ${nome}!` : "Olá!";
   const n = Math.round(Number(a && a.nota) || 5), txt = (a && a.texto) || "", t = semAcento(txt);
+  const L = lerAvaliacao(txt);
   const dest = a && a.destino && a.destino !== "Geral" ? a.destino : detectarDestino(txt);
   const artigo = { "Egito e Jordânia": "o Egito", "Japão": "o Japão", "Atacama e Uyuni": "o Atacama", "Patagônia": "a Patagônia", "Cusco e Machu Picchu": "Cusco e Machu Picchu", "Ushuaia": "Ushuaia", "Mendoza": "Mendoza" };
   const na = dest ? ` para ${artigo[dest] || dest}` : "";
@@ -1172,14 +1204,28 @@ function sugerirResposta(a, v) {
     return (n >= 4 ? pick([`${ola} Agradecemos muito pela avaliação de ${n} estrelas. Esperamos te encontrar em uma próxima expedição!`, `${ola} Muito obrigado pelas ${n} estrelas. Será um prazer planejar a sua próxima viagem com a gente!`])
       : `${ola} Agradecemos pela avaliação. Queremos entender melhor a sua experiência: se puder, fale com a gente pelo WhatsApp ou pelo e-mail contato@arayaexpedicoes.com.`) + assinatura;
   }
+  if (L.critica && n >= 3) {
+    // elogio com ressalva: não comemora, reconhece cada ponto citado e se compromete a rever
+    const expect = L.temasCritica.some(x => x[0] === "padrao");
+    const c = L.temasCritica.filter(x => x[0] !== "padrao").map(x => x[2]).slice(0, 3), e = L.temasElogio.filter(x => x[0] !== "padrao").map(x => x[3]).slice(0, 2);
+    const partes = [pick([`${ola} Obrigado pela avaliação sincera.`, `${ola} Agradecemos por dividir a sua experiência com tanta franqueza.`, `${ola} Muito obrigado pelo seu retorno, ele é muito importante para nós.`])];
+    if (L.voltou) partes.push("E obrigado por ter confiado na Araya mais uma vez.");
+    if (expect) partes.push(L.voltou ? "Sabemos que você voltou esperando o mesmo padrão da sua viagem anterior com a gente, e é isso que queremos entregar sempre." : "Sabemos que você veio com uma expectativa alta, e é isso que queremos entregar sempre.");
+    if (c.length) partes.push(`${e.length ? `Ficamos felizes que ${listaPt(e)} tenha${e.length > 1 ? "m" : ""} agradado, mas entendemos` : "Entendemos"} que ${listaPt(c)} não ${c.length > 1 ? "estiveram" : "esteve"} à altura${dest ? " na viagem" + na : ""}.`);
+    else partes.push(`Entendemos que alguns pontos da viagem${na} não estiveram à altura do que você esperava.`);
+    partes.push(pick(["Vamos levar cada um desses pontos para a nossa equipe de operação revisar.", "Já estamos levando esses pontos para a nossa equipe, porque é assim que o roteiro melhora.", "Vamos rever esses pontos com a nossa equipe para que a próxima experiência seja ainda melhor."]));
+    partes.push("Se quiser contar mais detalhes, fale com a gente pelo WhatsApp ou pelo e-mail contato@arayaexpedicoes.com.");
+    return partes.join(" ") + assinatura;
+  }
   if (n >= 4) {
+    const elogio = (k) => L.temasElogio.some(x => x[0] === k);
     const partes = [pick([`${ola} Que alegria ler o seu relato.`, `${ola} Agradecemos muito pela avaliação e pelo carinho.`, `${ola} Ficamos muito felizes com o seu comentário.`])];
     partes.push(dest ? pick([`Saber que a sua viagem${na} foi assim é o que mais nos motiva.`, `Cada detalhe da expedição${na} é pensado para você só precisar aproveitar, e é muito bom ver que deu certo.`, `É muito especial saber que a viagem${na} foi tão marcante.`])
       : pick([`Cada roteiro é pensado com muito cuidado para você só precisar aproveitar, e é muito bom ver que deu certo.`, `Saber que a experiência foi assim é o que mais nos motiva.`]));
-    if (/guia/.test(t)) partes.push(guia ? `Vamos fazer questão de passar o seu elogio para ${guia}.` : "Vamos repassar o seu elogio aos nossos guias, que vão adorar.");
+    if (elogio("guia")) partes.push(guia ? `Vamos fazer questão de passar o seu elogio para ${guia}.` : "Vamos repassar o seu elogio aos nossos guias, que vão adorar.");
     else if (/atendimento|equipe|atencios|suporte|assistencia|vendedor|consultor/.test(t)) partes.push("Vamos compartilhar as suas palavras com toda a equipe.");
     if (/organiza|planej|logistic|pontual|tranquil|sem preocupa/.test(t)) partes.push("Que bom que a organização fez diferença: é exatamente essa a nossa proposta.");
-    if (/comida|restaurante|gastronom|almoco|jantar|culinaria/.test(t)) partes.push("E ficamos felizes que a parte gastronômica também tenha marcado a viagem.");
+    if (elogio("restaurante")) partes.push("E ficamos felizes que a parte gastronômica também tenha marcado a viagem.");
     if (n === 4) partes.push("Se houver algo que poderíamos ter feito ainda melhor, vamos adorar ouvir, porque é assim que a gente evolui.");
     partes.push(pick(["Esperamos te encontrar em uma próxima expedição!", "Até a próxima aventura!", "Será um prazer planejar a sua próxima viagem com a gente."]));
     return partes.join(" ") + assinatura;
@@ -1188,8 +1234,17 @@ function sugerirResposta(a, v) {
     return pick([`${ola} Agradecemos por compartilhar a sua experiência${na ? " na viagem" + na : ""}. Ficamos felizes com o que foi positivo e queremos entender melhor o que não saiu como você esperava. Se puder, fale com a gente pelo WhatsApp ou pelo e-mail contato@arayaexpedicoes.com para conversarmos com calma. O seu retorno é muito importante para melhorarmos cada roteiro.`,
       `${ola} Obrigado pelo seu comentário. Queremos que cada viagem seja impecável, e o seu relato nos ajuda a enxergar onde podemos melhorar. Gostaríamos muito de conversar com você: é só nos chamar pelo WhatsApp ou pelo e-mail contato@arayaexpedicoes.com.`]) + assinatura;
   }
+  const cBaixa = L.temasCritica.filter(x => x[0] !== "padrao").map(x => x[2]).slice(0, 3);
+  if (cBaixa.length) return pick([`${ola} Sentimos muito pelo que você relatou sobre ${listaPt(cBaixa)}${na ? " na viagem" + na : ""}. Esse não é o padrão que buscamos, e queremos entender exatamente o que aconteceu para corrigir. Por favor, fale com a gente pelo e-mail contato@arayaexpedicoes.com ou pelo nosso WhatsApp, para tratarmos o seu caso com a atenção que ele merece.`,
+    `${ola} Lamentamos muito pela sua experiência com ${listaPt(cBaixa)}. Levamos cada comentário a sério e já vamos rever esses pontos com a nossa equipe. Gostaríamos de conversar diretamente com você para entender os detalhes: pode nos chamar pelo WhatsApp ou pelo e-mail contato@arayaexpedicoes.com?`]) + assinatura;
   return pick([`${ola} Sentimos muito que a sua experiência${na ? " na viagem" + na : ""} não tenha sido como você esperava. Esse não é o padrão que buscamos, e queremos entender o que aconteceu. Por favor, fale com a gente pelo e-mail contato@arayaexpedicoes.com ou pelo nosso WhatsApp, para tratarmos o seu caso com a atenção que ele merece.`,
     `${ola} Lamentamos muito pelo que você relatou. Levamos cada comentário a sério e gostaríamos de conversar diretamente com você para entender os detalhes e buscar uma solução. Pode nos chamar pelo WhatsApp ou pelo e-mail contato@arayaexpedicoes.com?`]) + assinatura;
+}
+// a resposta escrita sob medida (campo "sugestao" na avaliação) vem primeiro; "Outra sugestão" alterna com os modelos automáticos
+function sugestaoAval(a, v) {
+  const sob = a && String(a.sugestao || "").trim();
+  if (!sob) return sugerirResposta(a, v);
+  return v % 4 === 0 ? sob : sugerirResposta(a, (v % 4) - 1);
 }
 function avaliacoesView() {
   const f = S.filtros.avalFiltro || "pendente", hojeD = isoDia(new Date());
@@ -1208,7 +1263,7 @@ function avaliacoesView() {
   if (S.avalErro) return head + `<div class="banner warn-b"><span>Para ativar esta aba, publique as regras novas do Firestore (arquivo regras-firestore).</span></div>`;
   const quem = (e) => (S.members[e] || {}).apelido || (e === "contato@arayaexpedicoes.com" ? "Letícia" : e);
   const card = (a) => {
-    if (!S.rascAval[a.id]) S.rascAval[a.id] = { txt: sugerirResposta(a, 0), v: 0 };
+    if (!S.rascAval[a.id]) S.rascAval[a.id] = { txt: sugestaoAval(a, 0), v: 0 };
     const r = S.rascAval[a.id], editando = a.status !== "respondida" || S.filtros.avalEdit === a.id;
     return `<article class="aval ${a.status === "respondida" ? "ok" : ""}">
       <header><div>${estrelas(a.nota)} <strong>${a.autorUrl ? `<a href="${esc(a.autorUrl)}" target="_blank" rel="noopener">${esc(a.autor || "Sem nome")}</a>` : esc(a.autor || "Sem nome")}</strong> <span class="muted small">· ${a.data ? dLabel(a.data) : "sem data"}${a.data && a.status !== "respondida" ? ` · há ${diasEntre(a.data, hojeD)} ${diasEntre(a.data, hojeD) === 1 ? "dia" : "dias"}` : ""}</span></div>
@@ -2449,7 +2504,7 @@ $("#main").addEventListener("click", async (e) => {
         <div class="row" style="justify-content:flex-end"><button type="button" class="btn primary" data-act="salvar-placeid">Salvar</button></div>
       </div></div>`;
     }
-    else if (act === "outra-sugestao") { const a = S.aval.find(x => x.id === id); const r = S.rascAval[id] || { v: 0 }; r.v = (r.v || 0) + 1; r.txt = sugerirResposta(a, r.v); S.rascAval[id] = r; render(); }
+    else if (act === "outra-sugestao") { const a = S.aval.find(x => x.id === id); const r = S.rascAval[id] || { v: 0 }; r.v = (r.v || 0) + 1; r.txt = sugestaoAval(a, r.v); S.rascAval[id] = r; render(); }
     else if (act === "copiar-resposta") { const el = document.getElementById("ra-" + id); const txt = el ? el.value : ""; try { await navigator.clipboard.writeText(txt); toast("Resposta copiada. Cole no Google e depois marque como respondida."); } catch (_) { toast("Não deu para copiar automaticamente."); } }
     else if (act === "marcar-respondida") {
       const el = document.getElementById("ra-" + id), txt = (el ? el.value : "").trim(), a = S.aval.find(x => x.id === id);
