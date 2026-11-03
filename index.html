@@ -338,6 +338,7 @@ table.comp .barcol{width:22%}
 .ficha-abas button.vazio{opacity:.5;font-weight:500}
 .resumo-lista{margin:0;padding-left:18px;display:grid;gap:6px}
 table.termo td,table.termo th{white-space:nowrap} tr.termo-det td{padding-top:0;border-top:0}
+.banner.bad-b{background:var(--bad-soft)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 
 .auth{min-height:calc(100vh - 140px);display:grid;place-items:center;padding-block:24px}
@@ -459,6 +460,13 @@ const S = {
   pendingRender: false
 };
 let toastTimer, _orcCache = { t: 0, v: null };
+// Histórico de alterações: quem mudou o quê e quando (só a administração grava e vê)
+function registrar(txt, tipo) {
+  if (!S.isAdmin || !S.db) return;
+  try { col("historico").doc().set({ em: new Date().toISOString(), por: S.email, tipo: tipo || "", txt: String(txt).slice(0, 400) }).catch(() => {}); } catch (_) {}
+}
+const vendaTxt = (id) => { const v = S.vendas[id]; return v ? `${v.cliente || "venda"}${v.roteiro ? " #" + v.roteiro : ""} (${vendLabel(v)})` : id; };
+const moneyTxt = (n) => "R$ " + (Number(n) || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 function toast(msg) {
   const el = document.createElement("div"); el.className = "toast"; el.textContent = msg;
   document.querySelectorAll(".toast").forEach(t => t.remove());
@@ -1465,6 +1473,7 @@ function escalaAdmin() {
   return head + agora + folha + painelEscala(diasDoMes(M), "Escala de " + ymLong(M), true, null) + ps.map(u => painelPontoMes(u, M, true)).join("") + configEscalaPainel(false);
 }
 async function salvarEscalaCfg(cfg, msg) {
+  if (msg) registrar("Configuração da escala: " + msg, "escala");
   S.escala.cfg = cfg; S.escala.cfgExiste = true; _ferCache = {}; render();
   try { await col("config").doc("escala").set(cfg); if (msg) toast(msg); } catch (e) { toast(errMsg(e)); await reload(); }
 }
@@ -1602,6 +1611,7 @@ function ownerPainel() {
   ${!mem.length ? `<div class="banner"><span>Ninguém da equipe tem acesso ainda. Comece por <strong>Equipe e acessos</strong>.</span><button class="btn sm primary" data-tab-go="acessos">Cadastrar a equipe</button></div>` : ""}
   ${pend.length ? `<div class="banner"><span>Falta definir o percentual de comissão de ${pend.map(u => `<strong>${esc(label(u))}</strong>`).join(", ")}.</span><button class="btn sm" data-tab-go="acessos">Definir agora</button></div>` : ""}
   ${semNome.length ? `<div class="banner"><span>${semNome.length === 1 ? "Uma pessoa está" : semNome.length + " pessoas estão"} sem “Nome no portal”.</span><button class="btn sm" data-tab-go="acessos">Preencher</button></div>` : ""}
+  ${alertasRobustez()}
   ${resumoSemanaPainel()}
   <div class="tiles">
     <div class="tile"><span class="k">Vendas fechadas</span><span class="v">${tot.q}</span><span class="d">${money(tot.val)}</span></div>
@@ -1658,7 +1668,7 @@ function ownerComercial() {
     <div class="row"><div class="field"><label for="f-com-c">Mês</label><select id="f-com-c" data-filter="comMesC">${monthOptions(M, 12, 0)}</select></div>
     ${admin ? `<button class="btn" data-act="atualizar-trevor" ${S.importando ? "disabled" : ""}>${S.importando ? "Lendo planilha…" : "Atualizar do Trevor"}</button>` : ""}</div></div>
   ${admin && !S.comercial.planilha ? `<div class="banner"><span>Ligue a planilha do Trevor para as vendas entrarem sozinhas.</span><button class="btn sm primary" data-act="abrir-config-trevor">Ligar planilha</button></div>` : ""}
-  ${admin ? bannersComerciais(true) : ""}
+  ${admin ? alertasRobustez() + bannersComerciais(true) : ""}
   <div class="tiles">
     <div class="tile feature"><span class="k">Vendido em ${MESES[+M.slice(5) - 1]}</span><span class="v">${money(fat)}</span>${delta(fat, fatA)}${reembMes ? `<span class="d">Já sem ${money(reembMes)} de reembolsos</span>` : ""}</div>
     <div class="tile"><span class="k">Vendas fechadas</span><span class="v">${q}</span>${delta(q, qA)}</div>
@@ -2022,6 +2032,23 @@ function ownerAtendimentos() {
     : `<div class="empty"><strong>Cadastre a equipe primeiro</strong><span>Cada coluna é uma pessoa da equipe.</span></div>`}</section>`;
 }
 
+// ---------- histórico de alterações (Equipe e acessos) ----------
+const TIPOS_HIST = [["", "Tudo"], ["comissao", "Comissões"], ["bonus", "Bônus"], ["venda", "Vendas"], ["equipe", "Equipe"], ["ponto", "Ponto"], ["escala", "Escala"], ["atendimentos", "Atendimentos"], ["config", "Configurações"]];
+async function carregarHistorico() {
+  try { const q = col("historico"); const snap = await (q.orderBy ? q.orderBy("em", "desc").limit(400) : q).get(); S.hist = docsOf(snap).sort((a, b) => String(b.em).localeCompare(String(a.em))); }
+  catch (e) { S.hist = []; S.histErro = true; }
+  render();
+}
+function historicoPainel() {
+  if (!S.hist) return `<section class="panel"><div class="section-head"><div><h3>Histórico de alterações</h3><span class="muted small">Quem marcou comissão ou bônus como pago, mudou percentual, cotação, venda, escala ou ponto, e quando.</span></div><button type="button" class="btn sm" data-act="ver-historico">Ver histórico</button></div></section>`;
+  const f = S.filtros.histTipo || "", q = semAcento(S.filtros.histBusca || "");
+  const lista = S.hist.filter(h => (!f || h.tipo === f) && (!q || semAcento(h.txt + " " + h.por).includes(q))).slice(0, 300);
+  const quem = (e) => (S.members[e] && S.members[e].apelido) || (e === "contato@arayaexpedicoes.com" ? "Letícia" : e);
+  return `<section class="panel"><div class="section-head"><div><h3>Histórico de alterações</h3><span class="muted small">${S.hist.length === 1 ? "A última alteração feita" : `As últimas ${S.hist.length} alterações feitas`} pela administração. ${S.histErro ? "Publique as regras novas do Firestore para ativar." : ""}</span></div><div class="field" style="min-width:min(240px,100%)"><label for="f-hist">Buscar</label><input type="search" id="f-hist" value="${esc(S.filtros.histBusca || "")}" placeholder="Ex.: Júlia, bônus, cotação"></div></div>
+    <div class="chips" role="group" aria-label="Tipo">${TIPOS_HIST.map(([k, n]) => `<button type="button" class="chip" data-histtipo="${k}" aria-pressed="${k === f}">${n}</button>`).join("")}</div>
+    ${lista.length ? `<div class="tablewrap"><table><thead><tr><th>Quando</th><th>Quem</th><th>O que mudou</th></tr></thead><tbody>${lista.map(h => `<tr><td class="small" style="white-space:nowrap">${esc(new Date(h.em).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" }))}</td><td class="small">${esc(quem(h.por))}</td><td>${esc(h.txt)}</td></tr>`).join("")}</tbody></table></div>` : `<div class="empty"><strong>Nada registrado ${f || q ? "com esse filtro" : "ainda"}</strong><span>As alterações passam a ser registradas a partir desta versão do portal.</span></div>`}
+  </section>`;
+}
 function ownerAcessos() {
   const ids = Object.keys(S.members).sort((a, b) => label(a).localeCompare(label(b), "pt-BR"));
   const portal = location.origin + location.pathname;
@@ -2057,7 +2084,8 @@ function ownerAcessos() {
   </section>
   <section class="panel"><div><h3>Nomes que não aparecem nos relatórios</h3><span class="muted small">Vendas, orçamentos e atendimentos dessas pessoas não aparecem por nome nos relatórios (entram como “Outros”). Um nome por linha. Salva ao sair do campo.</span></div>
     <div class="field"><label for="cfg-ocultos" class="sr-only">Nomes</label><textarea id="cfg-ocultos" data-ocultos rows="5" style="width:100%;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--fg)">${esc(listaOcultos().join("\n"))}</textarea></div>
-  </section>`;
+  </section>
+  ${historicoPainel()}`;
 }
 
 // ---------- formulário de venda ----------
@@ -2119,6 +2147,7 @@ function openVenda(id) {
     try {
       const ref = v ? col("vendas").doc(v.id) : col("vendas").doc();
       await ref.set(row, { merge: true });
+      registrar(v ? `Venda editada: ${row.cliente} — ${["valor", "pct", "vendedor", "fechamento", "embarque", "retorno", "status"].filter(k => String(v[k] ?? "") !== String(row[k] ?? "")).map(k => `${k}: ${v[k] ?? "—"} → ${row[k] ?? "—"}`).join("; ") || "sem mudança de valores"}` : `Venda lançada à mão: ${row.cliente} · ${moneyTxt(row.valor)} (${label(row.vendedor)})`, "venda");
       if (obs) await col("vendasNotas").doc(ref.id).set({ obs });
       else if (v && v.obs) await col("vendasNotas").doc(ref.id).delete();
       closeLayer(); await reload(v ? "Venda atualizada" : "Venda lançada");
@@ -2154,6 +2183,7 @@ $("#layer").addEventListener("click", async (e) => {
       const c = Number(String(i.value).replace(",", ".")) || 0;
       if ((Number(v.cotacaoVenda) || 0) === c && !!v.semCotacao === !c) return;
       lote.set(col("vendas").doc(id), { cotacaoVenda: c || null, cotacao: c || null, semCotacao: !c, valor: round2((v.valorBRL || 0) + (c ? v.valorUSD * c : 0)) }, { merge: true }); n++;
+      registrar(`Cotação do dólar: ${vendaTxt(id)} · ${v.cotacaoVenda || "sem cotação"} → ${c || "sem cotação"}`, "venda");
     });
     try { if (n) await lote.commit(); closeLayer(); await reload(n ? `Cotação salva em ${n} ${n === 1 ? "venda" : "vendas"}.` : "Nada mudou."); } catch (err) { toast(errMsg(err)); }
     return;
@@ -2162,6 +2192,7 @@ $("#layer").addEventListener("click", async (e) => {
     const link = $("#cfg-planilha").value.trim(), linkOrc = ($("#cfg-planilha-orc") ? $("#cfg-planilha-orc").value : "").trim();
     if ((link && !urlPlanilha(link)) || (linkOrc && !urlPlanilha(linkOrc))) { toast("Esse não parece um link de planilha do Google."); return; }
     try {
+      if (link !== (S.comercial.planilha || "") || linkOrc !== (S.comercial.planilhaOrc || "")) registrar(`Link da planilha do Trevor alterado (${link !== (S.comercial.planilha || "") ? "vendas" : ""}${link !== (S.comercial.planilha || "") && linkOrc !== (S.comercial.planilhaOrc || "") ? " e " : ""}${linkOrc !== (S.comercial.planilhaOrc || "") ? "orçamentos" : ""})`, "config");
       await salvarComercial({ planilha: link, planilhaOrc: linkOrc, ultimaImportacao: "" });
       closeLayer();
       if (link) await importarTrevor(false); else render();
@@ -2172,7 +2203,7 @@ $("#layer").addEventListener("click", async (e) => {
   if (aes) {
     const u = aes.dataset.uid, iso = aes.dataset.iso, id = u + "__" + iso, ref = col("escala").doc(id);
     try {
-      if (aes.dataset.act === "padrao-escala") { await ref.delete(); delete S.escala.ajustes[id]; closeLayer(); render(); toast("Dia voltou ao padrão"); return; }
+      if (aes.dataset.act === "padrao-escala") { await ref.delete(); delete S.escala.ajustes[id]; registrar(`Escala de ${nomeEsc(u)} em ${dLabel(iso)} voltou ao padrão`, "escala"); closeLayer(); render(); toast("Dia voltou ao padrão"); return; }
       const folga = ($('#layer input[name="aj-tipo"]:checked') || {}).value === "folga", obs = $("#aj-obs").value.trim();
       const d = folga ? { folga: true } : { folga: false, ini: $("#aj-ini").value, fim: $("#aj-fim").value, pIni: $("#aj-pini").value, pFim: $("#aj-pfim").value };
       if (!folga && (!d.ini || !d.fim)) { toast("Preencha o horário de início e de fim."); return; }
@@ -2180,6 +2211,7 @@ $("#layer").addEventListener("click", async (e) => {
       const igual = folga ? !!pad.folga : (!pad.folga && ["ini", "fim", "pIni", "pFim"].every(k => (pad[k] || "") === (d[k] || "")));
       if (igual && !obs) { if (S.escala.ajustes[id]) await ref.delete(); delete S.escala.ajustes[id]; }
       else { const doc = { email: u, data: iso, ...d, obs, em: new Date().toISOString(), por: S.email }; await ref.set(doc); S.escala.ajustes[id] = doc; }
+      registrar(`Escala de ${nomeEsc(u)} em ${dLabel(iso)}: ${folga ? "folga" : hC(d.ini) + "–" + hC(d.fim)}${obs ? " · " + obs : ""}`, "escala");
       closeLayer(); render(); toast("Escala salva");
     } catch (err) { toast(errMsg(err)); }
     return;
@@ -2190,7 +2222,7 @@ $("#layer").addEventListener("click", async (e) => {
     const txt = $("#fm-comp").value.trim(), comp = txt ? minDeTxt(txt) : 0;
     if (comp == null) { erro.hidden = false; erro.textContent = "Escreva as horas como 2:30 (duas horas e meia)."; return; }
     const doc = { ym, email: u, nome: nomeEsc(u), fechadoEm: new Date().toISOString(), por: S.email, diasTrab: r.diasTrab, diasEscala: r.diasEscala, trab: r.trab, prev: r.prev, saldo: r.saldo, ferDias: r.ferDias, ferMin: r.ferMin, semRegistro: r.semReg + r.incompletos, bancoAnterior: ant, compensado: comp, bancoFinal: ant + r.saldo - comp };
-    try { await col("pontoMes").doc(ym + "__" + u).set(doc); S.escala.meses[ym + "__" + u] = doc; closeLayer(); render(); toast("Mês fechado"); } catch (err) { erro.hidden = false; erro.textContent = errMsg(err); }
+    try { await col("pontoMes").doc(ym + "__" + u).set(doc); S.escala.meses[ym + "__" + u] = doc; registrar(`Ponto de ${nomeEsc(u)} de ${ymLabel(ym)} fechado · ${r.diasTrab} dias trabalhados · banco ${durTxt(doc.bancoFinal, true)}${comp ? " (" + durTxt(comp) + " pagas/compensadas)" : ""}`, "ponto"); closeLayer(); render(); toast("Mês fechado"); } catch (err) { erro.hidden = false; erro.textContent = errMsg(err); }
     return;
   }
   const spt = e.target.closest('[data-act="salvar-ponto"]');
@@ -2204,13 +2236,14 @@ $("#layer").addEventListener("click", async (e) => {
     if (novo.saida && !novo.entrada) { erro.hidden = false; erro.textContent = "Preencha também a entrada."; return; }
     const txt = "Ajuste: " + mud.map(([k, t]) => `${t} ${atual[k] ? hTxt(atual[k]) : "vazio"} → ${novo[k] ? hTxt(novo[k]) : "vazio"}`).join("; ") + " · Motivo: " + motivo;
     const doc = { ...atual, email: u, data: iso, ym: iso.slice(0, 7), ...novo, ajustado: true, log: [...(atual.log || []), { em: new Date().toISOString(), por: S.email, txt }] };
-    try { await col("ponto").doc(id).set(doc); S.escala.ponto[id] = doc; closeLayer(); render(); toast("Ponto corrigido"); } catch (err) { erro.hidden = false; erro.textContent = errMsg(err); }
+    try { await col("ponto").doc(id).set(doc); S.escala.ponto[id] = doc; if (u !== S.email) registrar(`Ponto de ${nomeEsc(u)} em ${dLabel(iso)} corrigido · ${txt}`, "ponto"); closeLayer(); render(); toast("Ponto corrigido"); } catch (err) { erro.hidden = false; erro.textContent = errMsg(err); }
     return;
   }
   const del = e.target.closest('[data-act="excluir-venda"]');
   if (del) {
     if (del.dataset.confirm !== "1") { del.dataset.confirm = "1"; del.textContent = "Confirmar exclusão"; return; }
-    try { await col("vendas").doc(del.dataset.id).delete(); await col("vendasNotas").doc(del.dataset.id).delete(); } catch (err) { return toast(errMsg(err)); }
+    const txtDel = `Venda excluída: ${vendaTxt(del.dataset.id)} · ${moneyTxt((S.vendas[del.dataset.id] || {}).valor)}`;
+    try { await col("vendas").doc(del.dataset.id).delete(); await col("vendasNotas").doc(del.dataset.id).delete(); registrar(txtDel, "venda"); } catch (err) { return toast(errMsg(err)); }
     closeLayer(); await reload("Venda excluída");
   }
 });
@@ -2221,6 +2254,7 @@ async function run(p, okMsg) { await p; await reload(okMsg); }
 $("#main").addEventListener("click", async (e) => {
   const go = e.target.closest("[data-tab-go]"); if (go) { S.tab = go.dataset.tabGo; render(); return; }
   const od = e.target.closest("[data-orcdest]"); if (od) { const k = od.dataset.orcdest; S.filtros.orcDest = S.filtros.orcDest === k ? "" : k; S.orcTodosAberto = !!(document.getElementById("orc-todos") || {}).open; render(); return; }
+  const ht = e.target.closest("[data-histtipo]"); if (ht) { S.filtros.histTipo = ht.dataset.histtipo; render(); return; }
   const cn = e.target.closest("[data-compn]"); if (cn) { S.filtros.compN = cn.dataset.compn; render(); return; }
   const irf = e.target.closest("[data-irficha]"); if (irf) { const [dd, ii] = irf.dataset.irficha.split("|"); S.filtros.destino = dd; S.filtros.passeio = ii; S.filtros.fichaTab = "resumo"; S.filtros.tourBusca = ""; render(); const t = document.querySelector(".tour"); if (t) t.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
   const ags = e.target.closest("[data-agsub]"); if (ags) { S.filtros.agSub = ags.dataset.agsub; try { localStorage.setItem("araya-agsub", S.filtros.agSub); } catch (_) {} render(); return; }
@@ -2233,9 +2267,21 @@ $("#main").addEventListener("click", async (e) => {
   const foto = e.target.closest("[data-foto]"); if (foto) { abrirFoto(foto.dataset.foto); return; }
   const b = e.target.closest("[data-act]"); if (!b || b.dataset.act === "sair") return;
   const act = b.dataset.act, uid = b.dataset.uid, id = b.dataset.id;
+  const LOG = {
+    "pagar": () => ["Comissão marcada como paga: " + vendaTxt(id), "comissao"],
+    "despagar": () => ["Pagamento de comissão desfeito: " + vendaTxt(id), "comissao"],
+    "pagar-todas": () => [`Comissões de ${label(uid)} de ${ymLabel(S.filtros.comMes)} marcadas como pagas`, "comissao"],
+    "pagar-bonus": () => [`Bônus de ${label(uid)} de ${ymLabel(b.dataset.ym)} marcado como pago · ${moneyTxt(b.dataset.valor)}`, "bonus"],
+    "despagar-bonus": () => [`Pagamento do bônus de ${label(uid)} de ${ymLabel(b.dataset.ym)} desfeito`, "bonus"],
+    "suspender": () => b.dataset.confirm === "1" ? [`Acesso suspenso: ${label(uid)}`, "equipe"] : null,
+    "reativar": () => [`Acesso reativado: ${label(uid)}`, "equipe"],
+    "reabrir-mes": () => b.dataset.confirm === "1" ? [`Ponto de ${nomeEsc(uid)} de ${ymLabel(b.dataset.ym)} reaberto`, "ponto"] : null
+  };
+  const logAntes = S.isAdmin && LOG[act] ? LOG[act]() : null;
   try {
     if (act === "nova-venda") openVenda(null);
     else if (act === "atualizar-trevor") await importarTrevor(false);
+    else if (act === "forcar-trevor") { if (b.dataset.confirm !== "1") { b.dataset.confirm = "1"; b.textContent = "Confirmar: aplicar a planilha"; return; } await importarTrevor(false, true); }
     else if (act === "pagar-bonus") await run(col("bonus").doc(b.dataset.ym + "__" + uid).set({ ym: b.dataset.ym, email: uid, bonus: Number(b.dataset.valor) || 0, vendido: Number(b.dataset.vendido) || 0, pagoEm: ymNow() }), "Bônus marcado como pago");
     else if (act === "despagar-bonus") await run(col("bonus").doc(b.dataset.ym + "__" + uid).delete(), "Pagamento do bônus desfeito");
     else if (act === "abrir-config-trevor") abrirConfigTrevor();
@@ -2257,6 +2303,7 @@ $("#main").addEventListener("click", async (e) => {
     }
     else if (act === "baixar-backup") await baixarBackup();
     else if (act === "copiar-resumo") { try { await navigator.clipboard.writeText(b.dataset.texto); toast("Resumo copiado"); } catch (_) { toast("Não deu para copiar automaticamente."); } }
+    else if (act === "ver-historico") await carregarHistorico();
     else if (act === "ver-termometro") { S.filtros.verTermo = !S.filtros.verTermo; render(); }
     else if (act === "copiar-ficha") { try { await navigator.clipboard.writeText(b.dataset.texto); toast("Texto copiado. É só colar no WhatsApp do cliente."); } catch (_) { toast("Não deu para copiar automaticamente."); } }
     else if (act === "helena-tel") {
@@ -2301,6 +2348,7 @@ $("#main").addEventListener("click", async (e) => {
     else if (act === "reenviar") { b.disabled = true; await sendLink(uid); toast("Link de senha enviado para " + uid); b.disabled = false; }
     else if (act === "ver-como") { S.previewUid = uid; S.tab = "inicio"; render(); window.scrollTo({ top: 0 }); }
     else if (act === "sair-preview") { S.previewUid = null; S.tab = "acessos"; render(); }
+    if (logAntes) registrar(logAntes[0], logAntes[1]);
   } catch (err) { toast(errMsg(err)); b.disabled = false; }
 });
 $("#main").addEventListener("submit", async (e) => {
@@ -2350,14 +2398,15 @@ $("#main").addEventListener("change", async (e) => {
   try {
     if (t.dataset.aba) {
       const uid = t.dataset.uid; const ab = { ...ABAS_PADRAO, ...((S.members[uid] || {}).abas || {}) }; ab[t.dataset.aba] = t.checked;
-      await run(col("equipe").doc(uid).update({ abas: ab }));
+      await run(col("equipe").doc(uid).update({ abas: ab })); registrar(`Seção “${t.dataset.aba}” ${t.checked ? "liberada" : "bloqueada"} para ${label(uid)}`, "equipe");
     } else if (t.dataset.cfg) {
       const uid = t.dataset.uid; let val = t.value;
       val = t.dataset.cfg === "pct" ? (val === "" ? null : Math.max(0, Math.min(100, Number(val)))) : val.trim();
       if ((S.members[uid] || {})[t.dataset.cfg] === val) return;
-      await run(col("equipe").doc(uid).update({ [t.dataset.cfg]: val }), "Salvo");
+      const antes = (S.members[uid] || {})[t.dataset.cfg];
+      await run(col("equipe").doc(uid).update({ [t.dataset.cfg]: val }), "Salvo"); registrar(`${t.dataset.cfg === "pct" ? "Percentual de comissão" : t.dataset.cfg} de ${label(uid)}: ${antes ?? "—"} → ${val ?? "—"}`, "equipe");
     } else if (t.dataset.flag) {
-      await run(col("equipe").doc(t.dataset.uid).update({ [t.dataset.flag]: t.checked }), "Salvo");
+      await run(col("equipe").doc(t.dataset.uid).update({ [t.dataset.flag]: t.checked }), "Salvo"); registrar(`${({ supervisor: "Supervisão", vendedora: "Vendedora", bonus: "Bônus mensal" })[t.dataset.flag] || t.dataset.flag} de ${label(t.dataset.uid)}: ${t.checked ? "ligado" : "desligado"}`, "equipe");
     } else if (t.dataset.meta) {
       const n = Number(t.value) || 0; const metas = { ...(S.comercial.metas || {}) };
       if (n > 0) metas[t.dataset.meta] = n; else delete metas[t.dataset.meta];
@@ -2368,6 +2417,7 @@ $("#main").addEventListener("change", async (e) => {
       if ((atual ?? null) === n) return;
       const ref = col("atendimentos").doc(mes + "__" + email);
       if (n == null) await run(ref.delete()); else await run(ref.set({ mes, email, n, nome: label(email), vende: (S.members[email] || {}).vendedora !== false }));
+      registrar(`Atendimentos de ${label(email)} em ${ymLabel(mes)}: ${atual ?? "—"} → ${n ?? "—"}`, "atendimentos");
     } else if (t.id === "imp-passeios" && t.files && t.files[0]) {
       await importarPasseios(t.files[0]);
     }
@@ -2376,7 +2426,7 @@ $("#main").addEventListener("change", async (e) => {
 let buscaTimer;
 $("#main").addEventListener("input", (e) => {
   const t = e.target;
-  const key = t.id === "f-busca" ? "busca" : t.id === "f-tour" ? "tourBusca" : t.id === "f-tk" ? "tkBusca" : null;
+  const key = t.id === "f-busca" ? "busca" : t.id === "f-tour" ? "tourBusca" : t.id === "f-tk" ? "tkBusca" : t.id === "f-hist" ? "histBusca" : null;
   if (!key) return;
   S.filtros[key] = t.value; clearTimeout(buscaTimer);
   buscaTimer = setTimeout(() => { const pos = t.selectionStart; render(); const n = $("#" + t.id); if (n) { n.focus(); n.setSelectionRange(pos, pos); } }, 250);
@@ -2534,6 +2584,23 @@ function prepararOrcamentos(txt, ctx) {
   for (const [id, o] of Object.entries(antigos)) if (!vistos.has(id) && o.naPlanilha !== false) escritas.push([id, { naPlanilha: false }]);
   return { linhas: linhas.length - 1, novos, alterados, escritas, temData: ix.criado >= 0 };
 }
+// Trava de segurança da planilha de vendas: antes de aplicar, compara com a leitura anterior.
+// Se sumiram colunas essenciais ou caiu muito o número de vendas recentes, a leitura fica pausada até a administradora confirmar.
+const COLUNAS_ESSENCIAIS = ["data da venda", "roteiro", "cliente", "vendedor(a)", "status", "partida", "valor final r$", "origem"];
+function assinaturaPlanilha(txt, hojeD) {
+  const linhas = lerCSV(txt), cab = (linhas[0] || []).map(semAcento), iData = cab.findIndex(h => h === "data da venda" || h.startsWith("data da venda"));
+  const corte = new Date(Date.parse((hojeD || new Date().toISOString().slice(0, 10)) + "T12:00:00Z") - 120 * 864e5).toISOString().slice(0, 10);
+  let total = 0, recentes = 0;
+  for (const l of linhas.slice(1)) { const d = iData >= 0 ? lerData(l[iData]) : ""; if (!d) continue; total++; if (d >= corte) recentes++; }
+  return { colunas: cab.filter(c => COLUNAS_ESSENCIAIS.includes(c)), total, recentes };
+}
+function motivoBloqueio(nova, antiga) {
+  if (!antiga || !nova) return "";
+  const sumiram = (antiga.colunas || []).filter(c => !(nova.colunas || []).includes(c));
+  if (sumiram.length) return "a planilha nova não tem as colunas " + sumiram.map(c => "“" + c + "”").join(", ") + ", que existiam na leitura anterior";
+  if ((antiga.recentes || 0) >= 10 && nova.recentes < antiga.recentes * 0.8) return "a planilha nova tem " + nova.recentes + " vendas dos últimos 4 meses, contra " + antiga.recentes + " na leitura anterior";
+  return "";
+}
 // <<< COMUM-TREVOR
 async function baixarPlanilha(link, nome) {
   const url = urlPlanilha(link); if (!url) return null;
@@ -2547,16 +2614,24 @@ async function gravarLotes(colecao, escritas) {
     await lote.commit();
   }
 }
-async function importarTrevor(silencioso) {
+async function importarTrevor(silencioso, forcar) {
   const c = S.comercial;
   if (!urlPlanilha(c.planilha)) { if (!silencioso) toast("Cole o link da planilha do Trevor primeiro."); return; }
   S.importando = true; if (!silencioso) render();
   try {
-    const rv = prepararVendas(await baixarPlanilha(c.planilha, "vendas"), { antigas: S.vendas, membros: S.members, cotacoes: c.cotacoes });
+    const txtV = await baixarPlanilha(c.planilha, "vendas");
+    const assin = assinaturaPlanilha(txtV, isoDia(new Date())), motivo = forcar ? "" : motivoBloqueio(assin, c.planilhaAssinatura);
+    if (motivo) {
+      const bloqueio = { em: new Date().toISOString(), motivo, por: "portal" };
+      S.comercial.importacaoBloqueada = bloqueio; await col("config").doc("comercial").set({ importacaoBloqueada: bloqueio }, { merge: true });
+      S.importando = false; if (!silencioso) toast("Leitura pausada: " + motivo + "."); render(); return;
+    }
+    const rv = prepararVendas(txtV, { antigas: S.vendas, membros: S.members, cotacoes: c.cotacoes });
     await gravarLotes("vendas", rv.escritas);
     const resultado = { linhas: rv.linhas, novas: rv.novas, alteradas: rv.alteradas, ignoradas: rv.ignoradas, em: new Date().toISOString() };
-    S.comercial.ultimaImportacao = resultado.em; S.comercial.ultimoResultado = resultado; S.comercial.idsPlanilha = rv.idsPlanilha;
-    await col("config").doc("comercial").set({ ultimaImportacao: resultado.em, ultimoResultado: resultado, idsPlanilha: rv.idsPlanilha }, { merge: true });
+    S.comercial.ultimaImportacao = resultado.em; S.comercial.ultimoResultado = resultado; S.comercial.idsPlanilha = rv.idsPlanilha; S.comercial.planilhaAssinatura = assin; S.comercial.importacaoBloqueada = null;
+    await col("config").doc("comercial").set({ ultimaImportacao: resultado.em, ultimoResultado: resultado, idsPlanilha: rv.idsPlanilha, planilhaAssinatura: assin, importacaoBloqueada: null }, { merge: true });
+    if (forcar) registrar("Planilha do Trevor aplicada mesmo com o aviso da trava de segurança");
     let msgOrc = "";
     if (c.planilhaOrc) {
       try { const ro = await importarOrcamentos(); if (ro && (ro.novos || ro.alterados || !silencioso)) msgOrc = ` Orçamentos: ${ro.novos} ${ro.novos === 1 ? "novo" : "novos"}, ${ro.alterados} ${ro.alterados === 1 ? "atualizado" : "atualizados"}.`; }
@@ -2605,6 +2680,19 @@ function alertasComerciais() {
   const INICIO_CONFERENCIA = "2026-09-01";
   const fora = naPlanilha ? vs.filter(v => !naPlanilha.has(v.id) && ((v.fechamento || "") >= INICIO_CONFERENCIA || (v.retorno || v.embarque || "") >= INICIO_CONFERENCIA)) : [];
   return { semCot, comUsd, semCadastro, conferir, fora };
+}
+function alertasRobustez() {
+  if (!souAdminReal()) return "";
+  const c = S.comercial || {}; let h = "";
+  const b = c.importacaoBloqueada;
+  if (b && b.motivo) h += `<div class="banner bad-b"><span>🛑 <strong>Leitura do Trevor pausada</strong> (${dLabel(String(b.em || "").slice(0, 10)).slice(0, 5)}): ${esc(b.motivo)}. As vendas do portal não foram alteradas. Confira a planilha; se ela estiver certa, aplique.</span><span class="row">${c.planilha ? `<a class="btn sm" href="${esc(c.planilha)}" target="_blank" rel="noopener">Abrir planilha</a>` : ""}<button class="btn sm primary" data-act="forcar-trevor">Aplicar mesmo assim</button></span></div>`;
+  const ok = c.roboOk || c.ultimaVerificacaoRobo, horas = ok ? (Date.now() - Date.parse(ok)) / 36e5 : null;
+  const falha = c.roboFalha && c.roboFalha.em && (!ok || c.roboFalha.em > ok) ? c.roboFalha : null;
+  if (falha) h += `<div class="banner bad-b"><span>🤖 <strong>O robô do GitHub deu erro</strong> em ${new Date(falha.em).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}: ${esc(falha.msg || "erro desconhecido")}. Fichas, vendas e Helena podem estar desatualizados.</span></div>`;
+  else if (horas != null && horas > 3) h += `<div class="banner warn-b"><span>🤖 <strong>O robô não roda há ${horas >= 48 ? Math.floor(horas / 24) + " dias" : Math.floor(horas) + " horas"}</strong> (o normal é a cada 30 minutos). Confira no GitHub → Actions se ele está ativo; se precisar, clique em “Run workflow”.</span></div>`;
+  if (!falha && c.trevorErro && c.trevorErro.em && Date.now() - Date.parse(c.trevorErro.em) < 24 * 36e5) h += `<div class="banner warn-b"><span>📄 <strong>O robô não conseguiu ler a planilha do Trevor</strong>: ${esc(c.trevorErro.msg || "")}. As vendas ficam como estavam até a próxima leitura certa.</span></div>`;
+  else if (horas == null && c.planilha) h += `<div class="banner warn-b"><span>🤖 Ainda não há registro do robô rodando. Confira no GitHub → Actions.</span></div>`;
+  return h;
 }
 function bannersComerciais(completo) {
   const a = alertasComerciais(); let h = "";
