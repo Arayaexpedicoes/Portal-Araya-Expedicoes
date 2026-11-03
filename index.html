@@ -335,6 +335,7 @@ table.comp tr.atual td{background:color-mix(in srgb, var(--accent-soft) 55%, tra
 table.comp .pos{color:var(--ok);font-weight:700} table.comp .neg{color:var(--bad);font-weight:700}
 table.comp .barcol{width:22%}
 @media (max-width:640px){ table.comp .barcol,table.comp .qcol{display:none} table.comp{font-size:.8rem} table.comp td,table.comp th{padding-left:5px;padding-right:5px} }
+.ficha-abas button.vazio{opacity:.5;font-weight:500}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 
 .auth{min-height:calc(100vh - 140px);display:grid;place-items:center;padding-block:24px}
@@ -1005,11 +1006,11 @@ function fichaHtml(f, dest, isDest) {
       ["gastronomia", "Gastronomia", texto("gastronomia")],
       ["galeria", `Fotos e vídeos${midias.length ? " · " + midias.length : ""}`, midias.length || texto("galeria")],
       ["documentos", `Documentos${docs.length ? " · " + docs.length : ""}`, docs.length || docsTexto]
-    ].filter(t => t[2]);
+    ]; // todos os tópicos aparecem sempre, mesmo vazios, para a equipe saber o que falta preencher no Notion
     const atual = topicos.some(t => t[0] === S.filtros.fichaTab) ? S.filtros.fichaTab : (topicos[0] || [])[0];
-    abasHtml = topicos.length > 1 ? `<nav class="subnav ficha-abas" aria-label="Tópicos da ficha">${topicos.map(([k, t]) => `<button type="button" data-fichatab="${k}" aria-current="${k === atual}">${t}</button>`).join("")}</nav>` : "";
+    abasHtml = topicos.length > 1 ? `<nav class="subnav ficha-abas" aria-label="Tópicos da ficha">${topicos.map(([k, t, tem]) => `<button type="button" data-fichatab="${k}" aria-current="${k === atual}" class="${tem ? "" : "vazio"}" title="${tem ? "" : "Ainda sem conteúdo"}">${t}</button>`).join("")}</nav>` : "";
     const prose = (txt) => `<div class="prose">${md(txt, fmap, amap)}</div>`;
-    if (atual === "resumo") corpo = texto("descricao") ? prose(texto("descricao")) : `<p class="muted">Sem descrição nesta ficha.</p>`;
+    if (atual === "resumo") corpo = prose(texto("descricao"));
     else if (atual === "inclui") corpo = `<section class="fcard inclui">${prose(texto("inclui"))}</section>`;
     else if (atual === "gatilho") corpo = `<section class="fsec guia"><span class="guia-tag">Argumentos de venda · uso interno</span>${prose(texto("gatilho"))}</section>`;
     else if (atual === "tecnica") corpo = prose(tecnicaTxt);
@@ -1018,6 +1019,11 @@ function fichaHtml(f, dest, isDest) {
       + `<p class="muted small" style="margin:0">Para incluir: no Notion, arraste a foto ou o vídeo para baixo do título “Fotos e vídeos” desta ficha; a legenda é a opção “Legenda” da imagem.</p>`;
     else if (atual === "documentos") corpo = `<div class="docs">${docs.map(a => `<a class="doc" href="${esc(a.url)}" target="_blank" rel="noopener"><span class="doc-ico" aria-hidden="true">${/\.pdf(\?|$)/i.test(a.nome || a.url) ? "PDF" : "DOC"}</span><span class="doc-txt"><strong>${esc(a.legenda || String(a.nome || "Documento").replace(/\.[a-z0-9]{2,4}$/i, ""))}</strong><span class="muted small">${esc(a.nome || "")}</span></span><span class="doc-abrir">Abrir ↗</span></a>`).join("")}</div>${docsTexto ? prose(docsTexto) : ""}
       <p class="muted small" style="margin:0">Para incluir: no Notion, crie o título “Documentos” na ficha e solte ali o PDF (ficha técnica, mapa, regulamento).</p>`;
+    const topAtual = topicos.find(t => t[0] === atual) || [];
+    if (!topAtual[2] || (atual === "resumo" && !texto("descricao"))) {
+      const aviso = `<div class="empty"><strong>Ainda sem conteúdo</strong><span>Preencha o tópico “${String(topAtual[1] || "").replace(/ · \d+$/, "")}” desta ficha no Notion. Depois que o robô rodar, aparece aqui.</span></div>`;
+      corpo = atual === "galeria" || atual === "documentos" ? aviso + corpo.replace(/<div class="docs"><\/div>/, "") : aviso;
+    }
     // texto pronto para o cliente: resumo e o que inclui (sem gatilho de venda nem ficha técnica, que têm informação interna)
     const plano = (t) => String(t || "").split("\n").map(l => l.replace(/\*\*/g, "").replace(/\[([^\]]+)\]\(([^)]+)\)/g, "$1").replace(/^#{2,6}\s+/, "").replace(/^>\s?/, "").replace(/^[-•]\s+/, "• ")).join("\n").replace(/\n{3,}/g, "\n\n").trim();
     const partes = [`*${titulo}*`, f.subtitulo || "", fatos.filter(([k]) => k !== "Preço").map(([k, v]) => `${k}: ${v}`).join(" · "), plano(texto("descricao")), texto("inclui") ? "*O que inclui*\n" + plano(texto("inclui")) : ""].filter(Boolean);
