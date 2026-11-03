@@ -35,6 +35,7 @@ jobs:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           ROBO_SENHA: ${{ secrets.ROBO_SENHA }}
           HELENA_TOKEN: ${{ secrets.HELENA_TOKEN }}
+          GOOGLE_PLACES_KEY: ${{ secrets.GOOGLE_PLACES_KEY }}
           ROBO_EMAIL: robo.portal@arayaexpedicoes.com
           NOTION_DATABASE_ID: ead044fa4f87493b86621b16719cf5e8
           NOTION_DATA_SOURCE_ID: e2f3a87a2c084e83906e5393dbbab421
@@ -746,6 +747,44 @@ jobs:
           }
 
           // ---------- principal ----------
+          // ---------- avaliações do Google (Places API: lê as avaliações públicas do perfil; a resposta continua sendo publicada à mão) ----------
+          // Chave no segredo GOOGLE_PLACES_KEY; o Place ID fica no portal (config/avaliacoes). Lê no máximo a cada 2 horas, ou quando alguém pede "Buscar agora".
+          async function sincronizarAvaliacoes(db) {
+            const key = process.env.GOOGLE_PLACES_KEY;
+            if (!key) { console.log("Avaliações: sem o segredo GOOGLE_PLACES_KEY no GitHub, pulado."); return; }
+            const ref = doc(db, "config", "avaliacoes"); let cfg = {};
+            try { const s = await getDoc(ref); cfg = s.exists() ? s.data() : {}; } catch (_) { console.log("Avaliações: o robô ainda não tem permissão (publique as regras novas do Firestore). Pulado."); return; }
+            if (!cfg.placeId) { console.log("Avaliações: Place ID ainda não cadastrado no portal, pulado."); return; }
+            const agora = new Date().toISOString();
+            if (!cfg.pedirBusca && cfg.ultimaBusca && Date.now() - Date.parse(cfg.ultimaBusca) < 2 * 3600e3) { console.log("Avaliações: lidas há menos de 2 horas, pulado."); return; }
+            let j = null, erro = "";
+            try {
+              const r = await fetch("https://places.googleapis.com/v1/places/" + encodeURIComponent(cfg.placeId) + "?languageCode=pt-BR", { headers: { "X-Goog-Api-Key": key, "X-Goog-FieldMask": "rating,userRatingCount,reviews,googleMapsUri" } });
+              j = await r.json().catch(() => ({}));
+              if (!r.ok) erro = "Google respondeu " + r.status + (j && j.error && j.error.message ? " — " + String(j.error.message).slice(0, 160) : "");
+            } catch (e) { erro = "não foi possível falar com o Google (" + String((e && e.message) || e).slice(0, 120) + ")"; }
+            if (erro) { await setDoc(ref, { ultimaBusca: agora, pedirBusca: false, ultimoErro: erro }, { merge: true }); console.log("Avaliações: não lidas — " + erro + "."); return; }
+            const existentes = Object.fromEntries((await getDocs(collection(db, "avaliacoes"))).docs.map((d) => [d.id, d.data()]));
+            const chave = (t) => semAcento(t).replace(/[^a-z0-9]+/g, " ").trim();
+            const manuais = Object.entries(existentes).filter(([, a]) => a.fonte !== "google");
+            let novas = 0, atualizadas = 0; const lote = writeBatch(db);
+            for (const rv of (j.reviews || [])) {
+              const id = "g_" + resumo(String(rv.name || ((rv.authorAttribution || {}).displayName + "|" + rv.publishTime))).slice(0, 24);
+              const autor = (rv.authorAttribution || {}).displayName || "", texto = ((rv.originalText || rv.text || {}).text || "").trim();
+              const data = rv.publishTime ? new Date(Date.parse(rv.publishTime) - 3 * 3600e3).toISOString().slice(0, 10) : "";
+              const dados = { autor, nota: Number(rv.rating) || 0, texto, data, publicadaEm: rv.publishTime || "", fonte: "google", autorUrl: (rv.authorAttribution || {}).uri || "", linkGoogle: rv.googleMapsUri || "" };
+              const ja = existentes[id];
+              if (ja) { if (ja.texto !== texto || ja.nota !== dados.nota) { lote.set(doc(db, "avaliacoes", id), { texto, nota: dados.nota, editadaNoGoogle: agora }, { merge: true }); atualizadas++; } continue; }
+              // se alguém já cadastrou essa avaliação à mão, não duplica: só marca a origem
+              const igual = manuais.find(([, a]) => chave(a.autor) === chave(autor) && (!a.data || !data || Math.abs(Date.parse(a.data) - Date.parse(data)) <= 3 * 864e5));
+              if (igual) { lote.set(doc(db, "avaliacoes", igual[0]), { googleId: id, linkGoogle: dados.linkGoogle, autorUrl: dados.autorUrl, publicadaEm: dados.publicadaEm }, { merge: true }); continue; }
+              lote.set(doc(db, "avaliacoes", id), { ...dados, status: "pendente", criadoEm: agora, criadoPor: "robô" }); novas++;
+            }
+            await lote.commit();
+            await setDoc(ref, { ultimaBusca: agora, pedirBusca: false, ultimoErro: null, notaGoogle: j.rating || null, totalGoogle: j.userRatingCount || 0, linkPerfil: j.googleMapsUri || "" }, { merge: true });
+            console.log("Avaliações: " + (j.reviews || []).length + " lidas no Google, " + novas + " novas, " + atualizadas + " atualizadas (nota " + (j.rating || "—") + ", " + (j.userRatingCount || 0) + " no total).");
+          }
+
           async function main() {
             if (!process.env.NOTION_TOKEN) throw new Falha("Falta o segredo NOTION_TOKEN no GitHub.");
             if (!process.env.ROBO_SENHA) throw new Falha("Falta o segredo ROBO_SENHA no GitHub.");
@@ -765,6 +804,7 @@ jobs:
             // 0. atendimentos do Helena e planilhas do Trevor (se falharem, não atrapalham as fichas)
             await sincronizarHelena(db);
             await vincularHelena(db, await sincronizarTrevor(db));
+            try { await sincronizarAvaliacoes(db); } catch (e) { console.log("Avaliações: não atualizado — " + String((e && e.message) || e).slice(0, 200) + "."); }
 
             // 1. fichas publicadas
             const paginas = [];
@@ -903,3 +943,4 @@ jobs:
           });
           FIM_DO_ROBO
           node sincronizar.cjs
+          
