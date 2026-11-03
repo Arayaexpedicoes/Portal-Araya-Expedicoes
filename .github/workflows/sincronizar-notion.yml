@@ -446,6 +446,19 @@ jobs:
                 console.log("Helena " + d.mes + ": " + d.total + " atendimentos novos, " + Object.keys(d.porAgente).length + " atendentes, " + d.semAtendente + " sem atendente; " + (d.total - d.semCampanha) + " vindos de anúncios (" + d.campanhas.length + " anúncios); " + (d.semUtmLidas || 0) + " de " + (d.semUtmTotal || 0) + " conversas sem anúncio já lidas" + ((d.origens || []).length ? ", " + d.origens.map((o) => o.nome + ": " + o.n).join(", ") : "") + ".");
               }
               if (lidas) console.log("Helena: " + lidas + " conversas sem anúncio lidas nesta rodada.");
+              // histórico: os meses anteriores (até 24 meses atrás) são contados uma vez e ficam marcados como completos, para o
+              // portal achar o anúncio de origem mesmo de vendas que fecham 1 ano depois do clique. Um mês por rodada.
+              for (let k = 2; k <= 24; k++) {
+                const ym = addMes(agora, -k);
+                let completo = false;
+                try { const s2 = await getDoc(doc(db, "helena", "mes_" + ym)); completo = s2.exists() && s2.data().completo === true; } catch (_) {}
+                if (completo) continue;
+                const d = await contarMesHelena(ym);
+                const { semUtm, ...grava } = d;
+                await setDoc(doc(db, "helena", "mes_" + ym), { ...grava, completo: true });
+                console.log("Helena " + ym + " (histórico): " + d.total + " atendimentos, " + d.campanhas.length + " anúncios guardados.");
+                break;
+              }
             } catch (e) {
               console.log("Helena: não atualizado — " + ((e && e.message) || e) + ". O resto do portal segue normalmente.");
             }
@@ -538,8 +551,9 @@ jobs:
               const usdCel = (k) => /R\$/.test(v_(l, k)) ? 0 : lerMoeda(v_(l, k));
               const valorUSD = ix.subU >= 0 ? Math.max(0, round2(usdCel("subU") + usdCel("adicU") - usdCel("descU") - usdCel("reembU"))) : lerMoeda(v_(l, "totU"));
               const pagoBRL = lerMoeda(v_(l, "pago")), pagoUSD = usdCel("pagoU");
-              const saldoBRL = ix.subU >= 0 ? round2(valorBRL - pagoBRL) : lerMoeda(v_(l, "saldo"));
-              const saldoUSD = ix.subU >= 0 ? round2(valorUSD - pagoUSD) : lerMoeda(v_(l, "saldoU"));
+              // saldo = total − pago (a coluna "Saldo" do relatório às vezes vem com valores errados)
+              const saldoBRL = ix.subU >= 0 || ix.pago >= 0 ? round2(valorBRL - pagoBRL) : lerMoeda(v_(l, "saldo"));
+              const saldoUSD = ix.subU >= 0 || ix.pagoU >= 0 ? round2(valorUSD - pagoUSD) : lerMoeda(v_(l, "saldoU"));
               // cotação: a digitada no portal > coluna de cotação da planilha > cotação antiga do mês
               const cot = Number(antigo && antigo.cotacaoVenda) || lerMoeda(v_(l, "cot")) || Number(cotacoes[ymOf(fechamento)]) || 0;
               const d = {
