@@ -1659,8 +1659,10 @@ function ownerComercial() {
   const tabela = (lista, titulo, comCor) => { const mx = Math.max(1, ...lista.map(x => x.v)); return `<section class="panel"><h3>${titulo}</h3>${lista.length ? `<div class="tablewrap"><table><thead><tr><th></th><th class="n">Vendas</th><th class="n">Valor</th><th style="width:22%"></th><th class="n">% do mês</th></tr></thead><tbody>${lista.map(x => `<tr><td>${comCor ? destTag(x.k) : esc(x.k)}</td><td class="n">${x.q}</td><td class="n">${money(x.v)}</td><td><div class="bar"><i style="width:${Math.round(x.v / mx * 100)}%"></i></div></td><td class="n">${fat ? (x.v / fat * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + "%" : "—"}</td></tr>`).join("")}</tbody></table></div>` : `<div class="empty"><strong>Sem vendas em ${ymLabel(M)}</strong></div>`}</section>`; };
   const futuros = Array.from({ length: 6 }, (_, i) => addM(hoje, i));
   const somaPos = (l, k) => l.reduce((s, v) => s + Math.max(0, Number(v[k]) || 0), 0);
-  const saldoMes = futuros.map(m => ({ m, v: somaPos(ativas.filter(v => ymOf(v.embarque) === m), "saldoBRL"), u: somaPos(ativas.filter(v => ymOf(v.embarque) === m), "saldoUSD") }));
-  const saldoTotal = somaPos(ativas.filter(v => (v.embarque || "9") >= hoje), "saldoBRL");
+  // A receber: só roteiros "Programado" ou "Pago - aguardando roteiro" no CRM
+  const aReceber = ativas.filter(v => { const st = semAcento(v.statusCrm); return st.startsWith("programad") || st.startsWith("pago - aguardando roteiro") || st.startsWith("pago aguardando roteiro"); });
+  const saldoMes = futuros.map(m => ({ m, v: somaPos(aReceber.filter(v => ymOf(v.embarque) === m), "saldoBRL"), u: somaPos(aReceber.filter(v => ymOf(v.embarque) === m), "saldoUSD") }));
+  const saldoTotal = somaPos(aReceber.filter(v => (v.embarque || "9") >= hoje), "saldoBRL");
   const reembMes = soma(doMes, "reembolsoBRL");
   const temCrm = ativas.some(v => v.origem === "crm");
   return `
@@ -1681,10 +1683,7 @@ function ownerComercial() {
   </section>
   <div class="grid2">${tabela(porVend, "Por pessoa", false)}${tabela(porDest, "Por destino", true)}</div>
   ${bonusPainel(M, ativas, admin)}
-  <div class="grid2">${tabela(porOrig, "Por origem da venda", false)}
-    <section class="panel"><h3>A receber dos clientes</h3><p class="muted small" style="margin:0">Saldo em aberto pelo mês de chegada da viagem. Total a receber: <strong>${money(saldoTotal)}</strong>.</p>
-      ${temCrm ? `<div class="tablewrap"><table><thead><tr><th>Chegada em</th><th class="n">Saldo R$</th><th class="n">Saldo US$</th></tr></thead><tbody>${saldoMes.map(x => `<tr><td>${ymLabel(x.m)}</td><td class="n">${money(x.v)}</td><td class="n">${x.u ? "US$ " + x.u.toLocaleString("pt-BR", { maximumFractionDigits: 0 }) : "—"}</td></tr>`).join("")}</tbody></table></div>` : `<div class="empty"><strong>Disponível com a planilha do Trevor</strong></div>`}
-    </section></div>
+  ${tabela(porOrig, "Por origem da venda", false)}
   ${reembolsosPainel(ativas, admin)}`;
 }
 function reembNota(v) {
@@ -1844,18 +1843,25 @@ function destinoDaCampanha(c) {
 }
 function ownerCampanhas() {
   const M = S.filtros.comMesC || ymNow();
+  // não importa quando o cliente clicou: vale qualquer mês anterior guardado (há vendas que fecham 1 ano depois do clique)
+  const hsAnt = (S.helena || []).filter(x => x.mes && x.mes < M && Array.isArray(x.campanhas)).sort((a, b) => b.mes.localeCompare(a.mes));
   const h = (S.helena || []).find(x => x.mes === M);
   const meses = (S.helena || []).map(x => x.mes).filter(Boolean).sort().reverse();
-  const head = `<div class="section-head"><div><h2>Campanhas</h2><p>Leads que chegaram pelo Helena vindos de anúncios e as vendas que geraram. O total de vendas segue a origem marcada no CRM; o Helena mostra de qual anúncio cada cliente veio (neste mês ou no anterior), ligado pelo telefone ou pelo nome, mesmo que tenha fechado outro destino.</p></div>
+  const head = `<div class="section-head"><div><h2>Campanhas</h2><p>Leads que chegaram pelo Helena vindos de anúncios e as vendas que geraram. O total de vendas segue a origem marcada no CRM; o Helena mostra de qual anúncio cada cliente veio, não importa há quanto tempo ele clicou (o ciclo de venda pode passar de 1 ano), ligado pelo telefone ou pelo nome, mesmo que tenha fechado outro destino.${hsAnt.length ? ` Anúncios guardados desde ${ymLabel(hsAnt[hsAnt.length - 1].mes)}.` : ""}</p></div>
     <div class="field"><label for="f-camp-mes">Mês</label><select id="f-camp-mes" data-filter="comMesC">${(meses.includes(M) ? meses : [M, ...meses]).map(m => `<option value="${m}" ${m === M ? "selected" : ""}>${ymLabel(m)}</option>`).join("")}</select></div></div>`;
   if (!h || !h.campanhas) return head + `<div class="empty"><strong>Sem dados de campanha em ${ymLabel(M)}</strong><span>O robô do Helena guarda as campanhas do mês atual e do anterior a partir da próxima execução.</span></div>`;
-  const hAnt = (S.helena || []).find(x => x.mes === addM(M, -1)) || {};
+  // ciclo de venda longo: o cliente pode ter vindo do anúncio até 5 meses antes de fechar
   const vendas = vendasVisiveis().filter(v => v.status !== "cancelada" && ymOf(v.fechamento) === M);
   // telefone da venda: o da planilha de vendas (se tiver) ou o do orçamento com o mesmo número de roteiro
   const telOrc = {}; Object.values(S.orc || {}).forEach(o => { if (o.roteiro && o.telefone) telOrc[String(o.roteiro)] = telNacional(o.telefone); });
   const telVenda = (v) => telNacional(v.telefone) || telOrc[String(v.roteiro)] || "";
   const orcs = orcLista().filter(o => ymOf(o.criado) === M);
-  const juntar = (lista, listaAnt, chave) => lista.map(c => { const k = chave(c); const ant = (listaAnt || []).find(x => chave(x) === k) || {}; return { ...c, telSet: new Set([...(c.telefones || []), ...(ant.telefones || [])]), nomeSet: new Set([...(c.nomes || []), ...(ant.nomes || [])]) }; });
+  const juntar = (lista, listasAnt, chave) => {
+    const m = new Map();
+    (lista || []).forEach(c => m.set(chave(c), { ...c, telSet: new Set(c.telefones || []), nomeSet: new Set(c.nomes || []), antigo: false, mesesAnt: [] }));
+    listasAnt.forEach(([mes, la]) => (la || []).forEach(c => { const k = chave(c); let r = m.get(k); if (!r) { r = { ...c, n: 0, telSet: new Set(), nomeSet: new Set(), antigo: true, mesesAnt: [] }; m.set(k, r); } (c.telefones || []).forEach(t => r.telSet.add(t)); (c.nomes || []).forEach(t => r.nomeSet.add(t)); if (!r.mesesAnt.includes(mes)) r.mesesAnt.push(mes); }));
+    return [...m.values()];
+  };
   // A origem anotada no CRM (coluna "Origem" do Trevor) é a fonte oficial; o Helena diz de qual anúncio a pessoa veio
   const ehAnuncio = (v) => /anuncio|trafego|patrocinad/.test(semAcento(v.origemLead));
   const origOutra = (v) => !!semAcento(v.origemLead) && !ehAnuncio(v);
@@ -1870,11 +1876,11 @@ function ownerCampanhas() {
   const porNome = (g, pool) => { const vs = pool.filter(v => !usadas.has(v.id) && chavesNome(v.cliente).some(k => g.nomeSet.has(k))); vs.forEach(v => usadas.add(v.id)); return vs; };
   const orcsDe = (g) => orcs.filter(o => (o.telefone && g.telSet.has(telNacional(o.telefone))) || (o.cliente && g.nomeSet.has(chaveNome(o.cliente))));
   const chaveCamp = (c) => [c.source, c.campaign, c.content || c.headline].join("|");
-  const base = juntar(h.campanhas, hAnt.campanhas, chaveCamp), baseOrig = juntar(h.origens || [], hAnt.origens, c => c.nome);
+  const base = juntar(h.campanhas, hsAnt.map(x => [x.mes, x.campanhas]), chaveCamp), baseOrig = juntar(h.origens || [], hsAnt.map(x => [x.mes, x.origens]), c => c.nome);
   base.forEach(g => { g.vs = porTel(g, poolAd); }); baseOrig.forEach(g => { g.vs = porTel(g, poolOrig); });
   base.forEach(g => { g.vs = [...g.vs, ...porNome(g, poolAd)]; }); baseOrig.forEach(g => { g.vs = [...g.vs, ...porNome(g, poolOrig)]; });
   [...base, ...baseOrig].forEach(g => { g.os = orcsDe(g); g.vV = g.vs.reduce((a, v) => a + (Number(v.valor) || 0), 0); });
-  const linhas = base.map(c => ({ ...c, dest: destinoDaCampanha(c) })), origensL = baseOrig;
+  const linhas = base.filter(c => c.n || c.vs.length).map(c => ({ ...c, dest: destinoDaCampanha(c) })), origensL = baseOrig.filter(c => c.n || c.vs.length);
   const grupos = {}; linhas.forEach(l => (grupos[l.dest] ||= []).push(l));
   const ordem = Object.entries(grupos).map(([d, ls]) => [d, ls, ls.reduce((a, l) => a + l.n, 0), ls.reduce((a, l) => a + l.vs.length, 0), ls.reduce((a, l) => a + l.vV, 0)]).sort((a, b) => b[4] - a[4] || b[2] - a[2]);
   const leads = linhas.reduce((a, l) => a + l.n, 0), vendidas = new Set(linhas.flatMap(l => l.vs.map(v => v.id))), vendidasOrig = new Set(origensL.flatMap(l => l.vs.map(v => v.id)));
@@ -1886,7 +1892,7 @@ function ownerCampanhas() {
   const porOrigCrm = {}; vendas.forEach(v => { const k = String(v.origemLead || "").trim() || "Sem origem no CRM"; (porOrigCrm[k] ||= []).push(v); });
   const origemCrmTabela = temOrigemCrm ? `<section class="panel"><div class="section-head"><div><h3>Origem das vendas no CRM</h3><span class="muted small">Como cada venda de ${ymLabel(M)} foi marcada na coluna “Origem” do CRM. É a contagem oficial; o Helena mostra de qual anúncio ou influenciadora a conversa veio.</span></div></div>
     <div class="tablewrap"><table><thead><tr><th>Origem</th><th class="n">Vendas</th><th class="n">Valor vendido</th><th class="n">Achadas no Helena</th></tr></thead><tbody>${Object.entries(porOrigCrm).sort((a, b) => (a[0] === "Sem origem no CRM") - (b[0] === "Sem origem no CRM") || b[1].length - a[1].length).map(([k, vs]) => `<tr><td><strong>${esc(k)}</strong></td><td class="n">${vs.length}</td><td class="n">${money(somaV(vs))}</td><td class="n">${vs.filter(v => vendidas.has(v.id) || vendidasOrig.has(v.id)).length}</td></tr>`).join("")}</tbody></table></div></section>` : "";
-  const naoAchadasTabela = naoAchadas.length ? `<section class="panel"><div class="section-head"><div><h3>Vendas de anúncio sem conversa achada no Helena</h3><span class="muted small">Marcadas como anúncio no CRM, mas o cliente não aparece entre os leads de anúncio do Helena deste mês ou do anterior. Costuma ser outro número, nome diferente no WhatsApp ou lead mais antigo. A venda conta normalmente no total.</span></div><span class="pill neutral">${naoAchadas.length}</span></div>
+  const naoAchadasTabela = naoAchadas.length ? `<section class="panel"><div class="section-head"><div><h3>Vendas de anúncio sem conversa achada no Helena</h3><span class="muted small">Marcadas como anúncio no CRM, mas o cliente não aparece entre os leads de anúncio do Helena de nenhum mês guardado. Costuma ser outro número, nome diferente no WhatsApp ou lead mais antigo. A venda conta normalmente no total.</span></div><span class="pill neutral">${naoAchadas.length}</span></div>
     <div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Vendedor</th><th>Fechada em</th><th class="n">Valor</th></tr></thead><tbody>${naoAchadas.map(v => `<tr><td>${esc(v.cliente)}<div>${destTag(v.destino)}</div></td><td>${esc(vendLabel(v))}</td><td>${dLabel(v.fechamento)}</td><td class="n">${money(v.valor)}</td></tr>`).join("")}</tbody></table></div></section>` : "";
   const temOrc = orcs.length > 0;
   const origemTabela = origensL.length ? `<section class="panel"><div class="section-head"><div><h3>Influenciadoras e indicações</h3><span class="muted small">Conversas sem anúncio cuja primeira mensagem cita a origem (ex.: “vim do Status Viajante”). ${h.semUtmTotal ? `${(h.semUtmLidas || 0).toLocaleString("pt-BR")} de ${h.semUtmTotal.toLocaleString("pt-BR")} conversas sem anúncio do mês já foram lidas.` : ""}</span></div><span class="pill ${vendidasOrig.size ? "ok" : "neutral"}">${vendidasOrig.size} ${vendidasOrig.size === 1 ? "venda" : "vendas"}</span></div>
@@ -1911,7 +1917,7 @@ function ownerCampanhas() {
   ${origemCrmTabela}
   ${ordem.map(([d, ls, n, q, v]) => `<section class="panel"><div class="section-head"><div><h3>${d === "Geral / outros" ? esc(d) : `<span class="dest" style="${dc(d)};font-size:inherit;font-weight:inherit;color:inherit">${esc(d)}</span>`}</h3><span class="muted small">${n.toLocaleString("pt-BR")} leads · ${q} ${q === 1 ? "venda" : "vendas"} · ${money(v)}</span></div><span class="pill ${q ? "ok" : "neutral"}">${pctTxt(n ? q / n * 100 : null)}</span></div>
     <div class="tablewrap"><table><thead><tr><th>Anúncio</th><th>Origem</th><th class="n">Leads</th>${temOrc ? '<th class="n">Orçamentos</th>' : ""}<th class="n">Vendas</th><th class="n">Conversão</th><th class="n">Valor vendido</th></tr></thead>
-    <tbody>${ls.sort((a, b) => b.vV - a.vV || b.n - a.n).map(l => `<tr><td><strong>${tituloAnuncio(l)}</strong>${detalheAnuncio(l)}${l.vs.length ? `<div class="muted small">Fechou: ${[...new Set(l.vs.map(v => v.destino))].map(x => esc(x)).join(", ")}</div>` : ""}</td><td class="small">${esc(String(l.source || "—").toLowerCase().replace(/^./, c => c.toUpperCase()))}<div class="muted small">${codigo(l)}</div></td><td class="n">${l.n}</td>${temOrc ? `<td class="n">${l.os.length}</td>` : ""}<td class="n">${l.vs.length}</td><td class="n">${pctTxt(l.n ? l.vs.length / l.n * 100 : null)}</td><td class="n">${money(l.vV)}</td></tr>`).join("")}</tbody></table></div>
+    <tbody>${ls.sort((a, b) => b.vV - a.vV || b.n - a.n).map(l => `<tr><td><strong>${tituloAnuncio(l)}</strong>${l.antigo ? `<div class="muted small">Anúncio de ${l.mesesAnt.sort().map(ymLabel).join(", ")} · sem leads novos em ${ymLabel(M)}</div>` : ""}${detalheAnuncio(l)}${l.vs.length ? `<div class="muted small">Fechou: ${[...new Set(l.vs.map(v => v.destino))].map(x => esc(x)).join(", ")}</div>` : ""}</td><td class="small">${esc(String(l.source || "—").toLowerCase().replace(/^./, c => c.toUpperCase()))}<div class="muted small">${codigo(l)}</div></td><td class="n">${l.n}</td>${temOrc ? `<td class="n">${l.os.length}</td>` : ""}<td class="n">${l.vs.length}</td><td class="n">${pctTxt(l.n ? l.vs.length / l.n * 100 : null)}</td><td class="n">${money(l.vV)}</td></tr>`).join("")}</tbody></table></div>
   </section>`).join("")}
   ${naoAchadasTabela}
   ${origemTabela}
@@ -2514,8 +2520,9 @@ function prepararVendas(txt, ctx) {
     const usdCel = (k) => /R\$/.test(v_(l, k)) ? 0 : lerMoeda(v_(l, k));
     const valorUSD = ix.subU >= 0 ? Math.max(0, round2(usdCel("subU") + usdCel("adicU") - usdCel("descU") - usdCel("reembU"))) : lerMoeda(v_(l, "totU"));
     const pagoBRL = lerMoeda(v_(l, "pago")), pagoUSD = usdCel("pagoU");
-    const saldoBRL = ix.subU >= 0 ? round2(valorBRL - pagoBRL) : lerMoeda(v_(l, "saldo"));
-    const saldoUSD = ix.subU >= 0 ? round2(valorUSD - pagoUSD) : lerMoeda(v_(l, "saldoU"));
+    // saldo = total − pago (a coluna "Saldo" do relatório às vezes vem com valores errados)
+    const saldoBRL = ix.subU >= 0 || ix.pago >= 0 ? round2(valorBRL - pagoBRL) : lerMoeda(v_(l, "saldo"));
+    const saldoUSD = ix.subU >= 0 || ix.pagoU >= 0 ? round2(valorUSD - pagoUSD) : lerMoeda(v_(l, "saldoU"));
     // cotação: a digitada no portal > coluna de cotação da planilha > cotação antiga do mês
     const cot = Number(antigo && antigo.cotacaoVenda) || lerMoeda(v_(l, "cot")) || Number(cotacoes[ymOf(fechamento)]) || 0;
     const d = {
