@@ -608,6 +608,23 @@ jobs:
             for (const [id, o] of Object.entries(antigos)) if (!vistos.has(id) && o.naPlanilha !== false) escritas.push([id, { naPlanilha: false }]);
             return { linhas: linhas.length - 1, novos, alterados, escritas, temData: ix.criado >= 0 };
           }
+          // Trava de segurança da planilha de vendas: antes de aplicar, compara com a leitura anterior.
+          // Se sumiram colunas essenciais ou caiu muito o número de vendas recentes, a leitura fica pausada até a administradora confirmar.
+          const COLUNAS_ESSENCIAIS = ["data da venda", "roteiro", "cliente", "vendedor(a)", "status", "partida", "valor final r$", "origem"];
+          function assinaturaPlanilha(txt, hojeD) {
+            const linhas = lerCSV(txt), cab = (linhas[0] || []).map(semAcento), iData = cab.findIndex(h => h === "data da venda" || h.startsWith("data da venda"));
+            const corte = new Date(Date.parse((hojeD || new Date().toISOString().slice(0, 10)) + "T12:00:00Z") - 120 * 864e5).toISOString().slice(0, 10);
+            let total = 0, recentes = 0;
+            for (const l of linhas.slice(1)) { const d = iData >= 0 ? lerData(l[iData]) : ""; if (!d) continue; total++; if (d >= corte) recentes++; }
+            return { colunas: cab.filter(c => COLUNAS_ESSENCIAIS.includes(c)), total, recentes };
+          }
+          function motivoBloqueio(nova, antiga) {
+            if (!antiga || !nova) return "";
+            const sumiram = (antiga.colunas || []).filter(c => !(nova.colunas || []).includes(c));
+            if (sumiram.length) return "a planilha nova não tem as colunas " + sumiram.map(c => "“" + c + "”").join(", ") + ", que existiam na leitura anterior";
+            if ((antiga.recentes || 0) >= 10 && nova.recentes < antiga.recentes * 0.8) return "a planilha nova tem " + nova.recentes + " vendas dos últimos 4 meses, contra " + antiga.recentes + " na leitura anterior";
+            return "";
+          }
           // <<< COMUM-TREVOR
           const hojeSP = () => new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 10);
           const resumo = (t) => require("crypto").createHash("sha1").update(t).digest("hex");
@@ -640,11 +657,18 @@ jobs:
               if (cfg.planilha) {
                 const txt = await baixarCSV(cfg.planilha, "vendas"), h = resumo(txt + marcaEquipe + JSON.stringify(cfg.cotacoes || {}));
                 if (h !== cfg.hashVendas) {
-                  const antigas = Object.fromEntries((await getDocs(collection(db, "vendas"))).docs.map((d) => [d.id, d.data()]));
-                  const rv = prepararVendas(txt, { antigas, membros, cotacoes: cfg.cotacoes || {}, agora });
-                  await gravarLotes(db, "vendas", rv.escritas);
-                  Object.assign(upd, { hashVendas: h, idsPlanilha: rv.idsPlanilha, ultimoResultado: { linhas: rv.linhas, novas: rv.novas, alteradas: rv.alteradas, ignoradas: rv.ignoradas, em: agora } });
-                  console.log("Trevor vendas: " + rv.linhas + " linhas, " + rv.novas + " novas, " + rv.alteradas + " atualizadas.");
+                  // trava de segurança: se a planilha parecer errada (colunas sumiram, muito menos vendas), não aplica e avisa no portal
+                  const assin = assinaturaPlanilha(txt, hojeSP()), motivo = motivoBloqueio(assin, cfg.planilhaAssinatura);
+                  if (motivo) {
+                    upd.importacaoBloqueada = { em: agora, motivo, por: "robô" };
+                    console.log("Trevor vendas: leitura PAUSADA pela trava de segurança — " + motivo + ". Confira a planilha e aplique pelo portal.");
+                  } else {
+                    const antigas = Object.fromEntries((await getDocs(collection(db, "vendas"))).docs.map((d) => [d.id, d.data()]));
+                    const rv = prepararVendas(txt, { antigas, membros, cotacoes: cfg.cotacoes || {}, agora });
+                    await gravarLotes(db, "vendas", rv.escritas);
+                    Object.assign(upd, { hashVendas: h, idsPlanilha: rv.idsPlanilha, planilhaAssinatura: assin, importacaoBloqueada: null, ultimoResultado: { linhas: rv.linhas, novas: rv.novas, alteradas: rv.alteradas, ignoradas: rv.ignoradas, em: agora } });
+                    console.log("Trevor vendas: " + rv.linhas + " linhas, " + rv.novas + " novas, " + rv.alteradas + " atualizadas.");
+                  }
                 } else console.log("Trevor vendas: sem mudança.");
               }
               if (cfg.planilhaOrc) {
@@ -658,7 +682,9 @@ jobs:
                   console.log("Trevor orçamentos: " + ro.linhas + " linhas, " + ro.novos + " novos, " + ro.alterados + " atualizados.");
                 } else console.log("Trevor orçamentos: sem mudança.");
               }
+              upd.trevorErro = null;
             } catch (e) {
+              upd.trevorErro = { em: agora, msg: String((e && e.message) || e).slice(0, 200) };
               console.log("Trevor: não atualizado — " + String((e && e.message) || e).slice(0, 200) + ". O resto do portal segue normalmente.");
             }
             try { await setDoc(doc(db, "config", "comercial"), upd, { merge: true }); } catch (_) {}
@@ -720,7 +746,7 @@ jobs:
               if (/too-many-requests/.test(c)) throw new Falha("O Firebase bloqueou temporariamente o login do robô por muitas tentativas. Tente de novo mais tarde.");
               throw new Falha("Não foi possível entrar no Firebase (" + (c || "erro desconhecido") + ").");
             }
-            const db = getFirestore(app);
+            const db = getFirestore(app); DB_ATUAL = db;
 
             // 0. atendimentos do Helena e planilhas do Trevor (se falharem, não atrapalham as fichas)
             await sincronizarHelena(db);
@@ -849,12 +875,16 @@ jobs:
             console.log("Fotos: " + todasFotos.length + " no total; " + fotosNovas + " novas ou alteradas" + (fotosRemovidas ? "; " + fotosRemovidas + " removidas" : "") + ".");
             if (fotosErro) console.log("Atenção: " + fotosErro + " foto(s) não puderam ser convertidas (formato não suportado ou arquivo grande demais). Tente salvar como JPG e subir de novo.");
             if (semDestino) console.log("Atenção: " + semDestino + " ficha(s) publicada(s) sem Destino preenchido ficaram de fora.");
+            // o portal usa esta marca para avisar a administradora quando o robô para de rodar
+            try { await setDoc(doc(db, "config", "comercial"), { roboOk: new Date().toISOString(), roboFalha: null }, { merge: true }); } catch (_) {}
             await terminate(db);
           }
 
-          main().then(() => process.exit(0)).catch((e) => {
-            if (e instanceof Falha) console.error("Não deu certo: " + e.message);
-            else console.error("Não deu certo: erro inesperado. " + String((e && e.message) || e).slice(0, 300));
+          let DB_ATUAL = null;
+          main().then(() => process.exit(0)).catch(async (e) => {
+            const msg = e instanceof Falha ? e.message : "erro inesperado. " + String((e && e.message) || e).slice(0, 300);
+            console.error("Não deu certo: " + msg);
+            try { if (DB_ATUAL) await setDoc(doc(DB_ATUAL, "config", "comercial"), { roboFalha: { em: new Date().toISOString(), msg: msg.slice(0, 300) } }, { merge: true }); } catch (_) {}
             process.exit(1);
           });
           FIM_DO_ROBO
