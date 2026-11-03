@@ -339,6 +339,14 @@ table.comp .barcol{width:22%}
 .resumo-lista{margin:0;padding-left:18px;display:grid;gap:6px}
 table.termo td,table.termo th{white-space:nowrap} tr.termo-det td{padding-top:0;border-top:0}
 .banner.bad-b{background:var(--bad-soft)}
+.stars{color:#e0a100;letter-spacing:1px}.stars .off{color:var(--line)}
+.avals{display:grid;gap:14px}
+.aval{background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);padding:16px 18px;display:grid;gap:10px;border-left:4px solid var(--warn)}
+.aval.ok{border-left-color:var(--ok)}
+.aval header{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center}
+.aval-txt{margin:0;white-space:pre-wrap}
+.aval textarea{width:100%;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--fg)}
+.aval-resp{background:var(--surface-2);border-radius:10px;padding:10px 12px}.aval-resp p{margin:6px 0;white-space:pre-wrap}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 
 .auth{min-height:calc(100vh - 140px);display:grid;place-items:center;padding-block:24px}
@@ -454,7 +462,7 @@ const pill = (st) => { const [c, t] = STATUS_PILL[st] || ["neutral", st]; return
 const S = {
   auth: null, db: null, session: null, resumoAtual: "", email: "", isAdmin: false, ready: false, authMode: "entrar", authMsg: null, recovery: false,
   members: {}, vendas: {}, notas: {}, atend: {}, destinos: [], passeios: [], tickets: [], equipeRes: null,
-  comercial: { planilha: "", cotacoes: {}, metas: {}, ultimaImportacao: "", ultimoResultado: null }, importando: false, vendasEquipe: null, bonus: {}, disp: {}, dispErro: false, escala: { cfg: { pessoas: {} }, cfgExiste: false, ajustes: {}, ponto: {}, meses: {}, erro: false }, backup: null, helena: [], orc: {}, retornos: {},
+  comercial: { planilha: "", cotacoes: {}, metas: {}, ultimaImportacao: "", ultimoResultado: null }, importando: false, vendasEquipe: null, bonus: {}, disp: {}, dispErro: false, aval: [], avalErro: false, rascAval: {}, escala: { cfg: { pessoas: {} }, cfgExiste: false, ajustes: {}, ponto: {}, meses: {}, erro: false }, backup: null, helena: [], orc: {}, retornos: {},
   tab: null, previewUid: null,
   filtros: { vend: "", mes: "", busca: "", comMes: ymNow(), painelMes: ymNow(), destino: null, passeio: null, tourBusca: "", minhasMes: "", tkDest: null, tkItem: null, tkBusca: "", comMesC: ymNow() },
   pendingRender: false
@@ -559,6 +567,7 @@ async function loadAll() {
     try { S.orc = Object.fromEntries(docsOf(await col("orcamentos").get()).map(d => [d.id, d])); } catch (_) { S.orc = {}; }
     try { S.retornos = Object.fromEntries(docsOf(await col("retornos").get()).map(d => [d.id, d])); } catch (_) { S.retornos = {}; }
     try { const b = await col("config").doc("backup").get(); S.backup = b.exists ? b.data() : {}; } catch (_) { S.backup = {}; }
+    await carregarAvaliacoes();
     try { await syncAtendHelena(); } catch (_) { /* tenta de novo no próximo carregamento */ }
     try { await syncResumo(); } catch (_) { /* tenta de novo no próximo carregamento */ }
     return;
@@ -577,6 +586,7 @@ async function loadAll() {
   try { S.bonus = Object.fromEntries(docsOf(await (souSup ? col("bonus") : col("bonus").where("email", "==", me)).get()).map(b => [b.id, b])); } catch (_) { S.bonus = {}; }
   S.vendasEquipe = null;
   try { S.orc = Object.fromEntries(docsOf(await (souSup ? col("orcamentos") : col("orcamentos").where("vendedor", "==", me)).get()).map(d => [d.id, d])); } catch (_) { S.orc = {}; }
+  if (souSup) await carregarAvaliacoes();
   try { S.retornos = Object.fromEntries(docsOf(await (souSup ? col("retornos") : col("retornos").where("email", "==", me)).get()).map(d => [d.id, d])); } catch (_) { S.retornos = {}; }
   if (souSup) {
     try { S.vendasEquipe = docsOf(await col("vendas").get()); } catch (_) { S.vendasEquipe = null; }
@@ -612,8 +622,8 @@ document.addEventListener("focusout", () => { if (S.pendingRender) { S.pendingRe
 function setMain(html) { $("#main").innerHTML = html; if (html.includes("data-midia")) carregarFotos(); }
 function centerMsg(t, p, extra = "") { $("#tabs").innerHTML = ""; setMain(`<div class="center"><div class="box"><h2>${esc(t)}</h2><p class="muted">${p}</p>${extra}</div></div>`); }
 
-function ownerTabs() { return [["painel", "Visão geral"], ["comercial", "Comercial"], ["comissoes", "Comissões"], ["atendimentos", "Atendimentos"], ["agenda", "Disponibilidade"], ["acessos", "Equipe e acessos"], ["passeios", "Passeios"], ["tickets", "Tickets"]]; }
-function memberTabs(data) { const ab = { ...ABAS_PADRAO, ...((data && data.abas) || {}) }; const t = ABAS.filter(([k]) => ab[k] && !(k === "vendas" && data && data.vendedora === false)).map(([k, n]) => k === "agenda" && data && data.clt ? [k, "Minha jornada"] : [k, n]); if (data && data.supervisor) t.splice(1, 0, ["comercial", "Comercial da equipe"]); return t; }
+function ownerTabs() { return [["painel", "Visão geral"], ["comercial", "Comercial"], ["comissoes", "Comissões"], ["atendimentos", "Atendimentos"], ["avaliacoes", "Avaliações"], ["agenda", "Disponibilidade"], ["acessos", "Equipe e acessos"], ["passeios", "Passeios"], ["tickets", "Tickets"]]; }
+function memberTabs(data) { const ab = { ...ABAS_PADRAO, ...((data && data.abas) || {}) }; const t = ABAS.filter(([k]) => ab[k] && !(k === "vendas" && data && data.vendedora === false)).map(([k, n]) => k === "agenda" && data && data.clt ? [k, "Minha jornada"] : [k, n]); if (data && data.supervisor) { t.splice(1, 0, ["comercial", "Comercial da equipe"]); t.splice(2, 0, ["avaliacoes", "Avaliações"]); } return t; }
 
 function render() {
   _orcCache.v = null;
@@ -759,6 +769,7 @@ function renderMember(data, viewingAs) {
   else if (S.tab === "agenda") html += data.clt ? jornadaView(viewingAs || S.email, !viewingAs) : agendaView(viewingAs || S.email);
   else if (S.tab === "passeios") html += passeiosView();
   else if (S.tab === "tickets") html += ticketsView();
+  else if (S.tab === "avaliacoes" && data.supervisor) html += avaliacoesView();
   else if (S.tab === "comercial" && data.supervisor) html += comSubnav(true) + (S.filtros.comSub === "funil" ? ownerFunil() : ownerComercial());
   else if (S.tab === "equipe") html += memberEquipe(data, hoje);
   setMain(html);
@@ -1108,6 +1119,7 @@ function resumoSemanaPainel() {
     !souAdminReal() ? "" : r.ponto.length ? `<strong>Ponto:</strong> ${r.ponto.map(x => `${esc(nomeEsc(x.u))} com ${x.sr} ${x.sr === 1 ? "dia" : "dias"} sem registro completo`).join(" · ")} na última semana` : (pessoasEscala().length ? `<strong>Ponto:</strong> tudo registrado na última semana` : ""),
     r.semOrigem.length ? `<strong>${r.semOrigem.length} ${r.semOrigem.length === 1 ? "venda" : "vendas"} de ${MESES_L[+ymNow().slice(5) - 1]} sem origem</strong> marcada no CRM` : "",
     `<strong>Fichas no Notion:</strong> ${r.termo}% preenchidas`,
+    !S.avalErro ? `<strong>Avaliações do Google sem resposta:</strong> ${(S.aval || []).filter(a => a.status !== "respondida").length}` : "",
     !souAdminReal() ? "" : `<strong>Cópia de segurança:</strong> ${r.bkDias == null ? "nunca feita" : r.bkDias === 0 ? "feita hoje" : `última há ${r.bkDias} ${r.bkDias === 1 ? "dia" : "dias"}`}`
   ].filter(Boolean);
   const plano = "*Resumo da semana · Araya*\n" + itens.map(t => "• " + t.replace(/<[^>]+>/g, "").replace(/&amp;/g, "&")).join("\n");
@@ -1126,6 +1138,99 @@ async function baixarBackup() {
   S.backup = { em: new Date().toISOString(), por: S.email };
   try { await col("config").doc("backup").set(S.backup); } catch (_) {}
   render(); toast("Cópia salva no seu computador (pasta Downloads). Guarde num lugar seguro.");
+}
+// ---------- avaliações do Google (por enquanto cadastradas à mão; quando a API for liberada, o robô traz sozinho) ----------
+async function carregarAvaliacoes() { try { S.aval = docsOf(await col("avaliacoes").get()); S.avalErro = false; } catch (_) { S.aval = []; S.avalErro = true; } }
+const estrelas = (n) => { n = Math.max(0, Math.min(5, Math.round(Number(n) || 0))); return `<span class="stars" aria-label="${n} de 5 estrelas">${"★".repeat(n)}<span class="off">${"★".repeat(5 - n)}</span></span>`; };
+function detectarDestino(t) {
+  const n = semAcento(t);
+  if (/cusco|machu|peru|vale sagrado|montanha colorida/.test(n)) return "Cusco e Machu Picchu";
+  if (/patagonia|torres del paine|calafate|perito moreno|puerto natales/.test(n)) return "Patagônia";
+  if (/ushuaia|fim do mundo|beagle/.test(n)) return "Ushuaia";
+  if (/egito|cairo|piramide|jordania|petra|nilo|luxor/.test(n)) return "Egito e Jordânia";
+  if (/japao|toquio|tokyo|kyoto|osaka|fuji/.test(n)) return "Japão";
+  if (/mendoza|vinicola|malbec/.test(n)) return "Mendoza";
+  if (/atacama|uyuni/.test(n)) return "Atacama e Uyuni";
+  return "";
+}
+// Sugestão de resposta no tom da Araya: agradece, cita o que a pessoa destacou; nas notas baixas, acolhe e chama para conversar
+function sugerirResposta(a, v) {
+  v = v || 0;
+  const pick = (arr) => arr[v % arr.length];
+  const nome = String((a && a.autor) || "").trim().split(/\s+/)[0] || "";
+  const ola = nome ? `Olá, ${nome}!` : "Olá!";
+  const n = Math.round(Number(a && a.nota) || 5), txt = (a && a.texto) || "", t = semAcento(txt);
+  const dest = a && a.destino && a.destino !== "Geral" ? a.destino : detectarDestino(txt);
+  const artigo = { "Egito e Jordânia": "o Egito", "Japão": "o Japão", "Atacama e Uyuni": "o Atacama", "Patagônia": "a Patagônia", "Cusco e Machu Picchu": "Cusco e Machu Picchu", "Ushuaia": "Ushuaia", "Mendoza": "Mendoza" };
+  const na = dest ? ` para ${artigo[dest] || dest}` : "";
+  const guia = (txt.match(/\bguia\s+([A-ZÁÉÍÓÚÂÊÔ][a-záéíóúâêôãõç]+)/) || [])[1];
+  const assinatura = "\n\nEquipe Araya Expedições";
+  if (!t.trim()) {
+    return (n >= 4 ? pick([`${ola} Agradecemos muito pela avaliação de ${n} estrelas. Esperamos te encontrar em uma próxima expedição!`, `${ola} Muito obrigado pelas ${n} estrelas. Será um prazer planejar a sua próxima viagem com a gente!`])
+      : `${ola} Agradecemos pela avaliação. Queremos entender melhor a sua experiência: se puder, fale com a gente pelo WhatsApp ou pelo e-mail contato@arayaexpedicoes.com.`) + assinatura;
+  }
+  if (n >= 4) {
+    const partes = [pick([`${ola} Que alegria ler o seu relato.`, `${ola} Agradecemos muito pela avaliação e pelo carinho.`, `${ola} Ficamos muito felizes com o seu comentário.`])];
+    partes.push(dest ? pick([`Saber que a sua viagem${na} foi assim é o que mais nos motiva.`, `Cada detalhe da expedição${na} é pensado para você só precisar aproveitar, e é muito bom ver que deu certo.`, `É muito especial saber que a viagem${na} foi tão marcante.`])
+      : pick([`Cada roteiro é pensado com muito cuidado para você só precisar aproveitar, e é muito bom ver que deu certo.`, `Saber que a experiência foi assim é o que mais nos motiva.`]));
+    if (/guia/.test(t)) partes.push(guia ? `Vamos fazer questão de passar o seu elogio para ${guia}.` : "Vamos repassar o seu elogio aos nossos guias, que vão adorar.");
+    else if (/atendimento|equipe|atencios|suporte|assistencia|vendedor|consultor/.test(t)) partes.push("Vamos compartilhar as suas palavras com toda a equipe.");
+    if (/organiza|planej|logistic|pontual|tranquil|sem preocupa/.test(t)) partes.push("Que bom que a organização fez diferença: é exatamente essa a nossa proposta.");
+    if (/comida|restaurante|gastronom|almoco|jantar|culinaria/.test(t)) partes.push("E ficamos felizes que a parte gastronômica também tenha marcado a viagem.");
+    if (n === 4) partes.push("Se houver algo que poderíamos ter feito ainda melhor, vamos adorar ouvir, porque é assim que a gente evolui.");
+    partes.push(pick(["Esperamos te encontrar em uma próxima expedição!", "Até a próxima aventura!", "Será um prazer planejar a sua próxima viagem com a gente."]));
+    return partes.join(" ") + assinatura;
+  }
+  if (n === 3) {
+    return pick([`${ola} Agradecemos por compartilhar a sua experiência${na ? " na viagem" + na : ""}. Ficamos felizes com o que foi positivo e queremos entender melhor o que não saiu como você esperava. Se puder, fale com a gente pelo WhatsApp ou pelo e-mail contato@arayaexpedicoes.com para conversarmos com calma. O seu retorno é muito importante para melhorarmos cada roteiro.`,
+      `${ola} Obrigado pelo seu comentário. Queremos que cada viagem seja impecável, e o seu relato nos ajuda a enxergar onde podemos melhorar. Gostaríamos muito de conversar com você: é só nos chamar pelo WhatsApp ou pelo e-mail contato@arayaexpedicoes.com.`]) + assinatura;
+  }
+  return pick([`${ola} Sentimos muito que a sua experiência${na ? " na viagem" + na : ""} não tenha sido como você esperava. Esse não é o padrão que buscamos, e queremos entender o que aconteceu. Por favor, fale com a gente pelo e-mail contato@arayaexpedicoes.com ou pelo nosso WhatsApp, para tratarmos o seu caso com a atenção que ele merece.`,
+    `${ola} Lamentamos muito pelo que você relatou. Levamos cada comentário a sério e gostaríamos de conversar diretamente com você para entender os detalhes e buscar uma solução. Pode nos chamar pelo WhatsApp ou pelo e-mail contato@arayaexpedicoes.com?`]) + assinatura;
+}
+function avaliacoesView() {
+  const f = S.filtros.avalFiltro || "pendente", hojeD = isoDia(new Date());
+  const todas = [...S.aval].sort((a, b) => String(b.data || "").localeCompare(String(a.data || "")) || String(b.criadoEm || "").localeCompare(String(a.criadoEm || "")));
+  const pend = todas.filter(a => a.status !== "respondida"), resp = todas.filter(a => a.status === "respondida");
+  const media = todas.length ? todas.reduce((s, a) => s + (Number(a.nota) || 0), 0) / todas.length : null;
+  const tempos = resp.filter(a => a.data && a.respondidaEm).map(a => Math.max(0, diasEntre(a.data, a.respondidaEm.slice(0, 10))));
+  const tMedio = tempos.length ? tempos.reduce((s, x) => s + x, 0) / tempos.length : null;
+  const lista = f === "pendente" ? pend : f === "respondida" ? resp : todas;
+  const head = `<div class="section-head"><div><h2>Avaliações</h2><p>Avaliações do Perfil da Empresa no Google. Cadastre cada avaliação nova, ajuste a sugestão de resposta, publique no Google e marque como respondida. Quando a API do Google for liberada, elas passam a entrar sozinhas.</p></div>
+    <div class="row"><a class="btn" href="https://business.google.com/reviews" target="_blank" rel="noopener">Abrir avaliações no Google ↗</a><button type="button" class="btn primary" data-act="nova-avaliacao">Nova avaliação</button></div></div>`;
+  if (S.avalErro) return head + `<div class="banner warn-b"><span>Para ativar esta aba, publique as regras novas do Firestore (arquivo regras-firestore).</span></div>`;
+  const quem = (e) => (S.members[e] || {}).apelido || (e === "contato@arayaexpedicoes.com" ? "Letícia" : e);
+  const card = (a) => {
+    if (!S.rascAval[a.id]) S.rascAval[a.id] = { txt: sugerirResposta(a, 0), v: 0 };
+    const r = S.rascAval[a.id], editando = a.status !== "respondida" || S.filtros.avalEdit === a.id;
+    return `<article class="aval ${a.status === "respondida" ? "ok" : ""}">
+      <header><div>${estrelas(a.nota)} <strong>${esc(a.autor || "Sem nome")}</strong> <span class="muted small">· ${a.data ? dLabel(a.data) : "sem data"}${a.data && a.status !== "respondida" ? ` · há ${diasEntre(a.data, hojeD)} ${diasEntre(a.data, hojeD) === 1 ? "dia" : "dias"}` : ""}</span></div>
+        <div class="row">${(() => { const d = a.destino && a.destino !== "Geral" ? a.destino : (a.destino === "Geral" ? "" : detectarDestino(a.texto || "")); return d ? destTag(d) : ""; })()}${a.status === "respondida" ? '<span class="pill ok">Respondida</span>' : '<span class="pill warn">Sem resposta</span>'}</div></header>
+      ${a.texto ? `<p class="aval-txt">${esc(a.texto)}</p>` : `<p class="muted small" style="margin:0">Avaliação só com estrelas, sem texto.</p>`}
+      ${editando ? `<div class="field"><label for="ra-${esc(a.id)}">${a.status === "respondida" ? "Editar a resposta" : "Sugestão de resposta (pode editar)"}</label><textarea id="ra-${esc(a.id)}" data-rasc="${esc(a.id)}" rows="6">${esc(r.txt)}</textarea></div>
+        <div class="row">${a.status !== "respondida" ? `<button type="button" class="btn sm ghost" data-act="outra-sugestao" data-id="${esc(a.id)}">Outra sugestão</button>` : ""}<button type="button" class="btn sm" data-act="copiar-resposta" data-id="${esc(a.id)}">Copiar resposta</button><button type="button" class="btn sm primary" data-act="marcar-respondida" data-id="${esc(a.id)}">${a.status === "respondida" ? "Salvar resposta" : "Marcar como respondida"}</button>${a.status === "respondida" ? `<button type="button" class="btn sm ghost" data-act="cancelar-edicao-aval">Cancelar</button>` : ""}<button type="button" class="btn sm ghost" data-act="excluir-avaliacao" data-id="${esc(a.id)}">Excluir</button></div>`
+        : `<div class="aval-resp"><span class="muted small">Resposta publicada${a.respondidaEm ? " em " + dLabel(a.respondidaEm.slice(0, 10)) : ""}${a.respondidaPor ? " · por " + esc(quem(a.respondidaPor)) : ""}</span><p>${esc(a.resposta || "")}</p><button type="button" class="btn sm ghost" data-act="editar-resposta" data-id="${esc(a.id)}">Editar resposta</button></div>`}
+    </article>`;
+  };
+  return head + `<div class="tiles">
+      <div class="tile feature"><span class="k">Nota média</span><span class="v">${media == null ? "—" : media.toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + " ★"}</span><span class="d">${todas.length} ${todas.length === 1 ? "avaliação cadastrada" : "avaliações cadastradas"}</span></div>
+      <div class="tile"><span class="k">Sem resposta</span><span class="v">${pend.length}</span><span class="d">${pend.length ? (pend.map(a => a.data).filter(Boolean).sort()[0] ? "a mais antiga é de " + dLabel(pend.map(a => a.data).filter(Boolean).sort()[0]) : "") : "tudo respondido 🎉"}</span></div>
+      <div class="tile"><span class="k">Tempo médio de resposta</span><span class="v">${tMedio == null ? "—" : tMedio.toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + (tMedio === 1 ? " dia" : " dias")}</span><span class="d">da avaliação até a resposta</span></div>
+    </div>
+    <div class="chips" role="group" aria-label="Filtro">${[["pendente", `Sem resposta (${pend.length})`], ["respondida", `Respondidas (${resp.length})`], ["todas", "Todas"]].map(([k, t]) => `<button type="button" class="chip" data-avalfiltro="${k}" aria-pressed="${k === f}">${t}</button>`).join("")}</div>
+    ${lista.length ? `<div class="avals">${lista.map(card).join("")}</div>` : `<div class="empty"><strong>${f === "pendente" ? "Nenhuma avaliação esperando resposta" : "Nenhuma avaliação aqui ainda"}</strong><span>Quando chegar uma avaliação nova no Google, clique em “Nova avaliação” e cole o texto.</span></div>`}`;
+}
+function abrirNovaAvaliacao() {
+  $("#layer").innerHTML = `<div class="overlay" data-close><div class="dialog" style="max-width:560px">
+    <div class="section-head"><h2>Nova avaliação</h2><button type="button" class="btn sm ghost" data-close-btn>Fechar</button></div>
+    <div class="field"><label for="av-autor">Nome de quem avaliou</label><input type="text" id="av-autor" maxlength="80" placeholder="Como aparece no Google"></div>
+    <div class="field"><label>Nota</label><div class="toggles">${[5, 4, 3, 2, 1].map(n => `<label class="toggle"><input type="radio" name="av-nota" value="${n}" ${n === 5 ? "checked" : ""}>${"★".repeat(n)}</label>`).join("")}</div></div>
+    <div class="row"><div class="field"><label for="av-data">Data da avaliação</label><input type="date" id="av-data" value="${isoDia(new Date())}"></div>
+      <div class="field"><label for="av-dest">Destino</label><select id="av-dest"><option value="">Descobrir pelo texto</option>${DESTINOS.filter(d => d !== "Outro").map(d => `<option>${esc(d)}</option>`).join("")}<option value="Geral">Geral / não se aplica</option></select></div></div>
+    <div class="field"><label for="av-texto">Texto da avaliação</label><textarea id="av-texto" rows="6" style="width:100%;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--fg)" placeholder="Cole aqui o comentário do Google (deixe em branco se a pessoa só deu estrelas)"></textarea></div>
+    <p class="small" id="av-erro" style="color:var(--bad);margin:0" hidden></p>
+    <div class="row" style="justify-content:flex-end"><button type="button" class="btn primary" data-act="salvar-avaliacao">Salvar e ver a sugestão</button></div>
+  </div></div>`;
 }
 function passeiosView() {
   const ds = [...S.destinos].sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
@@ -1579,6 +1684,7 @@ function renderOwner() {
   else if (S.tab === "acessos") html = ownerAcessos();
   else if (S.tab === "passeios") html = passeiosView();
   else if (S.tab === "tickets") html = ticketsView();
+  else if (S.tab === "avaliacoes") html = avaliacoesView();
   setMain(html);
 }
 
@@ -2222,6 +2328,14 @@ $("#layer").addEventListener("click", async (e) => {
     } catch (err) { toast(errMsg(err)); }
     return;
   }
+  if (e.target.closest('[data-act="salvar-avaliacao"]')) {
+    const autor = $("#av-autor").value.trim(), texto = $("#av-texto").value.trim(), nota = Number(($('#layer input[name="av-nota"]:checked') || {}).value) || 5, data = $("#av-data").value, destino = $("#av-dest").value || detectarDestino(texto) || "";
+    const erro = $("#av-erro");
+    if (!autor && !texto) { erro.hidden = false; erro.textContent = "Preencha pelo menos o nome ou o texto da avaliação."; return; }
+    const ref = col("avaliacoes").doc(), doc = { autor, texto, nota, data, destino, status: "pendente", fonte: "manual", criadoEm: new Date().toISOString(), criadoPor: S.email };
+    try { await ref.set(doc); S.aval.push({ id: ref.id, ...doc }); S.filtros.avalFiltro = "pendente"; closeLayer(); render(); toast("Avaliação salva. A sugestão de resposta está logo abaixo."); } catch (err) { erro.hidden = false; erro.textContent = errMsg(err); }
+    return;
+  }
   const cfm = e.target.closest('[data-act="confirmar-fechar-mes"]');
   if (cfm) {
     const u = cfm.dataset.uid, ym = cfm.dataset.ym, r = resumoPonto(u, ym), ant = bancoAntes(u, ym), erro = $("#fm-erro");
@@ -2260,6 +2374,7 @@ async function run(p, okMsg) { await p; await reload(okMsg); }
 $("#main").addEventListener("click", async (e) => {
   const go = e.target.closest("[data-tab-go]"); if (go) { S.tab = go.dataset.tabGo; render(); return; }
   const od = e.target.closest("[data-orcdest]"); if (od) { const k = od.dataset.orcdest; S.filtros.orcDest = S.filtros.orcDest === k ? "" : k; S.orcTodosAberto = !!(document.getElementById("orc-todos") || {}).open; render(); return; }
+  const avf = e.target.closest("[data-avalfiltro]"); if (avf) { S.filtros.avalFiltro = avf.dataset.avalfiltro; render(); return; }
   const ht = e.target.closest("[data-histtipo]"); if (ht) { S.filtros.histTipo = ht.dataset.histtipo; render(); return; }
   const cn = e.target.closest("[data-compn]"); if (cn) { S.filtros.compN = cn.dataset.compn; render(); return; }
   const irf = e.target.closest("[data-irficha]"); if (irf) { const [dd, ii] = irf.dataset.irficha.split("|"); S.filtros.destino = dd; S.filtros.passeio = ii; S.filtros.fichaTab = "resumo"; S.filtros.tourBusca = ""; render(); const t = document.querySelector(".tour"); if (t) t.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
@@ -2310,6 +2425,24 @@ $("#main").addEventListener("click", async (e) => {
     else if (act === "baixar-backup") await baixarBackup();
     else if (act === "copiar-resumo") { try { await navigator.clipboard.writeText(b.dataset.texto); toast("Resumo copiado"); } catch (_) { toast("Não deu para copiar automaticamente."); } }
     else if (act === "ver-historico") await carregarHistorico();
+    else if (act === "nova-avaliacao") abrirNovaAvaliacao();
+    else if (act === "outra-sugestao") { const a = S.aval.find(x => x.id === id); const r = S.rascAval[id] || { v: 0 }; r.v = (r.v || 0) + 1; r.txt = sugerirResposta(a, r.v); S.rascAval[id] = r; render(); }
+    else if (act === "copiar-resposta") { const el = document.getElementById("ra-" + id); const txt = el ? el.value : ""; try { await navigator.clipboard.writeText(txt); toast("Resposta copiada. Cole no Google e depois marque como respondida."); } catch (_) { toast("Não deu para copiar automaticamente."); } }
+    else if (act === "marcar-respondida") {
+      const el = document.getElementById("ra-" + id), txt = (el ? el.value : "").trim(), a = S.aval.find(x => x.id === id);
+      if (!a) return; if (!txt) { toast("Escreva a resposta antes."); return; }
+      const jaEra = a.status === "respondida";
+      const upd = { resposta: txt, status: "respondida", respondidaEm: jaEra && a.respondidaEm ? a.respondidaEm : new Date().toISOString(), respondidaPor: jaEra && a.respondidaPor ? a.respondidaPor : S.email, editadaEm: jaEra ? new Date().toISOString() : null };
+      await col("avaliacoes").doc(id).set(upd, { merge: true }); Object.assign(a, upd); delete S.rascAval[id]; S.filtros.avalEdit = null;
+      registrar(`Avaliação de ${a.autor || "sem nome"} (${a.nota}★) ${jaEra ? "teve a resposta editada" : "marcada como respondida"}`, "config");
+      render(); toast(jaEra ? "Resposta salva" : "Marcada como respondida");
+    }
+    else if (act === "editar-resposta") { const a = S.aval.find(x => x.id === id); S.rascAval[id] = { txt: (a && a.resposta) || "", v: 0 }; S.filtros.avalEdit = id; render(); }
+    else if (act === "cancelar-edicao-aval") { if (S.filtros.avalEdit) delete S.rascAval[S.filtros.avalEdit]; S.filtros.avalEdit = null; render(); }
+    else if (act === "excluir-avaliacao") {
+      if (b.dataset.confirm !== "1") { b.dataset.confirm = "1"; b.textContent = "Confirmar exclusão"; return; }
+      const a = S.aval.find(x => x.id === id); await col("avaliacoes").doc(id).delete(); S.aval = S.aval.filter(x => x.id !== id); if (a) registrar(`Avaliação de ${a.autor || "sem nome"} excluída do portal`, "config"); render(); toast("Avaliação excluída");
+    }
     else if (act === "ver-termometro") { S.filtros.verTermo = !S.filtros.verTermo; render(); }
     else if (act === "copiar-ficha") { try { await navigator.clipboard.writeText(b.dataset.texto); toast("Texto copiado. É só colar no WhatsApp do cliente."); } catch (_) { toast("Não deu para copiar automaticamente."); } }
     else if (act === "helena-tel") {
@@ -2432,6 +2565,7 @@ $("#main").addEventListener("change", async (e) => {
 let buscaTimer;
 $("#main").addEventListener("input", (e) => {
   const t = e.target;
+  if (t.dataset && t.dataset.rasc) { const r = S.rascAval[t.dataset.rasc] || { v: 0 }; r.txt = t.value; r.editada = true; S.rascAval[t.dataset.rasc] = r; return; }
   const key = t.id === "f-busca" ? "busca" : t.id === "f-tour" ? "tourBusca" : t.id === "f-tk" ? "tkBusca" : t.id === "f-hist" ? "histBusca" : null;
   if (!key) return;
   S.filtros[key] = t.value; clearTimeout(buscaTimer);
