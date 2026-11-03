@@ -943,4 +943,3 @@ jobs:
           });
           FIM_DO_ROBO
           node sincronizar.cjs
-          
