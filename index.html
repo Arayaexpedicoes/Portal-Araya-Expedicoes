@@ -1140,7 +1140,10 @@ async function baixarBackup() {
   render(); toast("Cópia salva no seu computador (pasta Downloads). Guarde num lugar seguro.");
 }
 // ---------- avaliações do Google (por enquanto cadastradas à mão; quando a API for liberada, o robô traz sozinho) ----------
-async function carregarAvaliacoes() { try { S.aval = docsOf(await col("avaliacoes").get()); S.avalErro = false; } catch (_) { S.aval = []; S.avalErro = true; } }
+async function carregarAvaliacoes() {
+  try { S.aval = docsOf(await col("avaliacoes").get()); S.avalErro = false; } catch (_) { S.aval = []; S.avalErro = true; }
+  try { const c = await col("config").doc("avaliacoes").get(); S.avalCfg = c.exists ? c.data() : {}; } catch (_) { S.avalCfg = {}; }
+}
 const estrelas = (n) => { n = Math.max(0, Math.min(5, Math.round(Number(n) || 0))); return `<span class="stars" aria-label="${n} de 5 estrelas">${"★".repeat(n)}<span class="off">${"★".repeat(5 - n)}</span></span>`; };
 function detectarDestino(t) {
   const n = semAcento(t);
@@ -1196,16 +1199,20 @@ function avaliacoesView() {
   const tempos = resp.filter(a => a.data && a.respondidaEm).map(a => Math.max(0, diasEntre(a.data, a.respondidaEm.slice(0, 10))));
   const tMedio = tempos.length ? tempos.reduce((s, x) => s + x, 0) / tempos.length : null;
   const lista = f === "pendente" ? pend : f === "respondida" ? resp : todas;
-  const head = `<div class="section-head"><div><h2>Avaliações</h2><p>Avaliações do Perfil da Empresa no Google. Cadastre cada avaliação nova, ajuste a sugestão de resposta, publique no Google e marque como respondida. Quando a API do Google for liberada, elas passam a entrar sozinhas.</p></div>
-    <div class="row"><a class="btn" href="https://business.google.com/reviews" target="_blank" rel="noopener">Abrir avaliações no Google ↗</a><button type="button" class="btn primary" data-act="nova-avaliacao">Nova avaliação</button></div></div>`;
+  const cfg = S.avalCfg || {}, quando = (iso) => new Date(iso).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+  const head = `<div class="section-head"><div><h2>Avaliações</h2><p>Avaliações do Perfil da Empresa no Google. O robô lê o perfil a cada 2 horas e traz as novas para cá, já com a sugestão de resposta. Você copia, publica no Google e marca como respondida.</p></div>
+    <div class="row"><a class="btn" href="https://business.google.com/reviews" target="_blank" rel="noopener">Abrir avaliações no Google ↗</a>${cfg.placeId ? `<button type="button" class="btn" data-act="buscar-avaliacoes" ${cfg.pedirBusca ? "disabled" : ""}>${cfg.pedirBusca ? "Busca pedida…" : "Buscar agora"}</button>` : ""}<button type="button" class="btn ${cfg.placeId ? "ghost" : ""}" data-act="nova-avaliacao">Cadastrar à mão</button></div></div>
+    ${!cfg.placeId ? `<div class="banner"><span><strong>Ligue o portal ao seu perfil do Google</strong> para as avaliações entrarem sozinhas: informe o Place ID do perfil e cadastre a chave GOOGLE_PLACES_KEY nos Segredos do GitHub.</span>${souAdminReal() ? `<button type="button" class="btn sm primary" data-act="ligar-google">Informar o Place ID</button>` : ""}</div>`
+      : `<p class="muted small" style="margin:0">${cfg.ultimaBusca ? `Última leitura do Google: ${quando(cfg.ultimaBusca)}` : "O robô ainda não leu o perfil. A primeira leitura acontece na próxima rodada dele."}${cfg.notaGoogle ? ` · nota no Google: <strong>${Number(cfg.notaGoogle).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} ★</strong> (${cfg.totalGoogle} ${cfg.totalGoogle === 1 ? "avaliação" : "avaliações"})` : ""}${cfg.pedirBusca ? " · busca pedida, entra na próxima rodada do robô (até 30 minutos)" : ""}${souAdminReal() ? ` · <button type="button" class="linkbtn" data-act="ligar-google">trocar Place ID</button>` : ""}</p>
+        ${cfg.ultimoErro ? `<div class="banner warn-b"><span>O robô não conseguiu ler as avaliações: ${esc(cfg.ultimoErro)}.</span></div>` : ""}`}`;
   if (S.avalErro) return head + `<div class="banner warn-b"><span>Para ativar esta aba, publique as regras novas do Firestore (arquivo regras-firestore).</span></div>`;
   const quem = (e) => (S.members[e] || {}).apelido || (e === "contato@arayaexpedicoes.com" ? "Letícia" : e);
   const card = (a) => {
     if (!S.rascAval[a.id]) S.rascAval[a.id] = { txt: sugerirResposta(a, 0), v: 0 };
     const r = S.rascAval[a.id], editando = a.status !== "respondida" || S.filtros.avalEdit === a.id;
     return `<article class="aval ${a.status === "respondida" ? "ok" : ""}">
-      <header><div>${estrelas(a.nota)} <strong>${esc(a.autor || "Sem nome")}</strong> <span class="muted small">· ${a.data ? dLabel(a.data) : "sem data"}${a.data && a.status !== "respondida" ? ` · há ${diasEntre(a.data, hojeD)} ${diasEntre(a.data, hojeD) === 1 ? "dia" : "dias"}` : ""}</span></div>
-        <div class="row">${(() => { const d = a.destino && a.destino !== "Geral" ? a.destino : (a.destino === "Geral" ? "" : detectarDestino(a.texto || "")); return d ? destTag(d) : ""; })()}${a.status === "respondida" ? '<span class="pill ok">Respondida</span>' : '<span class="pill warn">Sem resposta</span>'}</div></header>
+      <header><div>${estrelas(a.nota)} <strong>${a.autorUrl ? `<a href="${esc(a.autorUrl)}" target="_blank" rel="noopener">${esc(a.autor || "Sem nome")}</a>` : esc(a.autor || "Sem nome")}</strong> <span class="muted small">· ${a.data ? dLabel(a.data) : "sem data"}${a.data && a.status !== "respondida" ? ` · há ${diasEntre(a.data, hojeD)} ${diasEntre(a.data, hojeD) === 1 ? "dia" : "dias"}` : ""}</span></div>
+        <div class="row">${(() => { const d = a.destino && a.destino !== "Geral" ? a.destino : (a.destino === "Geral" ? "" : detectarDestino(a.texto || "")); return d ? destTag(d) : ""; })()}${a.linkGoogle ? `<a class="btn sm ghost" href="${esc(a.linkGoogle)}" target="_blank" rel="noopener">Ver no Google ↗</a>` : ""}${a.fonte === "google" || a.googleId ? "" : '<span class="pill neutral">cadastrada à mão</span>'}${a.status === "respondida" ? '<span class="pill ok">Respondida</span>' : '<span class="pill warn">Sem resposta</span>'}</div></header>
       ${a.texto ? `<p class="aval-txt">${esc(a.texto)}</p>` : `<p class="muted small" style="margin:0">Avaliação só com estrelas, sem texto.</p>`}
       ${editando ? `<div class="field"><label for="ra-${esc(a.id)}">${a.status === "respondida" ? "Editar a resposta" : "Sugestão de resposta (pode editar)"}</label><textarea id="ra-${esc(a.id)}" data-rasc="${esc(a.id)}" rows="6">${esc(r.txt)}</textarea></div>
         <div class="row">${a.status !== "respondida" ? `<button type="button" class="btn sm ghost" data-act="outra-sugestao" data-id="${esc(a.id)}">Outra sugestão</button>` : ""}<button type="button" class="btn sm" data-act="copiar-resposta" data-id="${esc(a.id)}">Copiar resposta</button><button type="button" class="btn sm primary" data-act="marcar-respondida" data-id="${esc(a.id)}">${a.status === "respondida" ? "Salvar resposta" : "Marcar como respondida"}</button>${a.status === "respondida" ? `<button type="button" class="btn sm ghost" data-act="cancelar-edicao-aval">Cancelar</button>` : ""}<button type="button" class="btn sm ghost" data-act="excluir-avaliacao" data-id="${esc(a.id)}">Excluir</button></div>`
@@ -1218,7 +1225,7 @@ function avaliacoesView() {
       <div class="tile"><span class="k">Tempo médio de resposta</span><span class="v">${tMedio == null ? "—" : tMedio.toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + (tMedio === 1 ? " dia" : " dias")}</span><span class="d">da avaliação até a resposta</span></div>
     </div>
     <div class="chips" role="group" aria-label="Filtro">${[["pendente", `Sem resposta (${pend.length})`], ["respondida", `Respondidas (${resp.length})`], ["todas", "Todas"]].map(([k, t]) => `<button type="button" class="chip" data-avalfiltro="${k}" aria-pressed="${k === f}">${t}</button>`).join("")}</div>
-    ${lista.length ? `<div class="avals">${lista.map(card).join("")}</div>` : `<div class="empty"><strong>${f === "pendente" ? "Nenhuma avaliação esperando resposta" : "Nenhuma avaliação aqui ainda"}</strong><span>Quando chegar uma avaliação nova no Google, clique em “Nova avaliação” e cole o texto.</span></div>`}`;
+    ${lista.length ? `<div class="avals">${lista.map(card).join("")}</div>` : `<div class="empty"><strong>${f === "pendente" ? "Nenhuma avaliação esperando resposta" : "Nenhuma avaliação aqui ainda"}</strong><span>${(S.avalCfg || {}).placeId ? "Quando chegar uma avaliação nova no Google, o robô traz para cá em até 2 horas." : "Ligue o portal ao perfil do Google para as avaliações entrarem sozinhas, ou cadastre à mão."}</span></div>`}`;
 }
 function abrirNovaAvaliacao() {
   $("#layer").innerHTML = `<div class="overlay" data-close><div class="dialog" style="max-width:560px">
@@ -2328,6 +2335,12 @@ $("#layer").addEventListener("click", async (e) => {
     } catch (err) { toast(errMsg(err)); }
     return;
   }
+  if (e.target.closest('[data-act="salvar-placeid"]')) {
+    const v = $("#cfg-placeid").value.trim();
+    if (v && !/^[A-Za-z0-9_-]{10,}$/.test(v)) { toast("Esse não parece um Place ID. Ele começa com “ChIJ”."); return; }
+    try { await col("config").doc("avaliacoes").set({ placeId: v, pedirBusca: !!v, ultimoErro: null }, { merge: true }); S.avalCfg = { ...(S.avalCfg || {}), placeId: v, pedirBusca: !!v, ultimoErro: null }; registrar("Place ID do Google " + (v ? "cadastrado" : "removido") + " na aba Avaliações", "config"); closeLayer(); render(); toast(v ? "Perfil ligado. A primeira leitura entra na próxima rodada do robô." : "Place ID removido"); } catch (err) { toast(errMsg(err)); }
+    return;
+  }
   if (e.target.closest('[data-act="salvar-avaliacao"]')) {
     const autor = $("#av-autor").value.trim(), texto = $("#av-texto").value.trim(), nota = Number(($('#layer input[name="av-nota"]:checked') || {}).value) || 5, data = $("#av-data").value, destino = $("#av-dest").value || detectarDestino(texto) || "";
     const erro = $("#av-erro");
@@ -2426,6 +2439,16 @@ $("#main").addEventListener("click", async (e) => {
     else if (act === "copiar-resumo") { try { await navigator.clipboard.writeText(b.dataset.texto); toast("Resumo copiado"); } catch (_) { toast("Não deu para copiar automaticamente."); } }
     else if (act === "ver-historico") await carregarHistorico();
     else if (act === "nova-avaliacao") abrirNovaAvaliacao();
+    else if (act === "buscar-avaliacoes") { await col("config").doc("avaliacoes").set({ pedirBusca: true, pedidoPor: S.email, pedidoEm: new Date().toISOString() }, { merge: true }); S.avalCfg = { ...(S.avalCfg || {}), pedirBusca: true }; render(); toast("Busca pedida. As avaliações novas entram na próxima rodada do robô (até 30 minutos)."); }
+    else if (act === "ligar-google") {
+      $("#layer").innerHTML = `<div class="overlay" data-close><div class="dialog" style="max-width:520px">
+        <div class="section-head"><h2>Ligar ao perfil do Google</h2><button type="button" class="btn sm ghost" data-close-btn>Fechar</button></div>
+        <p class="small muted" style="margin:0">Abra a página “Place ID Finder” do Google, busque “Araya Expedições” e copie o código que aparece (começa com “ChIJ”).</p>
+        <a class="btn sm" href="https://developers.google.com/maps/documentation/places/web-service/place-id" target="_blank" rel="noopener">Abrir o Place ID Finder ↗</a>
+        <div class="field"><label for="cfg-placeid">Place ID</label><input type="text" id="cfg-placeid" value="${esc((S.avalCfg || {}).placeId || "")}" placeholder="ChIJ..."></div>
+        <div class="row" style="justify-content:flex-end"><button type="button" class="btn primary" data-act="salvar-placeid">Salvar</button></div>
+      </div></div>`;
+    }
     else if (act === "outra-sugestao") { const a = S.aval.find(x => x.id === id); const r = S.rascAval[id] || { v: 0 }; r.v = (r.v || 0) + 1; r.txt = sugerirResposta(a, r.v); S.rascAval[id] = r; render(); }
     else if (act === "copiar-resposta") { const el = document.getElementById("ra-" + id); const txt = el ? el.value : ""; try { await navigator.clipboard.writeText(txt); toast("Resposta copiada. Cole no Google e depois marque como respondida."); } catch (_) { toast("Não deu para copiar automaticamente."); } }
     else if (act === "marcar-respondida") {
