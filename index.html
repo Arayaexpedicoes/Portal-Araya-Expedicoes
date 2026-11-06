@@ -807,7 +807,7 @@ function comparativoPainel(ativas, hoje) {
 function memberInicio(data, vendas, hoje, viewingAs) {
   if (data.vendedora === false) {
     const nome = data.apelido || "", atend = data.atendimentos ? data.atendimentos[hoje] : null;
-    return `<div class="section-head"><div><h2>Olá${nome ? ", " + esc(nome.split(" ")[0]) : ""}</h2><p>Aqui você encontra as fichas dos passeios, os tickets e ${data.clt ? "a sua jornada" : "a disponibilidade da equipe"}.</p></div></div>
+    return `<div class="section-head"><div><h2>Olá${nome ? ", " + esc(nome.split(" ")[0]) : ""}</h2><p>Aqui você encontra as fichas dos passeios, os tickets e ${data.clt ? "a sua jornada" : data.supervisor ? "a disponibilidade da equipe" : "a sua disponibilidade"}.</p></div></div>
     ${data.clt && !S.escala.erro ? cartaoPonto(data.uid, !viewingAs) : ""}
     ${atend != null ? `<div class="tiles"><div class="tile"><span class="k">Atendimentos no mês</span><span class="v">${atend}</span><span class="d">Conversas que você recebeu em ${ymLong(hoje)}</span></div></div>` : ""}
     <div class="row">${memberTabs(data).filter(([k]) => ["passeios", "tickets", "agenda"].includes(k)).map(([k, t]) => `<button class="btn" data-tab-go="${k}">${t}</button>`).join("")}</div>`;
@@ -850,8 +850,8 @@ function memberInicio(data, vendas, hoje, viewingAs) {
   </div>
   ${comparativoPainel(ativas, hoje)}
   ${bonusHtml}
-  ${meusOrcamentosPainel(meusOrc)}
   ${comissoesPorMesPainel(ativas, hoje)}
+  ${meusOrcamentosPainel(meusOrc)}
   <div class="grid2">
     <section class="panel"><h3>Últimas vendas</h3>
       ${ult.length ? `<div class="tablewrap"><table><thead><tr><th>Cliente</th><th>Fechada em</th><th class="n">Valor</th></tr></thead><tbody>${ult.map(v => `<tr><td>${esc(v.cliente)}<div>${destTag(v.destino)}</div></td><td>${dLabel(v.fechamento)}</td><td class="n">${money(v.valor)}</td></tr>`).join("")}</tbody></table></div>` : `<div class="empty"><strong>Nenhuma venda registrada ainda</strong><span>Suas vendas aparecem aqui assim que forem lançadas.</span></div>`}
@@ -1433,7 +1433,9 @@ function agendaView(email) {
     ${dias.map((dt, i) => { const x = doDia(d, dt), pad = doPadrao(d, dt), iso = isoDia(dt); return `<tr><td class="rot"><strong>${diaCurto(dt, i)}</strong><span>${i < 2 ? DIAS_C[dt.getDay()] + " " + dLabel(iso).slice(0, 5) : DIAS_L[dt.getDay()]}</span></td>${PERIODOS.map(([k, nome]) => `<td><button type="button" class="slot ${x[k] !== pad[k] ? "ex" : ""}" data-act="disp-dia" data-uid="${esc(email)}" data-iso="${iso}" data-p="${k}" aria-pressed="${x[k]}" aria-label="${nome} de ${dLabel(iso)}">${x[k] ? '<span class="l">Online</span><span class="s">✓</span>' : "—"}</button></td>`).join("")}<td>${x.ex ? `<button type="button" class="btn sm ghost" data-act="disp-padrao" data-uid="${esc(email)}" data-iso="${iso}" title="Voltar ao que está na sua semana"><span class="l">Voltar à semana</span><span class="s">↺</span></button>` : ""}</td></tr>`; }).join("")}
     </tbody></table></div>
   </section>`;
-  return intro + `<div class="grid2">${semana}${prox}</div>` + agendaEquipe(email);
+  // vendedores veem só a própria disponibilidade; o painel da equipe fica para supervisoras e administração
+  const verEquipe = !!(S.members[email] && S.members[email].supervisor);
+  return intro + `<div class="grid2">${semana}${prox}</div>` + (verEquipe ? agendaEquipe(email) : "");
 }
 
 // ---------- escala e ponto: equipe CLT (pós-venda), que cumpre jornada com horário ----------
