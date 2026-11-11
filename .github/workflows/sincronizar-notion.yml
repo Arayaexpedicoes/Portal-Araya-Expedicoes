@@ -1,5 +1,5 @@
 # Portal da Equipe Araya · robô que copia as fichas do Notion para o portal.
-# Roda sozinho duas vezes por hora (aos 17 e aos 47 minutos; o GitHub às vezes atrasa) (renova os links dos vídeos guardados no Notion) e também pelo botão "Run workflow" (aba Actions).
+# Roda sozinho quatro vezes por hora (aos 2, 17, 32 e 47 minutos; o GitHub às vezes atrasa ou pula uma vez) para renovar a tempo os links dos vídeos guardados no Notion, que valem só 1 hora. Também roda pelo botão "Run workflow" (aba Actions).
 # Também conta os atendimentos e as campanhas do Helena (mês atual e anterior) pela API
 # e lê as planilhas de vendas e de orçamentos do Trevor ligadas no portal.
 # As chaves ficam nos segredos do GitHub (NOTION_TOKEN, ROBO_SENHA e HELENA_TOKEN),
@@ -8,7 +8,7 @@ name: Sincronizar fichas do Notion
 
 on:
   schedule:
-    - cron: "17,47 * * * *"
+    - cron: "2,17,32,47 * * * *"
   workflow_dispatch:
 
 permissions:
