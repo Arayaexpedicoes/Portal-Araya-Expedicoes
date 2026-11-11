@@ -7,7 +7,7 @@
 <title>Portal da Equipe Araya</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif:wght@500;600;700&family=Montserrat:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif:wght@500;600;700&family=Montserrat:wght@400;500;600;700&family=Cormorant+Garamond:wght@300;400&family=Outfit:wght@300;400;500&family=Cutive&display=swap">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%22-160%20-260%201721%201721%22%3E%3Crect%20x%3D%22-160%22%20y%3D%22-260%22%20width%3D%221721%22%20height%3D%221721%22%20rx%3D%22430%22%20fill%3D%22%23ece2d0%22/%3E%3Cpath%20fill%3D%22%237c7650%22%20fill-rule%3D%22evenodd%22%20d%3D%22M1.5%20622.2C25.2%20585.4%20159.5%20432.0%20353.5%20220.5C421.0%20146.8%20530.3%2028.7%20544.4%2014.1C556.3%201.8%20565.9%20-1.8%20579.1%200.9C584.4%202.0%20585.1%202.5%20592.2%2010.8C615.2%2037.5%20663.1%2099.3%20713.6%20167.5C726.3%20184.6%20736.9%20199.0%20737.3%20199.6C737.7%20200.3%20729.0%20207.5%20714.4%20218.5C701.4%20228.2%20690.7%20236.0%20690.5%20235.8C690.4%20235.6%20686.9%20228.5%20682.8%20220.0C677.0%20207.9%20611.9%2093.0%20576.3%2032.2L570.9%2022.9L555.0%2043.9C497.1%20120.3%20400.9%20238.9%20283.1%20379.0C250.5%20417.8%20208.2%20467.8%20204.6%20471.8C203.3%20473.3%20203.1%20473.9%20204.0%20473.6C204.8%20473.3%20216.5%20469.9%20230.0%20466.1C243.5%20462.3%20259.7%20457.5%20266.0%20455.5C280.7%20450.8%20290.5%20449.9%20295.2%20452.7C297.0%20453.8%20306.8%20459.8%20317.0%20466.0C351.6%20487.1%20404.7%20517.0%20407.7%20517.0C411.9%20517.0%20456.1%20490.3%20495.7%20463.8C557.1%20422.7%20620.6%20375.8%20744.0%20280.6C820.8%20221.3%20849.9%20200.1%20862.2%20194.5C868.5%20191.6%20878.4%20190.0%20885.6%20190.7C890.7%20191.2%20891.9%20192.2%201144.1%20393.7C1283.5%20505.0%201398.4%20597.0%201399.5%20598.0C1401.4%20600.0%201400.9%20600.0%201337.9%20600.0L1274.3%20600.0L1268.7%20591.2C1265.6%20586.4%201260.6%20579.4%201257.5%20575.5C1239.3%20552.6%201153.0%20467.6%201057.5%20378.4C1002.3%20327.0%20879.9%20215.0%20878.1%20214.2C877.8%20214.1%20864.0%20225.5%20847.5%20239.7C700.4%20365.5%20567.7%20475.0%20492.5%20532.5C480.4%20541.8%20456.4%20560.5%20439.2%20574.2C422.0%20587.9%20407.5%20599.0%20406.9%20598.8C406.4%20598.6%20378.3%20571.2%20344.6%20537.8L283.2%20477.1L153.6%20551.0L23.9%20625.0L11.9%20625.0L-0.2%20625.0L1.5%20622.2Z%22/%3E%3C/svg%3E">
 <style>
 /* Layout: faixa escura da marca no topo (título + abas), conteúdo claro em coluna única de até 1120px; cada destino carrega a cor do logo dele */
@@ -366,6 +366,41 @@ input[type=email],input[type=password]{background:var(--surface);border:1px soli
 html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 body{margin:0}
 [hidden]{display:none!important}
+/* comunidade do WhatsApp */
+.cm-grid{display:grid;grid-template-columns:minmax(250px,330px) minmax(0,1fr);gap:16px;align-items:start}
+.cm-lista{max-height:calc(100vh - 140px);overflow:auto;position:sticky;top:12px;display:grid;gap:14px;align-content:start}
+.cm-sem{display:grid;gap:6px}
+.cm-sem h4{margin:0;font-size:.74rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.cm-item{display:grid;gap:4px;text-align:left;width:100%;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:9px 11px;cursor:pointer;color:inherit;font:inherit}
+.cm-item strong{font-weight:600;font-size:.9rem;line-height:1.3}
+.cm-item:hover{border-color:var(--accent)}
+.cm-item[aria-current="true"]{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent);background:var(--surface-2)}
+.cm-item-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.cm-editor{display:grid;gap:16px;min-width:0}
+.cm-campos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.cm-texto{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start}
+.cm-texto textarea{font:inherit;font-size:.9rem;line-height:1.5;resize:vertical;min-height:380px}
+.cm-wa{background:#efe7dc;border-radius:12px;padding:14px;min-height:380px;max-height:620px;overflow:auto}
+.cm-bolha{background:#d9fdd3;color:#111b21;border-radius:10px 0 10px 10px;padding:9px 11px;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:.92rem;line-height:1.45;box-shadow:0 1px .5px rgba(11,20,26,.13);overflow-wrap:anywhere}
+.cm-bolha code{font-family:ui-monospace,Menlo,monospace;font-size:.85em}
+.cm-ph{background:#ffd9d6;color:#8a1c12;border-radius:4px;padding:0 3px}
+.cm-arte{display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,300px);gap:16px;align-items:start}
+.cm-canvas-box{background:var(--surface-2);border-radius:12px;padding:12px;display:flex;justify-content:center}
+.cm-canvas-box canvas{width:100%;max-width:440px;height:auto;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,.12)}
+.cm-arte-campos{display:grid;gap:10px}
+.cm-arte-campos textarea{font:inherit;resize:vertical}
+@media (max-width:1000px){.cm-texto,.cm-arte{grid-template-columns:1fr}}
+@media (max-width:860px){.cm-grid{grid-template-columns:1fr}.cm-lista{position:static;max-height:340px}.cm-campos{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .cm-wa{background:#0b141a}:root:not([data-theme="light"]) .cm-bolha{background:#005c4b;color:#e9edef}}
+:root[data-theme="dark"] .cm-wa{background:#0b141a}
+:root[data-theme="dark"] .cm-bolha{background:#005c4b;color:#e9edef}
+.cm-arte-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cm-linkbox{border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:grid;gap:10px;margin:0}
+.cm-linkbox legend{font-weight:600;padding:0 6px}
+.cm-fontes{display:grid;gap:8px}
+.cm-fonte{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.cm-fonte>div{display:grid}
+@media (max-width:520px){.cm-fonte{grid-template-columns:1fr}.cm-arte-2{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -425,7 +460,7 @@ const ymLong = (ym) => { const [y, m] = ym.split("-"); return MESES_L[+m - 1] + 
 const dLabel = (d) => d ? d.slice(8, 10) + "/" + d.slice(5, 7) + "/" + d.slice(0, 4) : "—";
 const round2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
 const DESTINOS = ["Cusco e Machu Picchu", "Patagônia", "Egito e Jordânia", "Japão", "Ushuaia", "Mendoza", "Atacama e Uyuni", "Outro"];
-const DCOR = { "Cusco e Machu Picchu": "--d-cusco", "cusco-machu-picchu": "--d-cusco", "Patagônia": "--d-patagonia", "patagonia": "--d-patagonia", "Ushuaia": "--d-patagonia", "ushuaia": "--d-patagonia", "Egito e Jordânia": "--d-egito", "egito-jordania": "--d-egito", "Japão": "--d-japao", "japao": "--d-japao", "Mendoza": "--d-mendoza", "mendoza": "--d-mendoza", "Atacama e Uyuni": "--d-atacama" };
+const DCOR = { "Cusco e Machu Picchu": "--d-cusco", "cusco-machu-picchu": "--d-cusco", "Patagônia": "--d-patagonia", "patagonia": "--d-patagonia", "Ushuaia": "--d-patagonia", "ushuaia": "--d-patagonia", "Egito e Jordânia": "--d-egito", "egito-jordania": "--d-egito", "Japão": "--d-japao", "japao": "--d-japao", "Mendoza": "--d-mendoza", "mendoza": "--d-mendoza", "Atacama e Uyuni": "--d-atacama", "Atacama": "--d-atacama", "Salar de Uyuni": "--d-atacama", "Egito": "--d-egito" };
 const dc = (k) => `--dc:var(${DCOR[k] || "--d-outro"})`;
 const destTag = (n) => n ? `<span class="dest" style="${dc(n)}">${esc(n)}</span>` : "";
 const ABAS = [["inicio", "Início"], ["vendas", "Minhas vendas"], ["agenda", "Disponibilidade"], ["passeios", "Passeios"], ["tickets", "Tickets"], ["equipe", "Resultados da equipe"]];
@@ -464,6 +499,7 @@ const S = {
   members: {}, vendas: {}, notas: {}, atend: {}, destinos: [], passeios: [], tickets: [], equipeRes: null,
   comercial: { planilha: "", cotacoes: {}, metas: {}, ultimaImportacao: "", ultimoResultado: null }, importando: false, vendasEquipe: null, bonus: {}, disp: {}, dispErro: false, aval: [], avalErro: false, rascAval: {}, escala: { cfg: { pessoas: {} }, cfgExiste: false, ajustes: {}, ponto: {}, meses: {}, erro: false }, backup: null, helena: [], orc: {}, retornos: {},
   tab: null, previewUid: null,
+  cm: { loaded: false, loading: false, posts: {}, fotos: {}, fontes: {}, cfg: {}, sel: null, filtro: "todos", dest: "" },
   filtros: { vend: "", mes: "", busca: "", comMes: ymNow(), painelMes: ymNow(), destino: null, passeio: null, tourBusca: "", minhasMes: "", tkDest: null, tkItem: null, tkBusca: "", comMesC: ymNow() },
   pendingRender: false
 };
@@ -622,8 +658,8 @@ document.addEventListener("focusout", () => { if (S.pendingRender) { S.pendingRe
 function setMain(html) { $("#main").innerHTML = html; if (html.includes("data-midia")) carregarFotos(); }
 function centerMsg(t, p, extra = "") { $("#tabs").innerHTML = ""; setMain(`<div class="center"><div class="box"><h2>${esc(t)}</h2><p class="muted">${p}</p>${extra}</div></div>`); }
 
-function ownerTabs() { return [["painel", "Visão geral"], ["comercial", "Comercial"], ["comissoes", "Comissões"], ["atendimentos", "Atendimentos"], ["avaliacoes", "Avaliações"], ["agenda", "Disponibilidade"], ["acessos", "Equipe e acessos"], ["passeios", "Passeios"], ["tickets", "Tickets"]]; }
-function memberTabs(data) { const ab = { ...ABAS_PADRAO, ...((data && data.abas) || {}) }; const t = ABAS.filter(([k]) => ab[k] && !(k === "vendas" && data && data.vendedora === false)).map(([k, n]) => k === "agenda" && data && data.clt ? [k, "Minha jornada"] : [k, n]); if (data && data.supervisor) { t.splice(1, 0, ["comercial", "Comercial da equipe"]); t.splice(2, 0, ["avaliacoes", "Avaliações"]); } return t; }
+function ownerTabs() { return [["painel", "Visão geral"], ["comercial", "Comercial"], ["comissoes", "Comissões"], ["atendimentos", "Atendimentos"], ["avaliacoes", "Avaliações"], ["comunidade", "Comunidade"], ["agenda", "Disponibilidade"], ["acessos", "Equipe e acessos"], ["passeios", "Passeios"], ["tickets", "Tickets"]]; }
+function memberTabs(data) { const ab = { ...ABAS_PADRAO, ...((data && data.abas) || {}) }; const t = ABAS.filter(([k]) => ab[k] && !(k === "vendas" && data && data.vendedora === false)).map(([k, n]) => k === "agenda" && data && data.clt ? [k, "Minha jornada"] : [k, n]); if (data && data.supervisor) { t.splice(1, 0, ["comercial", "Comercial da equipe"]); t.splice(2, 0, ["avaliacoes", "Avaliações"]); t.splice(3, 0, ["comunidade", "Comunidade"]); } return t; }
 
 function render() {
   _orcCache.v = null;
@@ -770,6 +806,7 @@ function renderMember(data, viewingAs) {
   else if (S.tab === "passeios") html += passeiosView();
   else if (S.tab === "tickets") html += ticketsView();
   else if (S.tab === "avaliacoes" && data.supervisor) html += avaliacoesView();
+  else if (S.tab === "comunidade" && data.supervisor) html += comunidadeView();
   else if (S.tab === "comercial" && data.supervisor) html += comSubnav(true) + (S.filtros.comSub === "funil" ? ownerFunil() : ownerComercial());
   else if (S.tab === "equipe") html += memberEquipe(data, hoje);
   setMain(html);
@@ -1129,7 +1166,7 @@ function resumoSemanaPainel() {
 
 // ---------- cópia de segurança: baixa todos os dados do portal num arquivo ----------
 async function baixarBackup() {
-  const cols = ["equipe", "vendas", "vendasNotas", "atendimentos", "bonus", "orcamentos", "retornos", "disponibilidade", "escala", "ponto", "pontoMes", "config"];
+  const cols = ["equipe", "vendas", "vendasNotas", "atendimentos", "bonus", "orcamentos", "retornos", "disponibilidade", "escala", "ponto", "pontoMes", "config", "comunidade"];
   const dados = { geradoEm: new Date().toISOString(), por: S.email, colecoes: {} };
   toast("Gerando a cópia de segurança…");
   for (const c of cols) { try { dados.colecoes[c] = Object.fromEntries(docsOf(await col(c).get()).map(d => [d.id, d])); } catch (_) { dados.colecoes[c] = null; } }
@@ -1749,6 +1786,7 @@ function renderOwner() {
   else if (S.tab === "passeios") html = passeiosView();
   else if (S.tab === "tickets") html = ticketsView();
   else if (S.tab === "avaliacoes") html = avaliacoesView();
+  else if (S.tab === "comunidade") html = comunidadeView();
   setMain(html);
 }
 
@@ -2652,6 +2690,1042 @@ $("#main").addEventListener("input", (e) => {
   buscaTimer = setTimeout(() => { const pos = t.selectionStart; render(); const n = $("#" + t.id); if (n) { n.focus(); n.setSelectionRange(pos, pos); } }, 250);
 });
 
+// Cronograma inicial da comunidade (copiado da planilha "Cronograma da Comunidade WhatsApp — Araya Expedições"); só é usado no botão de importar, quando a aba ainda está vazia
+const CM_SEED = () => [
+{ s: 1, d: "Terça", dest: "Todos", tema: "Boas-vindas: quem é a Araya e como funciona a comunidade", img: "Montagem com uma foto de cada destino + logo da Araya", conf: "Confirmar dias de envio (terça e sexta) e o link de contato", txt: `✨ *Bem-vindo(a) à comunidade Araya!* ✨
+
+Que alegria ter você aqui! 🧡
+
+A Araya nasceu de uma ideia simples: você viaja, a gente cuida do resto. Montamos *roteiros prontos e cuidadosamente planejados* para que você não precise se preocupar com nada além de aproveitar.
+
+🌎 *Nossos destinos:*
+🏜️ Atacama e Salar de Uyuni
+🏔️ Cusco e Machu Picchu
+🧊 Patagônia
+🐧 Ushuaia
+🍷 Mendoza
+🏺 Egito
+⛩️ Japão
+
+📌 *Como funciona este grupo:*
+Toda *terça e sexta* tem conteúdo novo por aqui: dicas para escolher o destino, o que levar na mala, a melhor época para ir e tudo o que acontece por trás de um roteiro da Araya.
+
+Este é um espaço para você se inspirar e se planejar com calma. Dúvidas sobre a sua viagem? Nossa equipe responde no privado. 😉` },
+{ s: 1, d: "Sexta", dest: "Atacama", tema: "Conheça o Atacama: por que ir, melhor época e passeios", img: "Lagunas Altiplânicas ou Vale da Lua ao pôr do sol", conf: "Passeios do roteiro atual; se o Uyuni entra como extensão", txt: `🏜️ *Atacama: o deserto mais seco do mundo*
+
+Lagunas de um azul que parece irreal, gêiseres fumegando ao nascer do sol, salares brancos e um dos céus mais estrelados do planeta. O Atacama é aquele destino que muda a forma como você enxerga a natureza. ✨
+
+📍 *A base é San Pedro de Atacama*, uma vila charmosa no meio do deserto, de onde saem todos os passeios.
+
+🗓️ *Quando ir?*
+O ano todo! Os dias são ensolarados e as noites, frias. No verão pode acontecer o *inverno altiplânico*, com chuvas nas regiões altas que às vezes alteram passeios, e por isso a gente acompanha tudo de perto e ajusta o roteiro quando precisa.
+
+🌄 *Alguns passeios que você vai amar:*
+• Vale da Lua ao pôr do sol
+• Lagunas Altiplânicas e Piedras Rojas
+• Gêiseres del Tatio ao amanhecer
+• Tour astronômico
+• E, para quem quer ir além: *Salar de Uyuni*, na Bolívia 🇧🇴
+
+⛰️ Vários passeios passam dos 4.000 m de altitude, e é por isso que *a ordem do roteiro faz toda a diferença*. Na Araya, a sequência dos passeios é pensada para o seu corpo se acostumar aos poucos.
+
+💬 Quer ver como fica o roteiro para as suas datas? É só chamar a gente aqui: [link do WhatsApp de vendas]` },
+{ s: 2, d: "Terça", dest: "Todos", tema: "Como funciona um roteiro pronto da Araya", img: "Foto de cliente em passeio com guia, ou arte com os 4 passos", conf: "O que está incluído no roteiro (traslados, ingressos, guias, hospedagem)", txt: `🧭 *Como funciona um roteiro pronto da Araya?*
+
+Muita gente pergunta: "mas o que exatamente vocês organizam?" Então vamos lá! 👇
+
+1️⃣ *Você escolhe o destino e as datas*
+A gente te ajuda a entender a melhor época e quantos dias fazem sentido para o que você quer viver.
+
+2️⃣ *Nós montamos tudo*
+Passeios na ordem certa, traslados, guias e ingressos [ajustar ao que está incluído] já ficam organizados. Também ajudamos com a hospedagem, se você quiser.
+
+3️⃣ *Você recebe tudo explicadinho*
+Dia a dia do roteiro, horários e orientações sobre o que levar.
+
+4️⃣ *Durante a viagem, a gente está junto*
+Nossa equipe acompanha você enquanto estiver no destino. Qualquer imprevisto, é só chamar.
+
+✅ O resultado: você não perde tempo pesquisando, não corre o risco de montar uma sequência que não funciona e *viaja sem preocupação*.
+
+💬 Quer ver como fica o roteiro para as suas datas? É só chamar a gente aqui: [link do WhatsApp de vendas]` },
+{ s: 2, d: "Sexta", dest: "Patagônia", tema: "Conheça a Patagônia: por que ir, melhor época e passeios", img: "Glaciar Perito Moreno das passarelas", conf: "Cidades e passeios do roteiro; período da temporada", txt: `🧊 *Patagônia: geleiras, montanhas e um vento que você nunca vai esquecer*
+
+Ver o *Perito Moreno* de perto é daquelas experiências que arrepiam: o barulho do gelo estalando, os blocos caindo na água, aquele azul que nenhuma foto consegue mostrar direito. 💙
+
+📍 *Onde fica?*
+O roteiro passa por *El Calafate*, porta de entrada para as geleiras, e pode incluir *El Chaltén*, a capital do trekking na Argentina, aos pés do Monte Fitz Roy. [ajustar às cidades do roteiro]
+
+🗓️ *Quando ir?*
+A temporada vai de *outubro a abril*, com dias longos (no verão o sol se põe bem tarde!) e todos os passeios funcionando. No inverno, parte dos serviços fecha.
+
+🏔️ *Alguns passeios que você vai amar:*
+• Passarelas do Glaciar Perito Moreno
+• Navegação entre as geleiras
+• Minitrekking sobre o gelo (para quem topa a aventura!)
+• Trilhas com vista para o Fitz Roy
+
+As distâncias na Patagônia são grandes, e a gente monta o roteiro para você aproveitar o tempo ao máximo, sem correria.
+
+💬 Quer ver como fica o roteiro para as suas datas? É só chamar a gente aqui: [link do WhatsApp de vendas]` },
+{ s: 3, d: "Terça", dest: "Todos", tema: "Qual destino combina com você?", img: "Arte em formato de teste, com ícone de cada destino", conf: "Combinações de destinos que a Araya vende", txt: `🤔 *Qual destino Araya combina com você?*
+
+Faz o teste rapidinho! 👇
+
+🏔️ *Ama natureza grandiosa e um pouco de aventura?*
+→ *Patagônia* ou *Atacama*
+
+🏛️ *É apaixonado(a) por história e civilizações antigas?*
+→ *Egito* ou *Cusco e Machu Picchu*
+
+⛩️ *Quer uma cultura completamente diferente da nossa?*
+→ *Japão*
+
+🍷 *Pensa em vinho, boa comida e paisagens de montanha?*
+→ *Mendoza*
+
+🐧 *Sonha em ir ao fim do mundo (literalmente)?*
+→ *Ushuaia*
+
+✨ *Quer combinar dois destinos?* Também dá! Patagônia + Ushuaia ou Atacama + Uyuni são combinações que fazem muito sucesso. [ajustar às combinações oferecidas]
+
+Conta pra gente aqui: *qual é o seu destino dos sonhos?* 👇
+
+💬 Quer ver como fica o roteiro para as suas datas? É só chamar a gente aqui: [link do WhatsApp de vendas]` },
+{ s: 3, d: "Sexta", dest: "Ushuaia", tema: "Conheça Ushuaia: por que ir, melhor época e passeios", img: "Farol no Canal de Beagle ou pinguins", conf: "Passeios do roteiro; período dos pinguins", txt: `🐧 *Ushuaia: bem-vindo(a) ao Fim do Mundo!*
+
+Montanhas nevadas de um lado, o Canal de Beagle do outro, e a sensação de estar no ponto mais ao sul que dá para chegar de avião na América do Sul. Ushuaia tem um clima de aventura que encanta todo mundo. 🌊🏔️
+
+🗓️ *Quando ir?*
+• *Primavera e verão (out a mar):* dias longos, trilhas e a temporada dos *pinguins* 🐧
+• *Inverno (jun a set):* cidade coberta de neve e clima de montanha ❄️
+Cada época tem um encanto diferente, e a gente te ajuda a escolher a que combina com você.
+
+🧭 *Alguns passeios que você vai amar:*
+• Navegação pelo Canal de Beagle, até o famoso farol
+• Parque Nacional Tierra del Fuego
+• Trem do Fim do Mundo
+• Lagos e paisagens da Terra do Fogo
+
+💡 O clima muda rápido por lá: em um mesmo dia dá para ter sol, vento e garoa. Fica tranquilo(a) que vamos falar de mala em breve!
+
+💬 Quer ver como fica o roteiro para as suas datas? É só chamar a gente aqui: [link do WhatsApp de vendas]` },
+{ s: 4, d: "Terça", dest: "Todos", tema: "Melhor época para cada destino", img: "Calendário ilustrado com os 7 destinos", conf: "Conferir os períodos com a equipe de roteiros", txt: `🗓️ *Qual a melhor época para cada destino?*
+
+Salva esse post! 📌
+
+🏜️ *Atacama:* o ano todo. No verão podem ocorrer chuvas nas regiões altas (o inverno altiplânico).
+
+🏔️ *Cusco e Machu Picchu:* a época seca vai de *maio a setembro*; de dezembro a março é a época de chuvas. A Trilha Inca fecha em fevereiro.
+
+🧊 *Patagônia:* de *outubro a abril*, quando todos os passeios funcionam.
+
+🐧 *Ushuaia:* o verão para trilhas e pinguins; o inverno para a neve.
+
+🍷 *Mendoza:* o ano todo! A *vindima* (colheita da uva) acontece entre fevereiro e março.
+
+🏺 *Egito:* de *outubro a abril*, quando o calor é mais ameno.
+
+⛩️ *Japão:* as *cerejeiras* florescem entre o fim de março e o começo de abril, e o *outono* colorido vai de novembro ao começo de dezembro.
+
+💡 *Dica de ouro:* as datas mais procuradas esgotam primeiro, principalmente ingressos e hotéis. Quanto antes a gente planejar, mais opções você tem.
+
+💬 Quer ver como fica o roteiro para as suas datas? É só chamar a gente aqui: [link do WhatsApp de vendas]` },
+{ s: 4, d: "Sexta", dest: "Cusco e Machu Picchu", tema: "Conheça Cusco e Machu Picchu: por que ir, melhor época e passeios", img: "Machu Picchu com as montanhas ao fundo", conf: "Passeios do roteiro; se a Araya garante os ingressos", txt: `🏔️ *Cusco e Machu Picchu: o coração dos Andes*
+
+Andar pelas ruas de pedra de Cusco, a antiga capital do Império Inca, e depois chegar a *Machu Picchu*, uma das maravilhas do mundo, é uma viagem no tempo. 🦙✨
+
+🗓️ *Quando ir?*
+A época seca, de *maio a setembro*, tem céu mais aberto. Mas a região recebe visitantes o ano todo, e cada estação tem seu charme: na época de chuvas tudo fica mais verde. 🌿
+
+🧭 *Alguns passeios que você vai amar:*
+• City tour por Cusco e suas ruínas
+• Vale Sagrado dos Incas, com mercados e comunidades andinas
+• Machu Picchu, o grande momento da viagem! 🙌
+[ajustar aos passeios do roteiro]
+
+🎟️ *Atenção:* os ingressos de Machu Picchu são limitados por dia e por circuito, e esgotam! É um dos motivos pelos quais o planejamento com antecedência faz tanta diferença.
+
+⛰️ Cusco fica a cerca de 3.400 m de altitude, e o roteiro da Araya é pensado para você se aclimatar com tranquilidade.
+
+💬 Quer ver como fica o roteiro para as suas datas? É só chamar a gente aqui: [link do WhatsApp de vendas]` },
+{ s: 5, d: "Terça", dest: "Todos", tema: "Documentos: RG, passaporte e visto em cada destino", img: "Passaporte e RG com um mapa", conf: "Revisar as regras de entrada perto da data de publicação", txt: `🛂 *Documentos: o que você precisa para cada destino?*
+
+🇨🇱🇵🇪🇦🇷🇧🇴 *Atacama, Uyuni, Cusco, Patagônia, Ushuaia e Mendoza*
+Brasileiros podem entrar com *RG ou passaporte*. Atenção: o RG precisa ter *menos de 10 anos de emissão* e estar em bom estado, com a foto reconhecível. Na dúvida, vá de passaporte!
+
+🇯🇵 *Japão*
+Brasileiros *não precisam de visto* para turismo de até 90 dias, mas é preciso ter *passaporte eletrônico, com chip*.
+
+🇪🇬 *Egito*
+É preciso *passaporte válido* (com pelo menos 6 meses de validade) e *visto*, que pode ser tirado online ou na chegada. Também vale conferir a exigência do *certificado internacional de vacina contra febre amarela*.
+
+⚠️ As regras de entrada podem mudar, e por isso a gente sempre orienta cada cliente de acordo com as datas da viagem.
+
+📌 Confira hoje a validade do seu RG e do seu passaporte. É o primeiro passo da viagem!
+
+💬 Quer ver como fica o roteiro para as suas datas? É só chamar a gente aqui: [link do WhatsApp de vendas]` },
+{ s: 5, d: "Sexta", dest: "Egito", tema: "Conheça o Egito: por que ir, melhor época e passeios", img: "Pirâmides de Gizé ou cruzeiro no Nilo", conf: "Passeios e cidades do roteiro", txt: `🏺 *Egito: 5 mil anos de história diante dos seus olhos*
+
+Ficar de frente para as *Pirâmides de Gizé* é um daqueles momentos em que a ficha demora a cair. E o Egito vai muito além delas: templos gigantes, tumbas pintadas e o Rio Nilo, onde tudo começou. 🐪✨
+
+🗓️ *Quando ir?*
+De *outubro a abril*, quando o calor é mais ameno. No verão as temperaturas são bem altas, e os passeios começam bem cedinho.
+
+🧭 *Alguns passeios que você vai amar:*
+• Pirâmides de Gizé e a Esfinge
+• Museus do Cairo
+• Cruzeiro pelo Rio Nilo 🚢
+• Templos de Luxor e o Vale dos Reis
+• Abu Simbel
+[ajustar aos passeios do roteiro]
+
+💡 O Egito é um destino em que contar com um roteiro bem organizado faz muita diferença: deslocamentos, horários dos templos e guias que contam a história de cada lugar. É isso que transforma pedras em histórias. 📜
+
+💬 Quer ver como fica o roteiro para as suas datas? É só chamar a gente aqui: [link do WhatsApp de vendas]` },
+{ s: 6, d: "Terça", dest: "Todos", tema: "Altitude: quais destinos têm e como o roteiro ajuda", img: "Paisagem de altitude, como lagunas ou montanha", conf: "Altitudes citadas; como a aclimatação é feita em cada roteiro", txt: `⛰️ *Vamos falar de altitude?*
+
+Três destinos Araya têm passeios em altitude:
+🏜️ *Atacama:* San Pedro fica a cerca de 2.400 m, e alguns passeios passam dos 4.000 m
+🏔️ *Cusco:* a cidade fica a cerca de 3.400 m
+🍷 *Mendoza:* o passeio de Alta Montanha sobe a cordilheira, perto do Aconcágua
+
+😮‍💨 *O que pode acontecer?*
+É comum sentir um pouco de falta de ar, cansaço ou dor de cabeça nos primeiros dias. Cada corpo reage de um jeito, e isso não tem a ver com preparo físico.
+
+✅ *Como a Araya ajuda:*
+O roteiro começa pelos passeios mais baixos e só depois sobe. Essa *aclimatação gradual* faz muita diferença no seu bem-estar.
+
+💡 *E você pode ajudar também:*
+• Beba bastante água
+• Coma leve nos primeiros dias
+• Evite bebida alcoólica no começo
+• Descanse bem
+
+🩺 Se você tem alguma condição de saúde, converse com seu médico antes da viagem.
+
+💬 Quer ver como fica o roteiro para as suas datas? É só chamar a gente aqui: [link do WhatsApp de vendas]` },
+{ s: 6, d: "Sexta", dest: "Japão", tema: "Conheça o Japão: por que ir, melhor época e passeios", img: "Templo em Kyoto ou cerejeiras com o Monte Fuji", conf: "Cidades do roteiro", txt: `⛩️ *Japão: onde tradição e futuro andam juntos*
+
+Templos milenares ao lado de arranha-céus, trens-bala pontualíssimos, cerimônias do chá e uma comida que vai muito além do sushi. O Japão é encantador em cada detalhe. 🍣🌸
+
+🗓️ *Quando ir?*
+• *Primavera (fim de março e abril):* a época das cerejeiras 🌸
+• *Outono (novembro):* as folhas ficam vermelhas e douradas 🍁
+• Verão e inverno também têm seus encantos, cada um com sua programação
+
+🧭 *Alguns lugares que você vai amar:*
+• *Tóquio:* bairros cheios de energia e templos escondidos
+• *Kyoto:* templos, jardins e o bairro das gueixas
+• *Osaka:* a capital da comida de rua
+[ajustar às cidades do roteiro]
+
+💡 O Japão tem muitos detalhes: passes de trem, etiqueta, deslocamentos entre cidades. Com um roteiro pronto, você chega sabendo exatamente o que fazer em cada dia.
+
+🇯🇵 E uma boa notícia: brasileiros não precisam de visto para turismo de até 90 dias!
+
+💬 Quer ver como fica o roteiro para as suas datas? É só chamar a gente aqui: [link do WhatsApp de vendas]` },
+{ s: 7, d: "Terça", dest: "Todos", tema: "Hospedagem: como a Araya escolhe os hotéis", img: "Quarto de hotel com vista (vinhedo, montanha ou ryokan)", conf: "Como a hospedagem é vendida hoje (à parte do roteiro)", txt: `🏨 *Onde vou me hospedar? Como a Araya escolhe os hotéis*
+
+Hotel bom não é só o mais bonito da foto. Na hora de indicar uma hospedagem, a gente olha para:
+
+📍 *Localização:* perto do que importa e prática para os passeios
+🛏️ *Conforto:* um lugar para descansar de verdade depois de dias intensos
+⭐ *Experiência de outros clientes:* indicamos o que já conhecemos e aprovamos
+🎯 *O seu perfil:* tem quem prefira um hotel charmoso, quem queira mais estrutura e quem queira uma experiência diferente
+
+✨ *Algumas experiências especiais:*
+⛩️ Dormir em um *ryokan* tradicional no Japão
+🍷 Acordar no meio dos vinhedos em Mendoza
+🚢 Passar noites em um cruzeiro pelo Nilo no Egito
+
+[ajustar: hospedagem vendida à parte do roteiro]
+
+Quer sugestões de hotéis para o seu destino? É só chamar a gente!` },
+{ s: 7, d: "Sexta", dest: "Mendoza", tema: "Conheça Mendoza: por que ir, melhor época e passeios", img: "Vinhedo com a Cordilheira ao fundo", conf: "Vinícolas e passeios do roteiro; se as reservas das vinícolas estão incluídas", txt: `🍷 *Mendoza: vinho, montanha e o Aconcágua*
+
+Imagine almoçar em uma vinícola, com taças de *Malbec* e a Cordilheira dos Andes nevada ao fundo. Isso é Mendoza! 🏔️🍇
+
+🗓️ *Quando ir?*
+O ano todo! E cada época tem um charme:
+• *Vindima (fevereiro e março):* a colheita da uva e a grande festa da cidade 🍇
+• *Outono:* os vinhedos ficam dourados 🍂
+• *Inverno:* neve na cordilheira ❄️
+
+🧭 *Alguns passeios que você vai amar:*
+• Vinícolas em Luján de Cuyo e no Valle de Uco
+• Almoços harmonizados 🍽️
+• Passeio de Alta Montanha, com vista para o *Aconcágua*, a montanha mais alta das Américas
+[ajustar aos passeios do roteiro]
+
+💡 As visitas às vinícolas precisam de reserva, e as mais disputadas esgotam rápido. Com o roteiro da Araya, isso fica resolvido antes da sua viagem. 🥂
+
+💬 Quer ver como fica o roteiro para as suas datas? É só chamar a gente aqui: [link do WhatsApp de vendas]` },
+{ s: 8, d: "Terça", dest: "Todos", tema: "Ingressos e reservas: por que garantir com antecedência", img: "Ingresso de Machu Picchu ou vista de vinícola", conf: "O que a Araya reserva para o cliente em cada destino", txt: `🎟️ *Por que reservar com antecedência faz tanta diferença?*
+
+Muita gente acha que dá para resolver tudo chegando lá. Mas em alguns destinos as vagas são *limitadas* e esgotam! 😬
+
+🏔️ *Machu Picchu:* os ingressos são limitados por dia e por circuito. Na alta temporada, esgotam com semanas de antecedência.
+
+🍷 *Mendoza:* as vinícolas mais procuradas recebem poucos grupos por dia, sempre com reserva.
+
+🧊 *Patagônia:* navegações e o minitrekking no Perito Moreno têm vagas limitadas na alta temporada.
+
+⛩️ *Japão:* algumas atrações e experiências exigem reserva antecipada.
+
+🌸 *Datas especiais* (cerejeiras, vindima, feriados) lotam hotéis e passeios mais rápido.
+
+✅ *Com a Araya,* tudo isso entra no planejamento do seu roteiro, na ordem certa, para você não perder nada por falta de vaga.
+
+💬 Quer ver como fica o roteiro para as suas datas? É só chamar a gente aqui: [link do WhatsApp de vendas]` },
+{ s: 8, d: "Sexta", dest: "Atacama", tema: "Prepare-se para o Atacama: mala, roupa e cuidados", img: "Flatlay de mala com roupas em camadas", conf: "Orientações que a equipe já envia ao cliente", txt: `🎒 *Indo para o Atacama? Vamos montar a mala!*
+
+O deserto tem uma pegadinha: *calor de dia e frio intenso à noite e de madrugada*. Nos Gêiseres del Tatio, ao amanhecer, a temperatura pode ficar abaixo de zero! 🥶
+
+👕 *A regra de ouro: camadas*
+• Camiseta leve
+• Fleece ou blusa térmica
+• Jaqueta corta-vento (de pluma, para o inverno)
+Assim você vai tirando e colocando ao longo do dia.
+
+🧢 *Não esqueça:*
+• Protetor solar e labial (o sol é forte e o ar é muito seco)
+• Óculos de sol e chapéu
+• Hidratante, porque a pele e o nariz sentem
+• Garrafinha de água
+• Gorro e luvas para os passeios cedinho
+
+👟 *Calçado:* um tênis confortável resolve a maioria dos passeios. Para trilhas e vulcões, uma bota de trekking é bem-vinda.
+
+📋 Antes da viagem, você recebe da gente as orientações de cada passeio. Assim você sabe exatamente com que roupa ir em cada dia! 😉
+
+💬 Quer ver como fica o roteiro para as suas datas? É só chamar a gente aqui: [link do WhatsApp de vendas]` },
+{ s: 9, d: "Terça", dest: "Todos", tema: "Moeda e dinheiro em cada destino", img: "Notas de diferentes moedas", conf: "Se a equipe orienta o câmbio antes da viagem", txt: `💰 *Qual moeda levar para cada destino?*
+
+🇨🇱 *Atacama:* peso chileno
+🇧🇴 *Uyuni:* boliviano
+🇵🇪 *Cusco:* sol peruano
+🇦🇷 *Patagônia, Ushuaia e Mendoza:* peso argentino
+🇪🇬 *Egito:* libra egípcia, e levar alguns dólares ajuda muito no dia a dia, como nas gorjetas
+🇯🇵 *Japão:* iene. O cartão é cada vez mais aceito, mas o dinheiro vivo ainda é bem usado
+
+💳 *Dinheiro ou cartão?*
+O ideal é ter os dois. Cartão para a maioria das compras e um pouco de dinheiro local para gorjetas, lojinhas e lugares menores.
+
+⚠️ O câmbio muda bastante, principalmente na Argentina. Por isso, *pouco antes da sua viagem a gente orienta qual é a melhor forma de levar dinheiro* para o seu destino.
+
+💡 Com o roteiro pronto, boa parte da viagem já fica paga antes de você embarcar, e o dinheiro em mãos fica só para os extras e as lembrancinhas! 🛍️
+
+💬 Quer ver como fica o roteiro para as suas datas? É só chamar a gente aqui: [link do WhatsApp de vendas]` },
+{ s: 9, d: "Sexta", dest: "Patagônia", tema: "Prepare-se para a Patagônia: mala, roupa e cuidados", img: "Pessoa com jaqueta corta-vento diante de geleira", conf: "Orientações que a equipe envia; regras do minitrekking", txt: `🌬️ *Indo para a Patagônia? Prepare-se para o vento!*
+
+O vento patagônico é famoso, e faz a sensação térmica cair bastante. Mesmo no verão, leve roupas para frio. 😉
+
+👕 *A regra de ouro: camadas*
+• Primeira pele (térmica)
+• Fleece
+• *Jaqueta impermeável e corta-vento*, a peça mais importante da mala!
+
+🧤 *Não esqueça:*
+• Gorro, luvas e cachecol
+• Óculos de sol (o reflexo do gelo é forte)
+• Protetor solar e labial
+• Mochila pequena para os passeios
+
+👟 *Calçado:* para as passarelas, um tênis confortável. Para trilhas e o minitrekking, uma *bota de trekking impermeável* é ideal.
+
+☀️ *Bônus:* no verão escurece bem tarde, quase às 22h, e você aproveita muito o dia!
+
+📋 Você recebe da gente as orientações de roupa para cada passeio do seu roteiro.
+
+💬 Quer ver como fica o roteiro para as suas datas? É só chamar a gente aqui: [link do WhatsApp de vendas]` },
+{ s: 10, d: "Terça", dest: "Todos", tema: "Seguro viagem e kit farmácia", img: "Kit farmácia organizado em nécessaire", conf: "Se a Araya vende ou indica seguro viagem", txt: `🩺 *Seguro viagem e kit farmácia: não viaje sem!*
+
+🛡️ *Seguro viagem*
+É ele que garante atendimento médico se você precisar durante a viagem. Alguns países exigem, e as regras mudam, mas *a gente recomenda sempre*, para qualquer destino. Confira se ele cobre os passeios do seu roteiro, como trilhas e atividades de aventura.
+
+💊 *Kit farmácia básico*
+• Seus remédios de uso contínuo (com receita)
+• Analgésico e antitérmico
+• Remédio para enjoo e para o estômago
+• Antialérgico
+• Curativos
+• Protetor solar e labial
+
+⚠️ *Atenção, Japão:* alguns remédios comuns no Brasil são *proibidos ou controlados* na entrada do país. Confira antes de colocar na mala!
+
+🩺 Leve tudo na bagagem de mão e, em caso de dúvida, converse com seu médico antes da viagem.
+
+💬 Quer ver como fica o roteiro para as suas datas? É só chamar a gente aqui: [link do WhatsApp de vendas]` },
+{ s: 10, d: "Sexta", dest: "Ushuaia", tema: "Prepare-se para Ushuaia: mala, roupa e cuidados", img: "Paisagem nevada de Ushuaia", conf: "Orientações que a equipe envia", txt: `🧣 *Indo para Ushuaia? Bora montar a mala do Fim do Mundo!*
+
+Por lá o clima muda rápido: sol, vento e garoa podem aparecer no mesmo dia. Então, a palavra de novo é: *camadas!* 😄
+
+☀️ *Na primavera e no verão:*
+• Blusa térmica e fleece
+• Jaqueta impermeável e corta-vento
+• Calça confortável para trilhas
+
+❄️ *No inverno:*
+• Roupa térmica completa (blusa e calça)
+• Jaqueta de pluma ou bem quente
+• Gorro, luvas e cachecol
+• Bota impermeável, com boa aderência para neve e gelo
+
+🧢 *Não esqueça:*
+• Óculos de sol
+• Protetor solar (sim, mesmo no frio!)
+• Mochila pequena para os passeios
+
+🚢 *Na navegação pelo Canal de Beagle* venta bastante no convés, então capricha no casaco para as melhores fotos. 📸
+
+📋 Você recebe da gente as orientações para cada passeio do seu roteiro.
+
+💬 Quer ver como fica o roteiro para as suas datas? É só chamar a gente aqui: [link do WhatsApp de vendas]` },
+{ s: 11, d: "Terça", dest: "Todos", tema: "Como ficar conectado na viagem", img: "Pessoa com celular diante de uma paisagem", conf: "Se a Araya indica algum eSIM parceiro", txt: `📱 *Como ficar conectado durante a viagem?*
+
+Estar com internet faz diferença: para falar com a família, postar as fotos e, principalmente, *falar com a nossa equipe sempre que precisar*. 😉
+
+📶 *As opções:*
+• *eSIM:* um chip virtual que você instala antes de viajar, sem trocar o chip físico. Prático e cada vez mais usado (confira se o seu celular é compatível)
+• *Chip local:* comprado no destino
+• *Plano internacional* da sua operadora
+• *Wi-fi* dos hotéis e restaurantes
+
+⛰️ *Atenção:* em alguns passeios a internet some, como no deserto do Atacama, em trilhas da Patagônia e na Alta Montanha. Faz parte da experiência! 🌄
+
+💡 *Dica:* baixe antes os documentos da viagem e o roteiro no celular. Assim, você tem tudo em mãos mesmo sem sinal.
+
+💬 Quer ver como fica o roteiro para as suas datas? É só chamar a gente aqui: [link do WhatsApp de vendas]` },
+{ s: 11, d: "Sexta", dest: "Cusco e Machu Picchu", tema: "Prepare-se para Cusco e Machu Picchu: mala, roupa e cuidados", img: "Pessoa com mochila em Machu Picchu", conf: "Regras de Machu Picchu (tamanho da mochila, documento)", txt: `🦙 *Indo para Cusco e Machu Picchu? Hora da mala!*
+
+Nos Andes o sol é forte durante o dia e as noites são frias. E Machu Picchu fica mais baixo e é mais quente que Cusco! Por isso: *camadas*. 😉
+
+👕 *O que levar:*
+• Camisetas leves
+• Fleece ou blusa térmica
+• Jaqueta corta-vento
+• Capa de chuva, principalmente de dezembro a março 🌧️
+
+🧢 *Não esqueça:*
+• Protetor solar e repelente (em Machu Picchu tem mosquito!)
+• Óculos de sol e chapéu
+• Garrafinha de água
+• Mochila pequena: Machu Picchu tem regras sobre o tamanho das bolsas
+
+👟 *Calçado:* um tênis confortável e com boa aderência. Para trilhas, uma bota leve de trekking.
+
+🛂 *Leve o mesmo documento* que você usou na compra do ingresso de Machu Picchu: ele é conferido na entrada.
+
+📋 Antes da viagem, você recebe da gente as orientações de cada dia do roteiro.
+
+💬 Quer ver como fica o roteiro para as suas datas? É só chamar a gente aqui: [link do WhatsApp de vendas]` },
+{ s: 12, d: "Terça", dest: "Todos", tema: "Traslados: como funciona e por que conferir seu voo com a gente", img: "Motorista com plaquinha no desembarque", conf: "Como o traslado funciona em cada destino [ajustar]", txt: `🚐 *Como funciona o traslado do aeroporto?*
+
+Você desembarca e já tem alguém da nossa equipe local te esperando. Sem fila de táxi e sem se preocupar com o caminho até o hotel. 🙌
+
+✈️ *Por que pedimos tantos detalhes do seu voo?*
+Número do voo, horário e aeroporto de chegada. Parece detalhe, mas é isso que garante que o motorista esteja *no lugar certo, na hora certa*.
+
+⚠️ Algumas cidades têm mais de um aeroporto, ou voos com nomes parecidos. Por isso a nossa equipe *confere cada voo* antes da sua viagem.
+
+📌 *Sua parte:*
+• Envie os dados do voo assim que comprar a passagem
+• Mudou o voo? Avise a gente o quanto antes
+• Atrasou? Fica tranquilo(a): estamos acompanhando 😉
+
+✅ Assim a sua viagem começa do jeito certo: sem estresse desde o desembarque.
+
+💬 Quer ver como fica o roteiro para as suas datas? É só chamar a gente aqui: [link do WhatsApp de vendas]` },
+{ s: 12, d: "Sexta", dest: "Egito", tema: "Prepare-se para o Egito: mala, roupa e cuidados", img: "Templo egípcio ou deserto com camelos", conf: "Orientações que a equipe envia", txt: `🐪 *Indo para o Egito? Vamos montar a mala!*
+
+☀️ *O clima*
+De dia faz calor e o sol é forte; à noite, principalmente no inverno e no deserto, esfria.
+
+👗 *Roupas*
+• Peças leves e soltas, de tecidos frescos, como algodão e linho
+• *Ombros e joelhos cobertos* para visitar mesquitas e locais religiosos, por respeito à cultura local
+• Um lenço ou pashmina, que serve para cobrir os ombros e protege do sol
+• Uma blusa de frio para as noites e o ar-condicionado
+
+🧢 *Não esqueça:*
+• Protetor solar, óculos de sol e chapéu
+• Garrafinha de água
+• Remédio para o estômago
+• Dólares em notas pequenas para as gorjetas, que fazem parte da cultura por lá
+
+👟 *Calçado:* tênis confortável e fechado, porque nos templos e no deserto tem bastante areia e pedra.
+
+📋 Antes da viagem, você recebe da gente as orientações de cada dia do roteiro.
+
+💬 Quer ver como fica o roteiro para as suas datas? É só chamar a gente aqui: [link do WhatsApp de vendas]` },
+{ s: 13, d: "Terça", dest: "Todos", tema: "Nossos guias e o guia gastronômico da Araya", img: "Guia explicando a um grupo, ou prato típico", conf: "Como funciona o guia gastronômico (destinos e quem faz)", txt: `🧑‍🏫 *Quem vai estar com você no destino?*
+
+Um passeio muda completamente com um bom guia. É ele quem conta a história por trás de cada ruína, mostra o melhor ângulo para a foto e cuida para que tudo saia como planejado.
+
+🤝 *Nossos parceiros locais* são escolhidos com cuidado: gente que conhece o destino de verdade e que já acompanhou muitos clientes Araya. [ajustar]
+
+🍽️ *E tem mais:* nossos clientes recebem um *guia gastronômico personalizado, feito por chef de cozinha* [ajustar], com indicações de restaurantes e pratos típicos do destino. Assim você também acerta na comida! 😋
+
+Alguns sabores para conhecer:
+🇵🇪 Ceviche e pisco sour em Cusco
+🇦🇷 Cordeiro patagônico e assado argentino
+🇨🇱 Pratos andinos no Atacama
+🇯🇵 Ramen, okonomiyaki e muito mais no Japão
+🇪🇬 Koshari e falafel no Egito
+🍷 E os vinhos de Mendoza, claro!
+
+💬 Quer ver como fica o roteiro para as suas datas? É só chamar a gente aqui: [link do WhatsApp de vendas]` },
+{ s: 13, d: "Sexta", dest: "Japão", tema: "Prepare-se para o Japão: mala, roupa e cuidados", img: "Tênis na entrada de um ryokan, ou mala pequena em estação de trem", conf: "Se o envio de malas entra no roteiro", txt: `🎒 *Indo para o Japão? Algumas dicas para a mala!*
+
+👟 *Calçado é tudo*
+No Japão você anda muito! Leve um tênis bem confortável e fácil de tirar: em templos, ryokans e alguns restaurantes, *se tira o sapato*. Meias sem furos, hein? 😄
+
+👕 *Roupas por estação*
+🌸 *Primavera e outono:* camadas leves e um casaco
+☀️ *Verão:* roupas leves (é quente e úmido) e um guarda-chuva
+❄️ *Inverno:* casaco quente, gorro e luvas
+
+🧳 *Mala leve ajuda muito*
+Os deslocamentos são de trem, e muitas vezes dá para *enviar a mala de uma cidade para a outra* e viajar só com uma mochila. [ajustar ao roteiro]
+
+💊 *Atenção aos remédios*
+Alguns remédios comuns no Brasil são proibidos ou controlados no Japão. Confira antes de viajar!
+
+🔌 *Tomadas*
+São de dois pinos chatos. Leve um adaptador!
+
+🙇 Em breve, um post só sobre etiqueta japonesa!
+
+💬 Quer ver como fica o roteiro para as suas datas? É só chamar a gente aqui: [link do WhatsApp de vendas]` },
+{ s: 14, d: "Terça", dest: "Todos", tema: "Como falar com a Araya durante a viagem", img: "Foto da equipe de atendimento (ou arte com o WhatsApp)", conf: "Canal e horários do pós-venda durante a viagem", txt: `📲 *E durante a viagem, como falo com a Araya?*
+
+Essa é uma das partes de que mais gostamos: *a gente não some depois que você embarca!* 🧡
+
+👩‍💻 Nossa equipe de atendimento acompanha você durante toda a viagem pelo WhatsApp. [ajustar horários e canal]
+
+💬 *Pode chamar a gente para:*
+• Confirmar horários dos passeios
+• Avisar de um atraso de voo
+• Tirar dúvidas do dia a dia no destino
+• Qualquer imprevisto
+
+⏰ *Horário de atendimento:* [inserir]
+
+✨ É isso que significa viajar com um roteiro pronto: você aproveita o destino sabendo que tem alguém cuidando de tudo nos bastidores.
+
+💬 Quer ver como fica o roteiro para as suas datas? É só chamar a gente aqui: [link do WhatsApp de vendas]` },
+{ s: 14, d: "Sexta", dest: "Mendoza", tema: "Prepare-se para Mendoza: mala, roupa e cuidados", img: "Taças de vinho no vinhedo", conf: "Orientações que a equipe envia", txt: `🍇 *Indo para Mendoza? Vamos montar a mala!*
+
+Mendoza tem clima seco e muitos dias de sol, mas a temperatura muda bastante entre o dia e a noite, e entre a cidade e a montanha.
+
+👕 *O que levar:*
+☀️ *Verão:* roupas leves, chapéu e protetor solar
+🍂 *Outono e primavera:* camadas e um casaco leve
+❄️ *Inverno:* casaco quente, principalmente para a Alta Montanha
+
+🍷 *Para as vinícolas:* roupa confortável e um look um pouco mais arrumadinho para os almoços harmonizados. Fica lindo nas fotos entre os vinhedos! 📸
+
+🏔️ *Para a Alta Montanha:* mesmo no verão faz frio lá em cima. Leve casaco, gorro e óculos de sol.
+
+👟 *Calçado:* tênis confortável. Nas vinícolas se anda pelos vinhedos e pela terra.
+
+🧳 *Vai trazer vinho?* Deixe espaço na mala e confira as regras da companhia aérea e da Receita Federal para a quantidade.
+
+📋 Antes da viagem, você recebe da gente as orientações de cada dia do roteiro.
+
+💬 Quer ver como fica o roteiro para as suas datas? É só chamar a gente aqui: [link do WhatsApp de vendas]` },
+];
+
+// ---------- comunidade do WhatsApp: cronograma de posts, texto no formato do WhatsApp e criador de artes ----------
+// Coleções: comunidade (um documento por post), comunidadeFotos (a foto da arte de cada post, já reduzida),
+// comunidadeFontes (os arquivos das fontes da marca, só para quem tem acesso) e config/comunidade (links de vendas).
+const CM_STATUS = ["Sem conteúdo", "Esperando revisão", "Conteúdo revisado", "Publicado"];
+const CM_PILL = { "Sem conteúdo": "neutral", "Esperando revisão": "warn", "Conteúdo revisado": "info", "Publicado": "ok" };
+const CM_DEST = ["Todos", "Atacama", "Salar de Uyuni", "Cusco e Machu Picchu", "Patagônia", "Ushuaia", "Mendoza", "Egito", "Japão"];
+const CM_DIAS = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"];
+const CM_LINK_PH = "[link do WhatsApp de vendas]";
+const CM_FORMATOS = { quadrado: [1080, 1080, "Quadrado (1:1)"], vertical: [1080, 1350, "Vertical (4:5)"], status: [1080, 1920, "Status (9:16)"] };
+const CM_MODELOS = { foto: "Foto inteira", moldura: "Foto com moldura", cor: "Cor sólida (sem foto)" };
+const CM_ALINHA = { centro: "Centro", esquerda: "Esquerda", direita: "Direita" };
+const CM_FOCO = { topo: "Topo", centro: "Centro", base: "Base" };
+// Araya Atacama fala de Deserto do Atacama e Salar de Uyuni; Araya Expedições, dos demais destinos
+const CM_DEST_ATACAMA = ["Atacama", "Salar de Uyuni"];
+const CM_MARCAS = { auto: "Automática pelo destino", expedicoes: "Araya Expedições", atacama: "Araya Atacama", araya: "Só ARAYA" };
+const CM_TOPOS = ["GRUPOS PEQUENOS • ROTEIROS COMPLETOS", "JAPÃO • EGITO • CUSCO • PATAGÔNIA • USHUAIA • MENDOZA", "EXPEDIÇÕES CUIDADOSAMENTE PLANEJADAS", "VEM VIVER O DESERTO COM QUEM PERTENCE A ELE", "@ARAYA.EXPEDICOES", "@ARAYA.ATACAMA"];
+const cmMarca = (p, a) => a.marca && a.marca !== "auto" ? a.marca : CM_DEST_ATACAMA.includes(p.destino) ? "atacama" : p.destino === "Todos" ? "araya" : "expedicoes";
+// cores do Brand Guide 2026
+const CM_PAL = { terracota: ["Terracota", "#964d29"], nude: ["Nude", "#d7b297"], offwhite: ["Off-White", "#f6eee6"], azul: ["Azul", "#8b969c"], oliva: ["Verde Oliva", "#7c7754"] };
+const cmCorClara = (k) => k === "offwhite" || k === "nude";
+// fontes do Brand Guide: Mouris Light (H1), Grift (H2, H3 e texto) e Cavello (destaques). Enquanto os arquivos não forem enviados, o portal usa fontes parecidas.
+const CM_FONTES = [
+  { slot: "mouris-light", nome: "Mouris Light", familia: "AR Mouris", peso: 300, uso: "Títulos (H1)" },
+  { slot: "grift-medium", nome: "Grift Medium", familia: "AR Grift", peso: 500, uso: "Subtítulos em maiúsculas (H2)" },
+  { slot: "grift-regular", nome: "Grift Regular", familia: "AR Grift", peso: 400, uso: "H3 em maiúsculas" },
+  { slot: "grift-light", nome: "Grift Light", familia: "AR Grift", peso: 300, uso: "Texto" },
+  { slot: "cavello", nome: "Cavello", familia: "AR Cavello", peso: 400, uso: "Destaques (H4)" },
+];
+const CM_F = { h1: '"AR Mouris", "Cormorant Garamond", Georgia, serif', grift: '"AR Grift", Outfit, Montserrat, sans-serif', cav: '"AR Cavello", "Cutive", "AR Grift", serif' };
+const cmPosts = () => Object.values(S.cm.posts).sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
+const cmAtual = () => S.cm.sel && S.cm.posts[S.cm.sel] ? S.cm.posts[S.cm.sel] : null;
+// tira emojis e a marcação do WhatsApp, para o título da arte
+const cmLimpo = (t) => String(t || "").replace(/[*_~`]/g, "").replace(/\p{Extended_Pictographic}|️|‍|[\u{1F1E6}-\u{1F1FF}]/gu, "").replace(/\s+/g, " ").trim();
+const cmTituloPadrao = (p) => cmLimpo(String(p.texto || "").split("\n").find(l => cmLimpo(l)) || p.tema || "");
+const CM_MODELO_ANTIGO = { cartao: "moldura", texto: "cor" };
+const cmArte = (p) => { const a = { modelo: "foto", formato: "quadrado", alinhamento: "centro", cor: "terracota", etiqueta: true, foco: "centro", mostrarDestino: false, marca: "auto", topo: "", titulo: cmTituloPadrao(p), subtitulo: "", ...(p.arte || {}) }; a.modelo = CM_MODELO_ANTIGO[a.modelo] || a.modelo; if (!CM_PAL[a.cor]) a.cor = "terracota"; return a; };
+
+// ---- links de vendas: dois números, escolhidos pelo destino do post ----
+const cmLinks = () => { const c = S.cm.cfg || {}; if (Array.isArray(c.links)) return c.links; return c.linkVendas ? [{ nome: "WhatsApp de vendas", url: c.linkVendas, destinos: [] }] : []; };
+function cmLinkDoPost(p) {
+  const ls = cmLinks(); if (!ls.some(l => l && l.url)) return null;
+  if (p.link !== undefined && p.link !== "" && ls[+p.link] && ls[+p.link].url) return { ...ls[+p.link], i: +p.link, auto: false };
+  let i = ls.findIndex(l => l && l.url && (l.destinos || []).includes(p.destino));
+  if (i < 0) { const pd = +((S.cm.cfg || {}).padrao || 0); i = ls[pd] && ls[pd].url ? pd : ls.findIndex(l => l && l.url); }
+  return { ...ls[i], i, auto: true };
+}
+const cmPendencias = (p) => { const tem = !!cmLinkDoPost(p); return [...new Set((String(p.texto || "").match(/\[[^\]\n]{2,120}\]/g) || []).filter(x => !(tem && x === CM_LINK_PH)))]; };
+const cmTextoFinal = (p) => { const l = cmLinkDoPost(p); return l ? String(p.texto || "").split(CM_LINK_PH).join(l.url) : String(p.texto || ""); };
+// prévia no jeito do WhatsApp: *negrito*, _itálico_, ~riscado~, ```mono``` e os trechos [entre colchetes] marcados
+function cmWhats(p) {
+  let h = esc(cmTextoFinal(p));
+  h = h.replace(/```([\s\S]+?)```/g, "<code>$1</code>")
+    .replace(/(^|[\s(>])\*(?=\S)([^*\n]+?)\*(?=$|[\s.,!?:;)<])/gm, "$1<strong>$2</strong>")
+    .replace(/(^|[\s(>])_(?=\S)([^_\n]+?)_(?=$|[\s.,!?:;)<])/gm, "$1<em>$2</em>")
+    .replace(/(^|[\s(>])~(?=\S)([^~\n]+?)~(?=$|[\s.,!?:;)<])/gm, "$1<s>$2</s>")
+    .replace(/\[[^\]\n]{2,120}\]/g, (m) => `<mark class="cm-ph">${m}</mark>`);
+  return h.replace(/\n/g, "<br>");
+}
+
+// ---- fontes da marca (arquivos enviados pela administração, guardados no Firestore) ----
+async function cmCarregarFontes() {
+  try {
+    const docs = docsOf(await col("comunidadeFontes").get());
+    S.cm.fontes = Object.fromEntries(docs.map(d => [d.id, { nome: d.nomeArquivo || "", tamanho: d.tamanho || 0 }]));
+    for (const d of docs) {
+      const f = CM_FONTES.find(x => x.slot === d.id); if (!f || !d.data) continue;
+      try { const ff = new FontFace(f.familia, `url(${d.data})`, { weight: String(f.peso) }); await ff.load(); document.fonts.add(ff); } catch (_) { S.cm.fontes[d.id].erro = true; }
+    }
+  } catch (_) { S.cm.fontes = {}; }
+}
+async function carregarComunidade() {
+  S.cm.loading = true;
+  try {
+    S.cm.posts = Object.fromEntries(docsOf(await col("comunidade").get()).map(p => [p.id, p]));
+    try { const c = await col("config").doc("comunidade").get(); S.cm.cfg = c.exists ? c.data() : {}; } catch (_) { S.cm.cfg = {}; }
+    await cmCarregarFontes();
+    S.cm.erro = false;
+  } catch (_) { S.cm.posts = {}; S.cm.erro = true; }
+  S.cm.loaded = true; S.cm.loading = false;
+  if (!S.cm.sel) { const prox = cmPosts().find(p => p.status !== "Publicado"); S.cm.sel = prox ? prox.id : (cmPosts()[0] || {}).id || null; }
+}
+function comunidadeView() {
+  const head = `<div class="section-head"><div><h2>Comunidade</h2><p>Cronograma de posts da comunidade no WhatsApp. Prepare o texto e a arte aqui, depois é só copiar e colar na comunidade.</p></div>
+    <div class="row">${S.cm.loaded && !S.cm.erro ? `<button type="button" class="btn ghost" data-cm="fontes">Fontes da marca</button><button type="button" class="btn ghost" data-cm="config">Links de vendas</button><button type="button" class="btn primary" data-cm="novo">Novo post</button>` : ""}</div></div>`;
+  if (!S.cm.loaded) { if (!S.cm.loading) carregarComunidade().then(render); return head + `<div class="empty"><strong>Carregando os posts…</strong></div>`; }
+  if (S.cm.erro) return head + `<div class="banner warn-b"><span>Para ativar esta aba, publique as regras novas do Firestore (arquivo regras-firestore).</span></div>`;
+  const todos = cmPosts();
+  if (!todos.length) return head + `<div class="empty"><strong>Nenhum post ainda</strong><span>Traga os 28 posts do cronograma que você montou na planilha, ou comece um post do zero.</span>
+    <div class="row" style="justify-content:center"><button type="button" class="btn primary" data-cm="importar">Trazer os 28 posts do cronograma</button></div></div>`;
+  const f = S.cm.filtro || "todos", fd = S.cm.dest || "";
+  const conta = (st) => todos.filter(p => p.status === st).length;
+  const lista = todos.filter(p => (f === "todos" || p.status === f) && (!fd || p.destino === fd));
+  const semanas = []; lista.forEach(p => { const k = p.semana || "Sem semana"; let g = semanas.find(x => x.k === k); if (!g) semanas.push(g = { k, ps: [] }); g.ps.push(p); });
+  if (S.cm.sel && !lista.some(p => p.id === S.cm.sel) && lista.length) S.cm.sel = lista[0].id;
+  const pub = conta("Publicado"), prox = todos.find(p => p.status !== "Publicado");
+  const faltaLink = !cmLinks().some(l => l && l.url), faltaFonte = CM_FONTES.some(x => !(S.cm.fontes || {})[x.slot]);
+  const avisos = (faltaLink ? `<div class="banner"><span><strong>Cadastre os links de vendas</strong> para eles entrarem sozinhos no lugar de ${esc(CM_LINK_PH)}, conforme o destino de cada post.</span><button type="button" class="btn sm primary" data-cm="config">Cadastrar links</button></div>` : "")
+    + (faltaFonte ? `<div class="banner"><span><strong>As fontes da marca ainda não foram enviadas.</strong> Enquanto isso, as artes usam fontes parecidas. Envie os arquivos da Mouris, Grift e Cavello para as artes ficarem iguais ao Brand Guide.</span><button type="button" class="btn sm" data-cm="fontes">Enviar fontes</button></div>` : "");
+  const tiles = `<div class="tiles">
+    <div class="tile feature"><span class="k">Publicados</span><span class="v">${pub} de ${todos.length}</span><span class="d">${prox ? "Próximo: " + esc(prox.semana || "") + " · " + esc(prox.dia || "") : "Cronograma completo 🎉"}</span></div>
+    <div class="tile"><span class="k">Prontos para publicar</span><span class="v">${conta("Conteúdo revisado")}</span><span class="d">Conteúdo revisado</span></div>
+    <div class="tile"><span class="k">Esperando revisão</span><span class="v">${conta("Esperando revisão")}</span><span class="d">${conta("Sem conteúdo")} ainda sem conteúdo</span></div></div>`;
+  const filtros = `<div class="row" style="align-items:center;gap:10px;flex-wrap:wrap"><div class="chips" role="group" aria-label="Filtrar por status">${[["todos", `Todos · ${todos.length}`], ...CM_STATUS.map(s => [s, `${s} · ${conta(s)}`])].map(([k, t]) => `<button type="button" class="chip" data-cm-filtro="${esc(k)}" aria-pressed="${k === f}">${esc(t)}</button>`).join("")}</div>
+    <select data-cm-dest style="width:auto"><option value="">Todos os destinos</option>${CM_DEST.map(d => `<option ${d === fd ? "selected" : ""}>${esc(d)}</option>`).join("")}</select></div>`;
+  const listaHtml = semanas.length ? semanas.map(g => `<div class="cm-sem"><h4>${esc(g.k)}</h4>${g.ps.map(p => `<button type="button" class="cm-item" data-cm-sel="${esc(p.id)}" aria-current="${p.id === S.cm.sel}">
+      <span class="cm-item-top"><span class="muted small">${esc(p.dia || "")}${p.dataEnvio ? " · " + dLabel(p.dataEnvio).slice(0, 5) : ""}</span><span class="pill ${CM_PILL[p.status] || "neutral"}">${esc(p.status || "Sem conteúdo")}</span></span>
+      <strong>${esc(p.tema || "Post sem tema")}</strong>${p.destino && p.destino !== "Todos" ? `<span>${destTag(p.destino)}</span>` : ""}</button>`).join("")}</div>`).join("")
+    : `<div class="empty"><strong>Nenhum post com esse filtro</strong></div>`;
+  const p = cmAtual();
+  if (p) setTimeout(() => { cmCarregarFoto(p.id); cmDesenhar(); }, 0); // a arte é desenhada depois que a tela monta
+  return head + avisos + tiles + filtros + `<div class="cm-grid"><nav class="panel cm-lista" aria-label="Posts">${listaHtml}</nav><div class="cm-editor">${p ? cmEditor(p) : `<div class="empty"><strong>Escolha um post na lista</strong></div>`}</div></div>`;
+}
+const cmLinkHtml = (p) => {
+  const ls = cmLinks(), l = cmLinkDoPost(p);
+  if (!ls.some(x => x && x.url)) return "";
+  return `<div class="field"><label for="cm-link">Link de vendas deste post</label><select id="cm-link" data-cm-campo="link"><option value="">Automático pelo destino${l && (p.link === undefined || p.link === "") ? " (" + esc(l.nome || "Link " + (l.i + 1)) + ")" : ""}</option>${ls.map((x, i) => x && x.url ? `<option value="${i}" ${String(p.link) === String(i) ? "selected" : ""}>${esc(x.nome || "Link " + (i + 1))}</option>` : "").join("")}</select></div>`;
+};
+function cmEditor(p) {
+  const a = cmArte(p), pend = cmPendencias(p);
+  const fmt = CM_FORMATOS[a.formato] || CM_FORMATOS.quadrado;
+  const opt = (obj, sel) => Object.entries(obj).map(([k, v]) => `<option value="${k}" ${k === sel ? "selected" : ""}>${esc(Array.isArray(v) ? (v.length === 3 ? v[2] : v[0]) : v)}</option>`).join("");
+  return `<section class="panel"><div class="section-head"><div><h3>${esc(p.tema || "Post sem tema")}</h3><span class="muted small" id="cm-salvo">${p.atualizadoEm ? "Salvo" : ""}</span></div>
+      <div class="row"><span class="pill ${CM_PILL[p.status] || "neutral"}">${esc(p.status || "Sem conteúdo")}</span></div></div>
+    <div class="cm-campos">
+      <div class="field"><label for="cm-semana">Semana</label><input type="text" id="cm-semana" data-cm-campo="semana" value="${esc(p.semana || "")}" maxlength="30"></div>
+      <div class="field"><label for="cm-dia">Dia</label><select id="cm-dia" data-cm-campo="dia">${CM_DIAS.map(d => `<option ${d === p.dia ? "selected" : ""}>${d}</option>`).join("")}</select></div>
+      <div class="field"><label for="cm-destino">Destino</label><select id="cm-destino" data-cm-campo="destino">${CM_DEST.map(d => `<option ${d === p.destino ? "selected" : ""}>${esc(d)}</option>`).join("")}</select></div>
+      <div class="field"><label for="cm-status">Status</label><select id="cm-status" data-cm-campo="status">${CM_STATUS.map(s => `<option ${s === p.status ? "selected" : ""}>${s}</option>`).join("")}</select></div>
+      <div class="field"><label for="cm-envio">Data de envio</label><input type="date" id="cm-envio" data-cm-campo="dataEnvio" value="${esc(p.dataEnvio || "")}"></div>
+      <div class="field"><label for="cm-resp">Responsável</label><input type="text" id="cm-resp" data-cm-campo="responsavel" value="${esc(p.responsavel || "")}" maxlength="60"></div>
+    </div>
+    <div class="field"><label for="cm-tema">Tema</label><input type="text" id="cm-tema" data-cm-campo="tema" value="${esc(p.tema || "")}" maxlength="140"></div>
+    <div class="field"><label for="cm-conf">Conferir antes de publicar</label><input type="text" id="cm-conf" data-cm-campo="conferir" value="${esc(p.conferir || "")}" maxlength="300"></div>
+    ${cmLinkHtml(p)}
+  </section>
+  <section class="panel"><div class="section-head"><div><h3>Texto do post</h3><span class="muted small">*negrito*, _itálico_ e ~riscado~ funcionam como no WhatsApp. O que estiver [entre colchetes] aparece marcado para você ajustar.</span></div></div>
+    <div class="cm-texto">
+      <div class="field"><label for="cm-txt">Texto</label><textarea id="cm-txt" data-cm-campo="texto" rows="18" spellcheck="true">${esc(p.texto || "")}</textarea><span class="muted small" id="cm-conta">${(p.texto || "").length} caracteres</span></div>
+      <div class="field"><label>Como vai ficar no WhatsApp</label><div class="cm-wa"><div class="cm-bolha" id="cm-prev">${cmWhats(p) || '<span class="muted">O texto aparece aqui.</span>'}</div></div></div>
+    </div>
+    <div id="cm-pend">${cmPendHtml(p, pend)}</div>
+    <div class="row"><button type="button" class="btn primary" data-cm="copiar-texto" id="cm-copiar">Copiar texto</button>
+      ${p.status !== "Publicado" ? `<button type="button" class="btn" data-cm="publicado">Marcar como publicado</button>` : ""}
+      <button type="button" class="btn ghost" data-cm="excluir">Excluir post</button></div>
+  </section>
+  <section class="panel"><div class="section-head"><div><h3>Arte</h3><span class="muted small">${p.imagem ? "Sugestão de imagem: " + esc(p.imagem) : "Escolha uma foto e ajuste o título."}</span></div></div>
+    <div class="cm-arte">
+      <div class="cm-canvas-box"><canvas id="cm-canvas" width="${fmt[0]}" height="${fmt[1]}" aria-label="Prévia da arte"></canvas></div>
+      <div class="cm-arte-campos">
+        <div class="cm-arte-2"><div class="field"><label for="cm-a-modelo">Modelo</label><select id="cm-a-modelo" data-cm-arte="modelo">${opt(CM_MODELOS, a.modelo)}</select></div>
+          <div class="field"><label for="cm-a-formato">Formato</label><select id="cm-a-formato" data-cm-arte="formato">${opt(CM_FORMATOS, a.formato)}</select></div>
+          <div class="field"><label for="cm-a-alinha">Alinhamento</label><select id="cm-a-alinha" data-cm-arte="alinhamento">${opt(CM_ALINHA, a.alinhamento)}</select></div>
+          <div class="field"><label for="cm-a-cor">Cor</label><select id="cm-a-cor" data-cm-arte="cor">${opt(CM_PAL, a.cor)}</select></div></div>
+        <div class="field"><label for="cm-a-titulo">Título (H1, Mouris)</label><textarea id="cm-a-titulo" data-cm-arte="titulo" rows="2" maxlength="120">${esc(a.titulo)}</textarea></div>
+        <div class="field"><label for="cm-a-sub">Subtítulo (H2, Grift em maiúsculas)</label><input type="text" id="cm-a-sub" data-cm-arte="subtitulo" value="${esc(a.subtitulo)}" maxlength="70" placeholder="Ex.: como se preparar para este dia"></div>
+        <div class="cm-arte-2"><div class="field"><label for="cm-a-marca">Marca</label><select id="cm-a-marca" data-cm-arte="marca">${Object.entries(CM_MARCAS).map(([k, v]) => `<option value="${k}" ${k === a.marca ? "selected" : ""}>${esc(k === "auto" ? v + " (" + CM_MARCAS[cmMarca(p, { marca: "auto" })] + ")" : v)}</option>`).join("")}</select></div>
+          <div class="field"><label for="cm-a-topo">Linha no alto (opcional)</label><input type="text" id="cm-a-topo" data-cm-arte="topo" list="cm-topos" value="${esc(a.topo)}" maxlength="70" placeholder="Ex.: grupos pequenos • roteiros completos"><datalist id="cm-topos">${CM_TOPOS.map(t => `<option value="${esc(t)}">`).join("")}</datalist></div></div>
+        <label class="toggle"><input type="checkbox" data-cm-arte="etiqueta" ${a.etiqueta ? "checked" : ""}>Subtítulo dentro de uma etiqueta</label>
+        <label class="toggle"><input type="checkbox" data-cm-arte="mostrarDestino" ${a.mostrarDestino ? "checked" : ""}>Mostrar o destino (Cavello)</label>
+        <div class="field" ${a.modelo === "cor" ? "hidden" : ""} id="cm-foto-box"><label for="cm-foto">Foto</label><input type="file" id="cm-foto" accept="image/jpeg,image/png,image/webp"><span class="muted small" id="cm-foto-info">${S.cm.fotos[p.id] ? "Foto escolhida. Para trocar, escolha outra." : S.cm.fotos[p.id] === null ? "Ainda sem foto." : "Carregando a foto…"}</span></div>
+        <div class="field" ${a.modelo === "cor" ? "hidden" : ""} id="cm-foco-box"><label for="cm-a-foco">Enquadramento da foto</label><select id="cm-a-foco" data-cm-arte="foco">${opt(CM_FOCO, a.foco)}</select></div>
+        <div class="row"><button type="button" class="btn primary" data-cm="copiar-arte">Copiar imagem</button><button type="button" class="btn" data-cm="baixar-arte">Baixar PNG</button></div>
+        <p class="muted small" style="margin:0">“Copiar imagem” coloca a arte na área de transferência: no WhatsApp Web é só colar. No celular, use “Baixar PNG”.</p>
+      </div>
+    </div>
+  </section>`;
+}
+function cmPendHtml(p, pend) {
+  const l = cmLinkDoPost(p), temPh = String(p.texto || "").includes(CM_LINK_PH);
+  return (pend.length ? `<div class="banner warn-b"><span><strong>Ainda tem ${pend.length} ${pend.length === 1 ? "trecho" : "trechos"} para ajustar:</strong> ${pend.map(esc).join(" · ")}</span></div>` : "")
+    + (temPh && l ? `<p class="muted small" style="margin:0">O link de vendas entra como <strong>${esc(l.nome || "Link " + (l.i + 1))}</strong> (${esc(l.url)})${l.auto ? ", escolhido pelo destino" : ""}.</p>` : "")
+    + (temPh && !l ? `<p class="muted small" style="margin:0">Dica: cadastre os links em “Links de vendas” e o certo entra sozinho no lugar de ${esc(CM_LINK_PH)} na hora de copiar.</p>` : "");
+}
+
+// ---- gravação (salva sozinho, um instante depois de você parar de digitar) ----
+let cmTimer = null, cmPendente = {};
+function cmAgendar(id, campos, ms = 900) {
+  cmPendente[id] = { ...(cmPendente[id] || {}), ...campos };
+  Object.assign(S.cm.posts[id], campos);
+  const s = $("#cm-salvo"); if (s) s.textContent = "Salvando…";
+  clearTimeout(cmTimer); cmTimer = setTimeout(cmGravar, ms);
+}
+async function cmGravar() {
+  const fila = cmPendente; cmPendente = {};
+  try {
+    for (const [id, campos] of Object.entries(fila)) { const extra = { atualizadoEm: new Date().toISOString(), atualizadoPor: S.email }; await col("comunidade").doc(id).set({ ...campos, ...extra }, { merge: true }); Object.assign(S.cm.posts[id] || {}, extra); }
+    const s = $("#cm-salvo"); if (s) s.textContent = "Salvo";
+  } catch (e) { const s = $("#cm-salvo"); if (s) s.textContent = "Não foi possível salvar"; toast(errMsg(e)); }
+}
+const cmSalvarJa = async () => { clearTimeout(cmTimer); if (Object.keys(cmPendente).length) await cmGravar(); };
+
+// ---- criador de artes (canvas), no estilo das aplicações do Brand Guide 2026 ----
+// isotipo (as montanhas) e assinatura ARAYA saem do mesmo desenho do logo, recortados
+const CM_RECORTE = { iso: [470, 0, 1420, 630], marca: [0, 880, 2362, 420], completo: [0, 0, 2362, 1731] };
+const _cmLogo = {};
+function cmLogo(parte, cor) {
+  const k = parte + cor; if (_cmLogo[k]) return _cmLogo[k];
+  return (_cmLogo[k] = new Promise((res) => {
+    const d = (document.querySelector("#araya-logo path") || { getAttribute: () => "" }).getAttribute("d"), vb = CM_RECORTE[parte];
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vb.join(" ")}" width="${vb[2]}" height="${vb[3]}"><path fill="${cor}" fill-rule="evenodd" d="${d}"/></svg>`;
+    const img = new Image(); img.onload = () => res(img); img.onerror = () => res(null);
+    img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+  }));
+}
+const _cmImg = {};
+function cmFotoImg(id) {
+  const src = S.cm.fotos[id]; if (!src) return Promise.resolve(null);
+  if (_cmImg[id] && _cmImg[id].src === src) return _cmImg[id].p;
+  const p = new Promise((res) => { const img = new Image(); img.onload = () => res(img); img.onerror = () => res(null); img.src = src; });
+  _cmImg[id] = { src, p }; return p;
+}
+async function cmCarregarFoto(id) {
+  if (S.cm.fotos[id] !== undefined) return;
+  try { const d = await col("comunidadeFotos").doc(id).get(); S.cm.fotos[id] = d.exists ? d.data().data || null : null; } catch (_) { S.cm.fotos[id] = null; }
+  const info = $("#cm-foto-info"); if (info && S.cm.sel === id) info.textContent = S.cm.fotos[id] ? "Foto escolhida. Para trocar, escolha outra." : "Ainda sem foto.";
+  if (S.cm.sel === id) cmDesenhar();
+}
+function cmLinhas(ctx, txt, max) {
+  const out = []; String(txt || "").split("\n").forEach(par => { let l = ""; par.split(/\s+/).filter(Boolean).forEach(w => { const t = l ? l + " " + w : w; if (ctx.measureText(t).width > max && l) { out.push(l); l = w; } else l = t; }); if (l) out.push(l); });
+  return out;
+}
+// escolhe o maior tamanho de fonte em que o texto cabe no número de linhas
+function cmAjustar(ctx, txt, max, fam, peso, grande, pequeno, maxL) {
+  let t = grande, ls;
+  // títulos curtos ficam numa linha só, como nas aplicações do guia, se der para manter um tamanho bom
+  for (let u = grande; u >= Math.max(pequeno, grande * 0.72); u -= 4) { ctx.font = `${peso} ${u}px ${fam}`; const l1 = cmLinhas(ctx, txt, max); if (l1.length === 1) return { t: u, ls: l1 }; }
+  for (; t >= pequeno; t -= 4) { ctx.font = `${peso} ${t}px ${fam}`; ls = cmLinhas(ctx, txt, max); if (ls.length <= maxL) break; }
+  return { t, ls };
+}
+function cmCobrir(ctx, img, x, y, w, h, foco) {
+  const r = Math.max(w / img.width, h / img.height), iw = img.width * r, ih = img.height * r;
+  const fy = foco === "topo" ? 0 : foco === "base" ? 1 : 0.5;
+  ctx.save(); ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+  ctx.drawImage(img, x + (w - iw) / 2, y + (h - ih) * fy, iw, ih); ctx.restore();
+}
+function cmRetArred(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+const cmEspaco = (ctx, px) => { if ("letterSpacing" in ctx) ctx.letterSpacing = px + "px"; };
+// texto em maiúsculas com espaçamento (H2/H4); com etiqueta, desenha a caixa arredondada atrás
+function cmCaixaAlta(ctx, txt, x, y, al, fonte, cor, esp, caixa) {
+  ctx.font = fonte; cmEspaco(ctx, esp); const t = txt.toUpperCase(), w = ctx.measureText(t).width;
+  const x0 = al === "center" ? x - w / 2 : al === "right" ? x - w : x;
+  if (caixa) { const ph = 20, alt = parseInt(fonte.match(/(\d+)px/)[1], 10) * 1.55; ctx.fillStyle = caixa; cmRetArred(ctx, x0 - ph, y - alt * 0.72, w + 2 * ph, alt, 10); ctx.fill(); }
+  ctx.fillStyle = cor; ctx.textAlign = "left"; ctx.fillText(t, x0, y); cmEspaco(ctx, 0);
+  return w;
+}
+let _cmDesenho = 0;
+async function cmDesenhar() {
+  const cv = $("#cm-canvas"), p = cmAtual(); if (!cv || !p) return;
+  const vez = ++_cmDesenho, a = cmArte(p), [W, H] = (CM_FORMATOS[a.formato] || CM_FORMATOS.quadrado);
+  try { await Promise.all(['300 90px "AR Mouris"', '300 90px "Cormorant Garamond"', '500 34px "AR Grift"', "500 34px Outfit", '400 30px "AR Cavello"', "400 30px Cutive"].map(f => document.fonts.load(f))); } catch (_) {}
+  const foto = a.modelo === "cor" ? null : await cmFotoImg(p.id);
+  const corK = a.cor, cor = CM_PAL[corK][1], claro = cmCorClara(corK);
+  const fundoClaro = a.modelo === "moldura" || (a.modelo === "cor" && claro);
+  const tinta = fundoClaro ? (a.modelo === "moldura" && !claro ? cor : CM_PAL.terracota[1]) : CM_PAL.offwhite[1];
+  const [iso, marca] = await Promise.all([cmLogo("iso", tinta), cmLogo("marca", tinta)]);
+  if (vez !== _cmDesenho) return; // já tem um desenho mais novo a caminho
+  if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+  const ctx = cv.getContext("2d"), M = Math.round(W * 0.085), al = a.alinhamento === "esquerda" ? "left" : a.alinhamento === "direita" ? "right" : "center";
+  const xT = al === "left" ? M : al === "right" ? W - M : W / 2, larg = W - 2 * M;
+  const dest = a.mostrarDestino && p.destino && p.destino !== "Todos" ? p.destino : "";
+  const desenhaImg = (img, w, x, y, alinh) => { if (!img) return 0; const h = w * img.height / img.width; ctx.drawImage(img, alinh === "center" ? x - w / 2 : alinh === "right" ? x - w : x, y, w, h); return h; };
+  ctx.clearRect(0, 0, W, H); ctx.textBaseline = "alphabetic";
+  // fundo
+  let areaFoto = null;
+  if (a.modelo === "foto") {
+    if (foto) cmCobrir(ctx, foto, 0, 0, W, H, a.foco); else { ctx.fillStyle = "#5a4a3c"; ctx.fillRect(0, 0, W, H); }
+    ctx.fillStyle = "rgba(25,16,10,.20)"; ctx.fillRect(0, 0, W, H); // véu leve para o texto respirar
+    if (al === "center") { const g = ctx.createRadialGradient(W / 2, H * 0.52, W * 0.1, W / 2, H * 0.52, W * 0.75); g.addColorStop(0, "rgba(25,16,10,.30)"); g.addColorStop(1, "rgba(25,16,10,0)"); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); }
+    else { const g = ctx.createLinearGradient(0, H * 0.35, 0, H); g.addColorStop(0, "rgba(25,16,10,0)"); g.addColorStop(1, "rgba(25,16,10,.62)"); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); }
+    if (!foto) { ctx.fillStyle = "rgba(246,238,230,.7)"; ctx.font = `400 34px ${CM_F.grift}`; ctx.textAlign = "center"; ctx.fillText("Escolha uma foto", W / 2, H * 0.3); }
+  } else if (a.modelo === "moldura") {
+    ctx.fillStyle = claro ? cor : CM_PAL.offwhite[1]; ctx.fillRect(0, 0, W, H);
+    const fh = Math.round(H * 0.53); areaFoto = [M * 0.6, M * 0.6, W - M * 1.2, fh];
+    ctx.save(); cmRetArred(ctx, ...areaFoto, 28); ctx.clip();
+    if (foto) cmCobrir(ctx, foto, ...areaFoto, a.foco); else { ctx.fillStyle = CM_PAL.nude[1]; ctx.fillRect(...areaFoto); ctx.fillStyle = CM_PAL.terracota[1]; ctx.font = `400 34px ${CM_F.grift}`; ctx.textAlign = "center"; ctx.fillText("Escolha uma foto", W / 2, areaFoto[1] + fh / 2); }
+    ctx.restore();
+  } else { ctx.fillStyle = cor; ctx.fillRect(0, 0, W, H); }
+  // título (H1 Mouris Light) e subtítulo (H2 Grift Medium em maiúsculas)
+  const corTxt = a.modelo === "moldura" ? (claro ? CM_PAL.terracota[1] : cor) : tinta;
+  const maxL = a.modelo === "moldura" ? 2 : 3, gT = a.formato === "status" ? 140 : 124;
+  const { t, ls } = cmAjustar(ctx, a.titulo, larg, CM_F.h1, 300, gT, 56, maxL);
+  const lh = t * 1.08, subT = a.formato === "status" ? 40 : 36, etiqueta = a.subtitulo && a.etiqueta;
+  const caixaCor = fundoClaro ? CM_PAL.terracota[1] : (a.modelo === "foto" ? (corK === "offwhite" ? "rgba(246,238,230,.9)" : cor) : CM_PAL.offwhite[1]);
+  const subCor = etiqueta ? (fundoClaro ? CM_PAL.offwhite[1] : (a.modelo === "foto" && corK !== "offwhite" && corK !== "nude" ? CM_PAL.offwhite[1] : CM_PAL.terracota[1])) : corTxt;
+  const caixa = etiqueta ? (a.modelo === "foto" && cmCorClara(corK) ? (corK === "nude" ? "rgba(215,178,151,.92)" : "rgba(246,238,230,.9)") : caixaCor) : null;
+  const blocoH = (dest ? 64 : 0) + lh * (ls.length - 1) + t * 0.78 + (a.subtitulo ? (etiqueta ? 76 : 62) : 0);
+  let y0;
+  if (a.modelo === "moldura") y0 = areaFoto[1] + areaFoto[3] + 70;
+  else if (a.modelo === "foto" && al !== "center") y0 = H - M - 150 - blocoH;
+  else y0 = (H - blocoH) / 2 + (a.modelo === "cor" ? 10 : 30);
+  let y = y0;
+  if (dest) { cmCaixaAlta(ctx, dest, xT, y + 26, al, `400 30px ${CM_F.cav}`, corTxt, 4, null); y += 64; }
+  ctx.font = `300 ${t}px ${CM_F.h1}`; ctx.fillStyle = corTxt; ctx.textAlign = al;
+  if (a.modelo === "foto" && !fundoClaro) { ctx.shadowColor = "rgba(0,0,0,.25)"; ctx.shadowBlur = 18; }
+  ls.forEach((l, i) => ctx.fillText(l, xT, y + t * 0.78 + i * lh)); ctx.shadowBlur = 0; ctx.shadowColor = "transparent";
+  y += t * 0.78 + lh * (ls.length - 1);
+  if (a.subtitulo) { ctx.font = `500 ${subT}px ${CM_F.grift}`; const max = larg - 40; let s = a.subtitulo; while (ctx.measureText(s.toUpperCase()).width > max && s.length > 4) s = s.slice(0, -2); cmCaixaAlta(ctx, s, xT, y + (etiqueta ? 62 : 54), al, `500 ${subT}px ${CM_F.grift}`, subCor, 2, caixa); }
+  // isotipo, assinatura (ARAYA + EXPEDIÇÕES ou ATACAMA) e a linha no alto, nos lugares das aplicações do Brand Guide
+  const marcaK = cmMarca(p, a), subMarca = marcaK === "atacama" ? "ATACAMA" : marcaK === "expedicoes" ? "EXPEDIÇÕES" : "";
+  // desenha de baixo para cima: linha da marca, ARAYA e (se pedir) o isotipo em cima; devolve a altura usada
+  const assinatura = (x, base, w, alinh, comIso, corA) => {
+    const mh = w * 420 / 2362, fs = Math.round(w * 0.085), cx = alinh === "center" ? x : alinh === "right" ? x - w / 2 : x + w / 2;
+    let y = base;
+    if (subMarca) { ctx.font = `400 ${fs}px ${CM_F.grift}`; cmEspaco(ctx, Math.round(fs * 0.45)); ctx.fillStyle = corA; ctx.textAlign = "center"; ctx.fillText(subMarca, cx + fs * 0.22, y); cmEspaco(ctx, 0); y -= fs * 1.7; }
+    desenhaImg(marca, w, x, y - mh, alinh); y -= mh;
+    if (comIso) { const iw = w * 0.45; y -= 18 + iw * 630 / 1420; desenhaImg(iso, iw, cx, y, "center"); }
+    return base - y;
+  };
+  const topo = (a.topo || "").trim();
+  if (topo) {
+    const corTopo = a.modelo === "moldura" ? CM_PAL.offwhite[1] : tinta, yT = a.modelo === "moldura" ? M * 0.6 + 64 : (a.formato === "status" ? M * 2 : M * 0.95);
+    ctx.font = `400 30px ${CM_F.cav}`; let tx = topo; while (ctx.measureText(tx.toUpperCase()).width > W - 2 * M - 40 && tx.length > 4) tx = tx.slice(0, -2);
+    if (a.modelo === "moldura") { ctx.shadowColor = "rgba(0,0,0,.35)"; ctx.shadowBlur = 10; }
+    cmCaixaAlta(ctx, tx, a.modelo === "foto" && al !== "center" ? xT : W / 2, yT, a.modelo === "foto" && al !== "center" ? al : "center", `400 30px ${CM_F.cav}`, corTopo, 3, null);
+    ctx.shadowBlur = 0; ctx.shadowColor = "transparent";
+  }
+  const baseY = H - M * (a.formato === "status" ? 2.2 : a.modelo === "moldura" ? 0.6 : 0.9);
+  if (a.modelo === "moldura") {
+    assinatura(al === "right" ? M : W - M, baseY, 190, al === "right" ? "left" : "right", false, tinta);
+  } else if (al === "center") {
+    if (topo) assinatura(W / 2, baseY, 230, "center", true, tinta); // como na "Expedição Japão": isotipo e ARAYA juntos embaixo
+    else { desenhaImg(iso, a.formato === "status" ? 170 : 150, W / 2, a.formato === "status" ? M * 2.2 : M * 0.9, "center"); assinatura(W / 2, baseY, 230, "center", false, tinta); }
+  } else {
+    const ladoIso = al === "left" ? "left" : "right", ladoMarca = al === "left" ? "right" : "left";
+    desenhaImg(iso, 120, al === "left" ? M : W - M, baseY - 120 * 630 / 1420, ladoIso);
+    assinatura(al === "left" ? W - M : M, baseY, 210, ladoMarca, false, tinta);
+  }
+}
+// reduz a foto escolhida para caber num documento do Firestore (até ~900 KB)
+function cmReduzir(file) {
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let lado = 1600, q = 0.85, out = "";
+      for (let i = 0; i < 8; i++) {
+        const r = Math.min(1, lado / Math.max(img.width, img.height)), c = document.createElement("canvas");
+        c.width = Math.round(img.width * r); c.height = Math.round(img.height * r); c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        out = c.toDataURL("image/jpeg", q); if (out.length < 900000) return res(out);
+        if (q > 0.65) q -= 0.08; else lado = Math.round(lado * 0.85);
+      }
+      res(out);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); rej(new Error("formato")); };
+    img.src = url;
+  });
+}
+const cmNomeArquivo = (p) => "araya-comunidade-" + semAcento(`${p.semana || ""}-${p.dia || ""}-${p.destino || ""}`).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + ".png";
+function abrirConfigComunidade() {
+  const ls = cmLinks(), pd = +((S.cm.cfg || {}).padrao ?? 1);
+  const sug = [{ nome: "Araya Atacama", destinos: CM_DEST_ATACAMA }, { nome: "Araya Expedições", destinos: CM_DEST.filter(d => d !== "Todos" && !CM_DEST_ATACAMA.includes(d)) }];
+  const bloco = (i) => { const l = ls[i] || (ls.length ? { nome: "", url: "", destinos: [] } : { ...sug[i], url: "" }); return `<fieldset class="cm-linkbox"><legend>Número ${i + 1}</legend>
+      <div class="field"><label for="cm-l${i}-nome">Nome</label><input type="text" id="cm-l${i}-nome" value="${esc(l.nome || "")}" maxlength="40" placeholder="Ex.: ${esc(sug[i].nome)}"></div>
+      <div class="field"><label for="cm-l${i}-url">Link do WhatsApp</label><input type="text" id="cm-l${i}-url" value="${esc(l.url || "")}" placeholder="https://wa.me/55..." maxlength="200"></div>
+      <div class="field"><label>Destinos que usam este número</label><div class="toggles">${CM_DEST.filter(d => d !== "Todos").map(d => `<label class="toggle"><input type="checkbox" data-cm-ldest="${i}" value="${esc(d)}" ${(l.destinos || []).includes(d) ? "checked" : ""}>${esc(d)}</label>`).join("")}</div></div>
+      <label class="toggle"><input type="radio" name="cm-padrao" value="${i}" ${pd === i ? "checked" : ""}>Usar este número nos posts para todos os destinos</label></fieldset>`; };
+  $("#layer").innerHTML = `<div class="overlay" data-close><div class="dialog" style="max-width:620px">
+    <div class="section-head"><h2>Links de vendas</h2><button type="button" class="btn sm ghost" data-close-btn>Fechar</button></div>
+    <p class="muted small" style="margin:0">Ao copiar um post, o link certo entra no lugar de ${esc(CM_LINK_PH)}, conforme o destino do post. Em cada post dá para trocar à mão, se precisar.</p>
+    ${bloco(0)}${bloco(1)}
+    <p class="small" id="cm-cfg-erro" style="color:var(--bad);margin:0" hidden></p>
+    <div class="row"><button type="button" class="btn primary" data-cm-salvar-cfg>Salvar</button></div></div></div>`;
+}
+function abrirFontesComunidade() {
+  const fs = S.cm.fontes || {}, kb = (n) => Math.round(n / 1024) + " KB";
+  $("#layer").innerHTML = `<div class="overlay" data-close><div class="dialog" style="max-width:600px">
+    <div class="section-head"><h2>Fontes da marca</h2><button type="button" class="btn sm ghost" data-close-btn>Fechar</button></div>
+    <p class="muted small" style="margin:0">Envie os arquivos das fontes do Brand Guide (.otf, .ttf, .woff ou .woff2). Eles ficam guardados no portal, visíveis só para quem tem acesso a esta aba, e são usados nas artes. Peça os arquivos para quem criou a identidade visual, se não estiverem com você.</p>
+    <div class="cm-fontes">${CM_FONTES.map(f => { const x = fs[f.slot]; return `<div class="cm-fonte"><div><strong>${esc(f.nome)}</strong><span class="muted small">${esc(f.uso)}</span></div>
+      <span class="pill ${x ? (x.erro ? "bad" : "ok") : "neutral"}">${x ? (x.erro ? "Arquivo com problema" : "Enviada · " + kb(x.tamanho)) : "Não enviada"}</span>
+      <label class="btn sm">${x ? "Trocar" : "Escolher arquivo"}<input type="file" hidden accept=".otf,.ttf,.woff,.woff2,font/otf,font/ttf,font/woff,font/woff2" data-cm-fonte="${f.slot}"></label></div>`; }).join("")}</div>
+    <p class="small" id="cm-fonte-msg" style="margin:0" hidden></p></div></div>`;
+}
+$("#layer").addEventListener("change", async (e) => {
+  const t = e.target; if (!t.dataset || !t.dataset.cmFonte || !t.files || !t.files[0]) return;
+  const f = CM_FONTES.find(x => x.slot === t.dataset.cmFonte), arq = t.files[0], msg = $("#cm-fonte-msg");
+  const aviso = (txt, ruim) => { if (msg) { msg.hidden = false; msg.textContent = txt; msg.style.color = ruim ? "var(--bad)" : ""; } };
+  if (arq.size > 650 * 1024) { aviso(`O arquivo ${arq.name} tem ${Math.round(arq.size / 1024)} KB. Use a versão .woff2 ou .otf, que costuma ter menos de 650 KB.`, true); return; }
+  aviso("Enviando " + arq.name + "…");
+  try {
+    const data = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).replace(/^data:[^;]*;/, "data:font/" + (arq.name.split(".").pop() || "otf").toLowerCase() + ";")); r.onerror = rej; r.readAsDataURL(arq); });
+    const ff = new FontFace(f.familia, `url(${data})`, { weight: String(f.peso) }); await ff.load(); document.fonts.add(ff);
+    await col("comunidadeFontes").doc(f.slot).set({ data, nomeArquivo: arq.name, tamanho: arq.size, atualizadoEm: new Date().toISOString(), atualizadoPor: S.email });
+    S.cm.fontes = { ...(S.cm.fontes || {}), [f.slot]: { nome: arq.name, tamanho: arq.size } };
+    registrar(`Fonte da marca enviada para a Comunidade: ${f.nome}`, "config");
+    abrirFontesComunidade(); render(); toast(f.nome + " enviada");
+  } catch (err) { aviso(err && err.name === "NetworkError" || (err && /font/i.test(String(err.message))) ? `Não consegui ler ${arq.name} como fonte. Confira se é o arquivo certo.` : errMsg(err), true); }
+});
+$("#layer").addEventListener("click", async (e) => {
+  if (!e.target.closest("[data-cm-salvar-cfg]")) return;
+  const links = [0, 1].map(i => ({ nome: ($("#cm-l" + i + "-nome").value || "").trim(), url: ($("#cm-l" + i + "-url").value || "").trim(), destinos: [...document.querySelectorAll(`[data-cm-ldest="${i}"]:checked`)].map(x => x.value) }));
+  const erro = $("#cm-cfg-erro"), ruim = links.find(l => l.url && !/^https?:\/\//i.test(l.url));
+  if (ruim) { erro.hidden = false; erro.textContent = "O link precisa começar com https:// (ex.: https://wa.me/5521999999999)."; return; }
+  const dup = CM_DEST.find(d => links[0].destinos.includes(d) && links[1].destinos.includes(d));
+  if (dup) { erro.hidden = false; erro.textContent = `${dup} está marcado nos dois números. Deixe em um só.`; return; }
+  const padrao = +((document.querySelector('input[name="cm-padrao"]:checked') || { value: 0 }).value);
+  try { await col("config").doc("comunidade").set({ links, padrao }, { merge: true }); S.cm.cfg = { ...(S.cm.cfg || {}), links, padrao }; registrar("Links de vendas da Comunidade atualizados", "config"); closeLayer(); render(); toast("Links salvos"); } catch (err) { toast(errMsg(err)); }
+});
+$("#main").addEventListener("click", async (e) => {
+  const fl = e.target.closest("[data-cm-filtro]"); if (fl) { await cmSalvarJa(); S.cm.filtro = fl.dataset.cmFiltro; render(); return; }
+  const sel = e.target.closest("[data-cm-sel]"); if (sel) { await cmSalvarJa(); S.cm.sel = sel.dataset.cmSel; render(); if (innerWidth < 900) { const ed = $(".cm-editor"); if (ed) ed.scrollIntoView({ behavior: "smooth", block: "start" }); } return; }
+  const b = e.target.closest("[data-cm]"); if (!b) return;
+  const act = b.dataset.cm, p = cmAtual();
+  if (act === "config") return abrirConfigComunidade();
+  if (act === "fontes") return abrirFontesComunidade();
+  if (act === "importar") {
+    b.disabled = true; b.textContent = "Trazendo…";
+    try {
+      const lote = S.db.batch(), agora = new Date().toISOString();
+      CM_SEED().forEach((x, i) => { const ref = col("comunidade").doc(); const doc = { ordem: i + 1, semana: "Semana " + x.s, dia: x.d, destino: x.dest, tema: x.tema, texto: x.txt, imagem: x.img, conferir: x.conf, status: "Esperando revisão", dataEnvio: "", responsavel: "", criadoEm: agora, criadoPor: S.email }; lote.set(ref, doc); S.cm.posts[ref.id] = { id: ref.id, ...doc }; });
+      await lote.commit(); S.cm.sel = cmPosts()[0].id; registrar("Cronograma da comunidade importado (28 posts)", "config"); render(); toast("Posts trazidos para o portal");
+    } catch (err) { S.cm.posts = {}; b.disabled = false; b.textContent = "Trazer os 28 posts do cronograma"; toast(errMsg(err)); }
+    return;
+  }
+  if (act === "novo") {
+    await cmSalvarJa();
+    const ult = cmPosts().slice(-1)[0] || {}, ref = col("comunidade").doc();
+    const doc = { ordem: (ult.ordem || 0) + 1, semana: ult.semana || "Semana 1", dia: "Terça", destino: "Todos", tema: "Novo post", texto: "", imagem: "", conferir: "", status: "Sem conteúdo", dataEnvio: "", responsavel: "", criadoEm: new Date().toISOString(), criadoPor: S.email };
+    try { await ref.set(doc); S.cm.posts[ref.id] = { id: ref.id, ...doc }; S.cm.sel = ref.id; S.cm.filtro = "todos"; S.cm.dest = ""; S.cm.fotos[ref.id] = null; render(); const t = $("#cm-tema"); if (t) { t.focus(); t.select(); } } catch (err) { toast(errMsg(err)); }
+    return;
+  }
+  if (!p) return;
+  if (act === "copiar-texto") {
+    const pend = cmPendencias(p);
+    if (pend.length && b.dataset.confirm !== "1") { b.dataset.confirm = "1"; b.textContent = `Copiar mesmo assim (${pend.length} ${pend.length === 1 ? "trecho" : "trechos"} entre colchetes)`; return; }
+    try { await navigator.clipboard.writeText(cmTextoFinal(p)); toast("Texto copiado. É só colar na comunidade."); } catch (_) { toast("Não deu para copiar automaticamente."); }
+    b.dataset.confirm = ""; b.textContent = "Copiar texto"; return;
+  }
+  if (act === "publicado") {
+    await cmSalvarJa(); const campos = { status: "Publicado", dataEnvio: p.dataEnvio || isoDia(new Date()), responsavel: p.responsavel || ((S.members[S.email] || {}).apelido || "") };
+    cmAgendar(p.id, campos, 0); await cmSalvarJa(); registrar(`Post da comunidade publicado: ${p.semana} · ${p.dia} · ${p.tema}`, "config"); render(); toast("Marcado como publicado"); return;
+  }
+  if (act === "excluir") {
+    if (b.dataset.confirm !== "1") { b.dataset.confirm = "1"; b.textContent = "Confirmar exclusão"; return; }
+    try { await col("comunidade").doc(p.id).delete(); try { await col("comunidadeFotos").doc(p.id).delete(); } catch (_) {} delete S.cm.posts[p.id]; delete cmPendente[p.id]; S.cm.sel = (cmPosts()[0] || {}).id || null; registrar(`Post da comunidade excluído: ${p.semana} · ${p.dia} · ${p.tema}`, "config"); render(); toast("Post excluído"); } catch (err) { toast(errMsg(err)); }
+    return;
+  }
+  if (act === "baixar-arte" || act === "copiar-arte") {
+    await cmDesenhar(); const cv = $("#cm-canvas"); if (!cv) return;
+    const a = cmArte(p); if (a.modelo !== "cor" && !S.cm.fotos[p.id]) { toast("Escolha uma foto antes, ou use o modelo “Cor sólida”."); return; }
+    if (act === "baixar-arte") { cv.toBlob((bl) => { const u = URL.createObjectURL(bl), l = document.createElement("a"); l.href = u; l.download = cmNomeArquivo(p); document.body.appendChild(l); l.click(); l.remove(); setTimeout(() => URL.revokeObjectURL(u), 4000); }, "image/png"); toast("Arte baixada"); return; }
+    try { await navigator.clipboard.write([new ClipboardItem({ "image/png": new Promise((res) => cv.toBlob(res, "image/png")) })]); toast("Imagem copiada. Cole no WhatsApp Web."); } catch (_) { toast("Este navegador não deixa copiar imagem. Use “Baixar PNG”."); }
+    return;
+  }
+});
+$("#main").addEventListener("change", async (e) => {
+  const t = e.target, p = cmAtual();
+  if ("cmDest" in t.dataset) { await cmSalvarJa(); S.cm.dest = t.value; render(); return; }
+  if (!p) return;
+  if (t.dataset.cmCampo && ["status", "dia", "destino", "dataEnvio", "link"].includes(t.dataset.cmCampo)) {
+    cmAgendar(p.id, { [t.dataset.cmCampo]: t.value }, 0);
+    if (t.dataset.cmCampo === "status" && t.value === "Publicado") registrar(`Post da comunidade publicado: ${p.semana} · ${p.dia} · ${p.tema}`, "config");
+    await cmSalvarJa(); render(); return;
+  }
+  if (t.dataset.cmArte) {
+    const k = t.dataset.cmArte, v = t.type === "checkbox" ? t.checked : t.value;
+    cmAgendar(p.id, { arte: { ...cmArte(p), [k]: v } });
+    if (k === "modelo") { const fb = $("#cm-foto-box"), fo = $("#cm-foco-box"); if (fb) fb.hidden = v === "cor"; if (fo) fo.hidden = v === "cor"; }
+    cmDesenhar(); return;
+  }
+  if (t.id === "cm-foto" && t.files && t.files[0]) {
+    const info = $("#cm-foto-info"); if (info) info.textContent = "Preparando a foto…";
+    try {
+      const data = await cmReduzir(t.files[0]);
+      await col("comunidadeFotos").doc(p.id).set({ data, atualizadoEm: new Date().toISOString(), atualizadoPor: S.email });
+      S.cm.fotos[p.id] = data; if (info) info.textContent = "Foto escolhida. Para trocar, escolha outra."; cmDesenhar();
+    } catch (err) { if (info) info.textContent = err && err.message === "formato" ? "Não consegui abrir essa foto. Use JPG ou PNG (foto do iPhone em HEIC: exporte como JPG antes)." : errMsg(err); }
+    t.value = ""; return;
+  }
+});
+$("#main").addEventListener("input", (e) => {
+  const t = e.target, p = cmAtual(); if (!p) return;
+  if (t.dataset.cmCampo && !["status", "dia", "destino", "dataEnvio", "link"].includes(t.dataset.cmCampo)) {
+    const k = t.dataset.cmCampo;
+    if (k === "texto") {
+      const tituloAuto = !(p.arte && p.arte.titulo) || p.arte.titulo === cmTituloPadrao(p);
+      cmAgendar(p.id, { texto: t.value });
+      const pr = $("#cm-prev"); if (pr) pr.innerHTML = cmWhats(p) || '<span class="muted">O texto aparece aqui.</span>';
+      const ct = $("#cm-conta"); if (ct) ct.textContent = t.value.length + " caracteres";
+      const pd = $("#cm-pend"); if (pd) pd.innerHTML = cmPendHtml(p, cmPendencias(p));
+      if (tituloAuto && p.arte && p.arte.titulo) { const nt = cmTituloPadrao(p); p.arte = { ...p.arte, titulo: nt }; const ti = $("#cm-a-titulo"); if (ti) ti.value = nt; cmDesenhar(); }
+      else if (!(p.arte && p.arte.titulo)) { const ti = $("#cm-a-titulo"); if (ti) ti.value = cmTituloPadrao(p); cmDesenhar(); }
+    } else cmAgendar(p.id, { [k]: t.value });
+    if (k === "tema") { const it = $(`[data-cm-sel="${p.id}"] strong`); if (it) it.textContent = t.value || "Post sem tema"; }
+    return;
+  }
+  if (t.dataset.cmArte && (t.tagName === "TEXTAREA" || t.type === "text")) { cmAgendar(p.id, { arte: { ...cmArte(p), [t.dataset.cmArte]: t.value } }); cmDesenhar(); }
+});
+
 // ---------- planilhas do Trevor (vendas e orçamentos) ----------
 // >>> COMUM-TREVOR · este bloco é copiado igualzinho para o robô do GitHub (não use S, col nem nada do navegador aqui).
 // Precisa de: round2, ymOf e semAcento definidos antes.
@@ -2978,7 +4052,7 @@ function boot() {
   S.auth = firebase.auth(); S.db = firebase.firestore();
   S.auth.languageCode = "pt-BR";
   S.auth.onAuthStateChanged((user) => {
-    if (!user) { S.session = null; S.isAdmin = false; S.ready = false; render(); return; }
+    if (!user) { S.session = null; S.isAdmin = false; S.ready = false; S.cm = { loaded: false, loading: false, posts: {}, fotos: {}, cfg: {}, sel: null, filtro: "todos", dest: "" }; render(); return; }
     if (S.session && S.session.uid === user.uid && S.ready) return;
     start(user);
   });
