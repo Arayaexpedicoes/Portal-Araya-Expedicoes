@@ -990,7 +990,7 @@ function videoNotionHtml(a) {
   if (!a || !a.url) return "";
   const vencido = a.expira && Date.parse(a.expira) < Date.now();
   const leg = a.legenda ? `<figcaption>${esc(a.legenda)}</figcaption>` : "";
-  if (vencido) return `<figure data-vfig="${esc(a.id || "")}"><div class="vfalha">Vídeo sendo atualizado.<br>Recarregue a página em alguns minutos.</div>${leg}</figure>`;
+  if (vencido) return `<figure data-vfig="${esc(a.id || "")}"><div class="vfalha">Vídeo sendo atualizado.<br>Ele aparece aqui sozinho assim que o link novo chegar.</div>${leg}</figure>`;
   return `<figure data-vfig="${esc(a.id || "")}"><video controls playsinline preload="metadata" src="${esc(a.url)}#t=0.1" data-vid="${esc(a.id || "")}" data-vnome="${esc(a.nome || "")}"></video>${leg}</figure>`;
 }
 // Vídeos enviados direto no Notion: o link de cada um vale cerca de 1 hora e o robô renova a cada meia hora.
@@ -1003,7 +1003,7 @@ async function vidRenovar(forcar) {
   const agora = Date.now(), venceLogo = vidArquivos().some(a => a.expira && Date.parse(a.expira) < agora + 8 * 60e3);
   if (!forcar && !venceLogo) return false;
   if (VID.rodando) return VID.rodando;
-  if (agora - VID.ultima < 60e3) return false;
+  if (agora - VID.ultima < (forcar ? 60e3 : 4 * 60e3)) return false;
   VID.ultima = agora;
   VID.rodando = (async () => {
     try {
@@ -1013,6 +1013,12 @@ async function vidRenovar(forcar) {
         const a = vidAcha(v.dataset.vid); if (!a || !a.url) return;
         const parado = v.paused && v.currentTime < 0.5;
         if (parado && !v.src.startsWith(a.url)) { v.src = a.url + "#t=0.1"; v.load(); }
+      });
+      // quadros "Vídeo sendo atualizado": se o robô já trouxe o link novo, o vídeo volta sozinho
+      document.querySelectorAll("figure[data-vfig]").forEach(fig => {
+        if (!fig.querySelector(".vfalha") || fig.querySelector(".vfalha a")) return;
+        const a = vidAcha(fig.dataset.vfig); if (!a || !a.url || (a.expira && Date.parse(a.expira) < Date.now())) return;
+        const t = document.createElement("div"); t.innerHTML = videoNotionHtml(a); fig.replaceWith(t.firstElementChild);
       });
       return true;
     } catch (_) { return false; } finally { VID.rodando = null; }
