@@ -201,6 +201,7 @@ input.cell[readonly]{background:transparent;border-color:transparent;box-shadow:
 .vgrade video{width:100%;max-height:440px;border-radius:10px;background:#000;display:block}
 .vgrade figcaption{font-size:.76rem;color:var(--muted)}
 .vgrade .vfalha{aspect-ratio:9/12;border-radius:10px;background:var(--surface-2);display:grid;place-items:center;text-align:center;padding:12px;font-size:.8rem;color:var(--muted)}
+.vgrade .vfalha{align-content:center;gap:8px}.vgrade .vfalha span{font-size:.72rem}.vgrade .vfalha .btn{justify-self:center}
 .arquivo{display:inline-flex;align-items:center;gap:8px;margin:4px 0 10px;padding:8px 12px;border-radius:10px;background:var(--surface-2);font-weight:600;font-size:.86rem;text-decoration:none;color:var(--fg)}
 .arquivo:hover{background:color-mix(in srgb, var(--dc,var(--accent)) 12%, var(--surface-2))}
 @media (max-width:520px){.galeria:not(.uma),.vgrade{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -602,6 +603,7 @@ async function loadAll() {
     S.notas = Object.fromEntries(docsOf(ns).map(r => [r.id, r.obs || ""]));
     S.destinos = docsOf(ds); S.passeios = docsOf(ps);
     await carregarTickets(); await carregarDisp(); await carregarEscala();
+    try { await semearDisp(); } catch (_) { /* tenta de novo no próximo carregamento */ }
     try { const c = await col("config").doc("comercial").get(); if (c.exists) S.comercial = { ...S.comercial, cotacoes: {}, metas: {}, ...c.data() }; } catch (_) {}
     try { S.bonus = Object.fromEntries(docsOf(await col("bonus").get()).map(b => [b.id, b])); } catch (_) { S.bonus = {}; }
     if (rs.exists) { const d = rs.data(); S.resumoAtual = JSON.stringify({ meses: d.meses, pessoas: d.pessoas }); }
@@ -646,6 +648,16 @@ function talvezSincronizarTrevor() {
   if (c.ultimaImportacao && Date.now() - Date.parse(c.ultimaImportacao) < 30 * 60 * 1000) return;
   importarTrevor(true);
 }
+// a supervisão não lê a coleção da equipe; por isso a administração cria uma ficha vazia para quem ainda não marcou
+// (assim todo mundo aparece no painel "Quem deve estar online") e sinaliza quem saiu da equipe
+async function semearDisp() {
+  if (!S.isAdmin || S.previewUid || S.dispErro) return;
+  const ativos = new Set(activeMembers()), lote = [];
+  for (const u of ativos) if (!naEscala(u) && !S.disp[u]) { const doc = { nome: label(u), semana: {}, excecoes: {}, obs: "", atualizadoEm: new Date().toISOString() }; S.disp[u] = doc; lote.push(col("disponibilidade").doc(u).set(doc)); }
+  for (const [u, d] of Object.entries(S.disp)) { const inativo = !ativos.has(u); if (!!d.inativo !== inativo) { d.inativo = inativo; lote.push(col("disponibilidade").doc(u).set({ inativo }, { merge: true })); } }
+  await Promise.all(lote);
+}
+const dispVazia = (d) => !d || (!Object.values(d.semana || {}).some(x => x && Object.values(x).some(Boolean)) && !Object.keys(d.excecoes || {}).length && !d.obs);
 async function carregarDisp() { try { S.disp = Object.fromEntries(docsOf(await col("disponibilidade").get()).map(d => [d.id, d])); S.dispErro = false; } catch (_) { S.disp = {}; S.dispErro = true; } }
 async function carregarTickets() { try { S.tickets = docsOf(await col("tickets").get()); } catch (_) { S.tickets = []; } }
 async function reload(msg) {
@@ -978,9 +990,68 @@ function videoNotionHtml(a) {
   if (!a || !a.url) return "";
   const vencido = a.expira && Date.parse(a.expira) < Date.now();
   const leg = a.legenda ? `<figcaption>${esc(a.legenda)}</figcaption>` : "";
-  if (vencido) return `<figure><div class="vfalha">Vídeo sendo atualizado.<br>Recarregue a página em alguns minutos.</div>${leg}</figure>`;
-  return `<figure><video controls playsinline preload="metadata" src="${esc(a.url)}#t=0.1" data-vnome="${esc(a.nome || "")}"></video>${leg}</figure>`;
+  if (vencido) return `<figure data-vfig="${esc(a.id || "")}"><div class="vfalha">Vídeo sendo atualizado.<br>Recarregue a página em alguns minutos.</div>${leg}</figure>`;
+  return `<figure data-vfig="${esc(a.id || "")}"><video controls playsinline preload="metadata" src="${esc(a.url)}#t=0.1" data-vid="${esc(a.id || "")}" data-vnome="${esc(a.nome || "")}"></video>${leg}</figure>`;
 }
+// Vídeos enviados direto no Notion: o link de cada um vale cerca de 1 hora e o robô renova a cada meia hora.
+// Quem deixa o portal aberto por muito tempo ficava com links vencidos (o vídeo simplesmente não tocava).
+// Aqui o portal busca os links novos sozinho e, se o vídeo não abrir neste navegador, mostra o motivo e um atalho.
+const VID = { ultima: 0, rodando: null };
+function vidArquivos() { const out = []; [S.passeios, S.tickets].forEach(arr => (arr || []).forEach(d => (d.arquivos || []).forEach(a => { if (a.tipo === "video") out.push(a); }))); return out; }
+function vidAcha(id) { return vidArquivos().find(a => a.id === id) || null; }
+async function vidRenovar(forcar) {
+  const agora = Date.now(), venceLogo = vidArquivos().some(a => a.expira && Date.parse(a.expira) < agora + 8 * 60e3);
+  if (!forcar && !venceLogo) return false;
+  if (VID.rodando) return VID.rodando;
+  if (agora - VID.ultima < 60e3) return false;
+  VID.ultima = agora;
+  VID.rodando = (async () => {
+    try {
+      const [ps] = await Promise.all([col("passeios").get(), carregarTickets()]);
+      S.passeios = docsOf(ps);
+      document.querySelectorAll("video[data-vid]").forEach(v => {
+        const a = vidAcha(v.dataset.vid); if (!a || !a.url) return;
+        const parado = v.paused && v.currentTime < 0.5;
+        if (parado && !v.src.startsWith(a.url)) { v.src = a.url + "#t=0.1"; v.load(); }
+      });
+      return true;
+    } catch (_) { return false; } finally { VID.rodando = null; }
+  })();
+  return VID.rodando;
+}
+function vidFalha(v, motivo) {
+  const fig = v.closest("figure"); if (!fig || fig.querySelector(".vfalha")) return;
+  const a = vidAcha(v.dataset.vid) || {}, vencido = a.expira && Date.parse(a.expira) < Date.now();
+  const box = document.createElement("div"); box.className = "vfalha";
+  box.innerHTML = vencido ? "Vídeo sendo atualizado.<br>Tente de novo em alguns minutos."
+    : `Este vídeo não abriu neste navegador.${motivo === "formato" ? "<br><span>Vídeos gravados no iPhone em “Alta eficiência” só tocam em alguns aparelhos.</span>" : ""}<a class="btn sm" href="${esc(a.url || v.src)}" target="_blank" rel="noopener">Abrir o vídeo</a>`;
+  v.replaceWith(box);
+}
+// erro ao carregar: primeiro tenta com o link mais novo; se ainda falhar, explica
+document.addEventListener("error", async (e) => {
+  const v = e.target; if (!(v instanceof HTMLVideoElement) || !v.dataset.vid) return;
+  if (v.dataset.renovando) return;
+  const formato = v.error && v.error.code === 4;
+  if (!v.dataset.tentou) {
+    const antes = v.src;
+    v.dataset.tentou = "1"; v.dataset.renovando = "1";
+    await vidRenovar(true);
+    delete v.dataset.renovando;
+    const a = vidAcha(v.dataset.vid);
+    if (a && a.url && !antes.startsWith(a.url)) { if (!v.src.startsWith(a.url)) { v.src = a.url + "#t=0.1"; v.load(); } return; }
+  }
+  vidFalha(v, formato ? "formato" : "rede");
+}, true);
+// ao tocar no play: se o link está para vencer, troca antes
+document.addEventListener("play", async (e) => {
+  const v = e.target; if (!(v instanceof HTMLVideoElement) || !v.dataset.vid) return;
+  const a = vidAcha(v.dataset.vid); if (!a || !a.expira || Date.parse(a.expira) > Date.now() + 2 * 60e3) return;
+  v.pause(); await vidRenovar(true); const n = vidAcha(v.dataset.vid);
+  if (n && n.url && !v.src.startsWith(n.url)) { v.src = n.url; v.load(); }
+  v.play().catch(() => {});
+}, true);
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && S.email) vidRenovar(false); });
+setInterval(() => { if (document.visibilityState === "visible" && S.email) vidRenovar(false); }, 5 * 60e3);
 function md(src, fotos = {}, arqs = {}) {
   let out = "", list = null, gal = [], vids = [];
   const fechaVid = () => { if (vids.length) { out += `<div class="vgrade">${vids.map(id => videoNotionHtml(arqs[id])).join("")}</div>`; vids = []; } };
@@ -1021,7 +1092,7 @@ async function carregarFotos() {
 // Se o navegador não tocar o vídeo (formato do iPhone em alguns computadores), oferece abrir em outra aba
 document.addEventListener("error", (e) => {
   const v = e.target;
-  if (!v || v.tagName !== "VIDEO" || v.dataset.falhou) return;
+  if (!v || v.tagName !== "VIDEO" || v.dataset.falhou || v.dataset.vid) return; // vídeos do Notion: tratados em vidFalha (renova o link antes)
   v.dataset.falhou = "1";
   const url = (v.getAttribute("src") || "").replace(/#t=.*$/, "");
   const box = document.createElement("div"); box.className = "vfalha";
@@ -1443,8 +1514,8 @@ async function salvarDisp(email, d) {
   try { await col("disponibilidade").doc(email).set(doc); } catch (e) { toast(errMsg(e)); await reload(); }
 }
 function pessoasDisp() {
-  if (S.isAdmin) return activeMembers().map(u => ({ u, nome: label(u), d: naEscala(u) ? dispDaEscala(u) : (S.disp[u] || null) }));
-  return [...Object.entries(S.disp).filter(([u]) => !naEscala(u)).map(([u, d]) => ({ u, nome: d.nome || u, d })), ...pessoasEscala().map(u => ({ u, nome: nomeEsc(u), d: dispDaEscala(u) }))].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+  if (S.isAdmin) return activeMembers().map(u => ({ u, nome: label(u), d: naEscala(u) ? dispDaEscala(u) : (dispVazia(S.disp[u]) ? null : S.disp[u]) }));
+  return [...Object.entries(S.disp).filter(([u, d]) => !naEscala(u) && !d.inativo).map(([u, d]) => ({ u, nome: d.nome || u, d: dispVazia(d) ? null : d })), ...pessoasEscala().map(u => ({ u, nome: nomeEsc(u), d: dispDaEscala(u) }))].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
 }
 function agendaEquipe(eu) {
   const dias = proxDias(7), agora = periodoAgora(), pessoas = pessoasDisp();
