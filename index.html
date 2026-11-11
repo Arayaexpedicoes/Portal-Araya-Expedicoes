@@ -401,6 +401,12 @@ body{margin:0}
 .cm-fonte{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:10px 12px}
 .cm-fonte>div{display:grid}
 @media (max-width:520px){.cm-fonte{grid-template-columns:1fr}.cm-arte-2{grid-template-columns:1fr}}
+.cm-banco{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;max-height:60vh;overflow:auto}
+.cm-foto-bk{margin:0;display:grid;gap:4px}
+.cm-foto-bk img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;display:block;background:var(--surface-2)}
+.cm-foto-bk figcaption{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.cm-foto-usar{padding:0;border:2px solid transparent;border-radius:12px;background:none;cursor:pointer}
+.cm-foto-usar:hover,.cm-foto-usar:focus-visible{border-color:var(--accent)}
 </style>
 </head>
 <body>
@@ -3237,6 +3243,1852 @@ Mendoza tem clima seco e muitos dias de sol, mas a temperatura muda bastante ent
 💬 Quer ver como fica o roteiro para as suas datas? É só chamar a gente aqui: [link do WhatsApp de vendas]` },
 ];
 
+// As 7 séries por destino (168 posts), revisadas no tom do Brand Guide 2026; só usadas no botão de importar
+const CM_SERIES = () => [
+{ dest: "Atacama", n: 1, fase: "Conhecer a Araya e o destino", tema: "Abrindo a série Atacama", img: "Lagunas Altiplânicas ou Vale da Lua ao pôr do sol", conf: "", txt: `🏜️ *Série Atacama* · 1/24
+*Vem viver o deserto com quem pertence a ele*
+
+A partir de hoje, os posts da série Atacama vão abrir para você o deserto que a gente conhece de perto: os passeios, a melhor época, a altitude, a mala e o que acontece por trás de cada roteiro. 🧡
+
+A nossa equipe está em San Pedro de Atacama, e é de lá que a gente vai te contar tudo.
+
+📌 Salve os posts que quiser rever depois.
+
+Conta pra gente: *o Atacama já está na sua lista?* 👇` },
+{ dest: "Atacama", n: 2, fase: "Conhecer a Araya e o destino", tema: "Por que o Atacama?", img: "Lagunas Altiplânicas ou Vale da Lua ao pôr do sol", conf: "", txt: `🏜️ *Série Atacama* · 2/24
+*Por que o Atacama?*
+
+É o deserto mais seco do mundo e, mesmo assim, é cheio de cor: lagunas azuis com flamingos, salares brancos, vulcões nevados no horizonte e gêiseres soltando vapor ao amanhecer. ✨
+
+À noite, o céu limpo e seco mostra a Via Láctea a olho nu. Não é à toa que alguns dos maiores observatórios do planeta estão aqui.
+
+É um destino que muda o jeito como a gente olha para a natureza.
+
+💬 Quer ver como fica o roteiro no Atacama para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Atacama", n: 3, fase: "Conhecer a Araya e o destino", tema: "Como funciona o roteiro pronto da Araya no Atacama", img: "Arte com os 4 passos sobre uma foto do destino", conf: "O que está incluído no roteiro deste destino", txt: `🏜️ *Série Atacama* · 3/24
+*Como funciona o roteiro pronto da Araya no Atacama*
+
+1️⃣ *Você escolhe as datas.* A gente te ajuda a entender a época e quantos dias fazem sentido.
+2️⃣ *Nós montamos tudo na ordem certa:* Vale da Lua, Lagunas Altiplânicas, Gêiseres del Tatio e tour astronômico. [ajustar ao que está incluído]
+3️⃣ *Você recebe o dia a dia explicado:* horários, o que vestir em cada passeio e o que levar.
+4️⃣ *No deserto, a gente está junto.* Nossa equipe em San Pedro acompanha a sua viagem.
+
+✅ Você não perde tempo pesquisando e chega sabendo o que esperar de cada dia.
+
+💬 Quer ver como fica o roteiro no Atacama para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Atacama", n: 4, fase: "Conhecer a Araya e o destino", tema: "Mapa: por onde o roteiro passa", img: "Mapa ilustrado com os pontos do roteiro", conf: "Cidades e pontos do roteiro atual", txt: `🏜️ *Série Atacama* · 4/24
+*Mapa: por onde o roteiro passa*
+
+✈️ *Calama:* o aeroporto, a cerca de 1h30 de estrada até San Pedro
+📍 *San Pedro de Atacama:* a vila de casas de adobe, base de todos os passeios (2.400 m)
+🌙 *Vale da Lua:* pertinho de San Pedro, famoso pelo pôr do sol
+💧 *Lagunas Altiplânicas e Piedras Rojas:* ao sul, acima dos 4.000 m
+♨️ *Gêiseres del Tatio:* ao norte, a cerca de 4.300 m
+🇧🇴 *Salar de Uyuni:* do outro lado da fronteira, na Bolívia
+
+🗺️ As distâncias são grandes e a altitude muda muito de um passeio para o outro. Por isso a gente desenha o roteiro pensando nas duas coisas.
+
+💬 Quer ver como fica o roteiro no Atacama para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Atacama", n: 5, fase: "Conhecer a Araya e o destino", tema: "Melhor época para ir", img: "Montagem com o destino em diferentes estações", conf: "Conferir os períodos com a equipe de roteiros", txt: `🏜️ *Série Atacama* · 5/24
+*Qual a melhor época para ir?*
+
+☀️ *Dá para ir o ano todo.* Os dias são de sol e as noites, frias.
+
+🌧️ *Dezembro a março:* pode acontecer o *inverno altiplânico*, com chuvas nas partes altas que às vezes fecham passeios. A gente acompanha a previsão e ajusta o roteiro quando precisa.
+❄️ *Junho a agosto:* madrugadas abaixo de zero e céu muito limpo.
+🍂 *Abril, maio, setembro a novembro:* temperaturas mais equilibradas.
+
+💡 Feriados e férias esgotam primeiro. Quanto antes a gente planejar, mais opções você tem.
+
+💬 Quer ver como fica o roteiro no Atacama para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Atacama", n: 6, fase: "Conhecer a Araya e o destino", tema: "Mini guia dos passeios (parte 1)", img: "Carrossel com uma foto de cada passeio", conf: "Passeios do roteiro atual", txt: `🏜️ *Série Atacama* · 6/24
+*Mini guia dos passeios (parte 1)*
+
+🌙 *Vale da Lua:* formações de sal e areia que parecem de outro planeta. O pôr do sol aqui é inesquecível.
+💧 *Lagunas Altiplânicas:* Miscanti e Miñiques, lagoas azuis aos pés dos vulcões, com vicunhas pelo caminho.
+♨️ *Gêiseres del Tatio:* um dos campos de gêiseres mais altos do mundo. A saída é de madrugada para ver o vapor no nascer do sol.
+
+📸 Na parte 2: Piedras Rojas, as termas e o Salar de Uyuni.
+
+💬 Quer ver como fica o roteiro no Atacama para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Atacama", n: 7, fase: "Conhecer a Araya e o destino", tema: "Mini guia dos passeios (parte 2)", img: "Carrossel com uma foto de cada passeio", conf: "Passeios do roteiro atual", txt: `🏜️ *Série Atacama* · 7/24
+*Mini guia dos passeios (parte 2)*
+
+🔴 *Piedras Rojas:* rochas avermelhadas à beira de um salar azul-turquesa, a mais de 4.000 m.
+♨️ *Termas:* água quente no meio do deserto, para relaxar depois de dias intensos.
+🇧🇴 *Salar de Uyuni:* o maior deserto de sal do mundo e o famoso efeito espelho na época de chuva.
+
+💬 Quer ver como fica o roteiro no Atacama para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Atacama", n: 8, fase: "Conhecer a Araya e o destino", tema: "Tour astronômico: quando vale a pena?", img: "Céu estrelado no deserto", conf: "Se o passeio está no roteiro ou é opcional", txt: `🏜️ *Série Atacama* · 8/24
+*Tour astronômico: quando vale a pena?*
+
+O céu do Atacama é um dos melhores do mundo para ver estrelas. 🔭
+
+🌑 *O segredo é a lua.* Nas noites de lua nova, ou com pouca lua, o céu fica mais escuro e a Via Láctea aparece inteira.
+🌕 *Na lua cheia,* parte das estrelas some, mas ver a própria lua pelo telescópio também é um espetáculo.
+
+📅 Quando a gente monta o seu roteiro, olha o calendário lunar das suas datas para colocar o tour astronômico na melhor noite possível. ✨
+
+Você já viu a Via Láctea a olho nu? 👇` },
+{ dest: "Atacama", n: 9, fase: "Planejar com a Araya", tema: "Quantos dias preciso? Por que a ordem do roteiro importa", img: "Foto de estrada ou paisagem do roteiro", conf: "Dias e ordem do roteiro atual", txt: `🏜️ *Série Atacama* · 9/24
+*Quantos dias preciso? E por que a ordem importa*
+
+San Pedro fica a 2.400 m, mas as lagunas e os gêiseres passam dos 4.000 m. Subir direto pode deixar o corpo cansado e tirar o brilho dos passeios.
+
+⛰️ Por isso o roteiro da Araya *começa pelo que é mais baixo*, como o Vale da Lua, e sobe aos poucos.
+
+🗓️ *Quantos dias?* De 4 a 5 dias para os principais passeios com calma. Com o Salar de Uyuni, alguns dias a mais. [ajustar aos roteiros]
+
+💬 Quer ver como fica o roteiro no Atacama para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Atacama", n: 10, fase: "Planejar com a Araya", tema: "Onde vou me hospedar? Como a Araya escolhe os hotéis", img: "Quarto de hotel com vista", conf: "Como a hospedagem é vendida hoje", txt: `🏜️ *Série Atacama* · 10/24
+*Onde vou me hospedar?*
+
+San Pedro é uma vila pequena, de hospedagens em adobe, no estilo do deserto. 🏡
+
+Na hora de indicar, a gente olha três coisas:
+📍 *Localização:* perto do centrinho, para jantar e passear a pé
+🛏️ *Descanso:* muitos passeios saem de madrugada, então dormir bem faz diferença
+🎯 *O seu perfil:* de pousadas aconchegantes a hotéis com spa e piscina
+
+[ajustar: hospedagem vendida à parte do roteiro]
+
+💬 Quer sugestões de hospedagem para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Atacama", n: 11, fase: "Planejar com a Araya", tema: "Ingressos e reservas: por que garantir com antecedência", img: "Foto da atração mais disputada", conf: "O que a Araya reserva para o cliente", txt: `🏜️ *Série Atacama* · 11/24
+*Ingressos: por que garantir com antecedência*
+
+Vários lugares do Atacama são cuidados pelas comunidades locais ou pelo governo e cobram entrada, como o Vale da Lua, as lagunas e os Gêiseres del Tatio. 🎟️
+
+O Vale da Lua tem *horários e vagas controlados*, e o pôr do sol é o horário mais disputado.
+
+[ajustar: entradas incluídas ou pagas no local]
+
+Com o roteiro da Araya, você sabe antes de viajar como funciona cada entrada e não perde tempo com isso lá.
+
+💬 Quer ver como fica o roteiro no Atacama para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Atacama", n: 12, fase: "Planejar com a Araya", tema: "Documentos e seguro viagem", img: "Passaporte e RG com um mapa", conf: "Revisar as regras de entrada perto da data de publicação", txt: `🏜️ *Série Atacama* · 12/24
+*Documentos e seguro viagem*
+
+🇨🇱 *Chile:* brasileiros entram com *RG ou passaporte*.
+⚠️ O RG precisa ter *menos de 10 anos de emissão*, estar em bom estado e com a foto reconhecível. A CNH *não* vale.
+
+🇧🇴 *Vai ao Salar de Uyuni?* A Bolívia aceita o RG nas mesmas condições.
+
+🛡️ *Seguro viagem:* a gente recomenda sempre. Confira se ele cobre passeios em altitude.
+
+📌 Olhe hoje a data de emissão do seu RG. É o primeiro passo da viagem.
+
+💬 Quer ver como fica o roteiro no Atacama para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Atacama", n: 13, fase: "Planejar com a Araya", tema: "Moeda, câmbio e cartão", img: "Notas da moeda local", conf: "Se a equipe orienta o câmbio antes da viagem", txt: `🏜️ *Série Atacama* · 13/24
+*Moeda, câmbio e cartão*
+
+🇨🇱 A moeda do Chile é o *peso chileno*.
+
+💳 Em San Pedro, a maioria dos restaurantes e lojas aceita cartão. Leve um pouco de dinheiro em espécie para lojinhas e gastos pequenos.
+
+🇧🇴 *No Uyuni,* a moeda é o boliviano, e o dinheiro vivo é ainda mais importante.
+
+💡 Pouco antes da sua viagem, a gente orienta a melhor forma de levar dinheiro.
+
+💬 Quer ver como fica o roteiro no Atacama para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Atacama", n: 14, fase: "Planejar com a Araya", tema: "Como ficar conectado", img: "Pessoa com celular diante da paisagem", conf: "Se a Araya indica algum eSIM parceiro", txt: `🏜️ *Série Atacama* · 14/24
+*Como ficar conectado*
+
+📶 Em San Pedro, tem wi-fi nos hotéis e restaurantes, e o celular pega bem no centrinho.
+
+⛰️ *Nos passeios, o sinal some.* Nas lagunas e nos gêiseres, você vai ficar um tempo desconectado. Faz parte da experiência. 🌄
+
+💡 *Opções:* eSIM (o mais prático), chip local ou plano internacional da sua operadora.
+📥 Baixe o roteiro e os documentos no celular antes de sair do hotel.
+
+💬 Quer ver como fica o roteiro no Atacama para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Atacama", n: 15, fase: "Preparar a mala", tema: "A mala ideal", img: "Flatlay de mala com os itens", conf: "Orientações que a equipe já envia ao cliente", txt: `🏜️ *Série Atacama* · 15/24
+*A mala ideal*
+
+O deserto tem uma pegadinha: *calor de dia e frio forte à noite e de madrugada*. 🥶☀️
+
+🎒 *Não pode faltar:*
+• Roupas em camadas: camiseta, fleece e jaqueta
+• Gorro, luvas e cachecol para os passeios cedinho
+• Protetor solar e labial: o sol é forte e o ar, muito seco
+• Óculos de sol e chapéu
+• Hidratante e soro fisiológico para o nariz
+• Garrafinha de água
+• Roupa de banho para as termas
+
+📋 Antes da viagem, você recebe da gente as orientações de cada passeio. [ajustar]
+
+Salva este post para a hora de arrumar a mala! 📌` },
+{ dest: "Atacama", n: 16, fase: "Preparar a mala", tema: "Com que roupa eu vou? Roupas por passeio", img: "Carrossel com um look por passeio", conf: "Passeios do roteiro atual", txt: `🏜️ *Série Atacama* · 16/24
+*Com que roupa eu vou?*
+
+🌙 *Vale da Lua (fim de tarde):* roupa leve e um casaco para quando o sol se põe
+💧 *Lagunas Altiplânicas:* camadas e corta-vento, porque lá em cima venta
+♨️ *Gêiseres del Tatio (madrugada):* frio completo: roupa térmica, jaqueta, gorro e luvas. Pode ficar abaixo de zero!
+🔭 *Tour astronômico (noite):* o casaco mais quente da mala
+♨️ *Termas:* roupa de banho e toalha
+
+Salva para consultar na viagem! 📌` },
+{ dest: "Atacama", n: 17, fase: "Preparar a mala", tema: "Calçado certo: preciso de bota de trekking?", img: "Foto de calçado em trilha ou passeio", conf: "", txt: `🏜️ *Série Atacama* · 17/24
+*Preciso de bota de trekking?*
+
+👟 Para a maioria dos passeios, um *tênis confortável e fechado* resolve. O chão é de areia, pedra e sal.
+
+🥾 Para trilhas e para os gêiseres de madrugada, uma *bota de trekking leve* dá mais firmeza e esquenta os pés.
+
+💡 Leve meias grossas e não estreie calçado na viagem: amacie antes!
+
+💬 Quer ver como fica o roteiro no Atacama para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Atacama", n: 18, fase: "Preparar a mala", tema: "Saúde na viagem + kit farmácia", img: "Kit farmácia organizado em nécessaire", conf: "Revisar com cuidado (orientação de saúde)", txt: `🏜️ *Série Atacama* · 18/24
+*Saúde na viagem e kit farmácia*
+
+⛰️ *Altitude:* nos primeiros dias, é comum sentir cansaço, falta de ar ou dor de cabeça. É por isso que o roteiro sobe aos poucos.
+💧 *Clima seco:* beba água o dia todo e use hidratante e protetor labial.
+☀️ *Sol forte:* protetor solar mesmo no frio.
+
+💊 *No kit farmácia:* seus remédios de uso contínuo, analgésico, remédio para o estômago, antialérgico, curativos e soro fisiológico.
+
+🩺 Se você tem alguma condição de saúde, converse com seu médico antes da viagem.
+
+💬 Quer ver como fica o roteiro no Atacama para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Atacama", n: 19, fase: "Viver o destino com a Araya", tema: "Gastronomia do Atacama + o guia gastronômico da Araya", img: "Prato típico do destino", conf: "Se o guia gastronômico está disponível para este destino", txt: `🏜️ *Série Atacama* · 19/24
+*O Atacama pelo paladar*
+
+Alguns sabores para provar no deserto: 😋
+
+🥟 *Empanadas* chilenas, de forno
+🍲 Pratos andinos com *quinoa* e ingredientes locais
+🥩 *Carne de lhama*, para os curiosos
+🌿 Chá e drinks com *rica-rica*, uma erva que só cresce na região
+🍸 E o clássico *pisco sour*
+
+🍽️ Nossos clientes recebem um *guia gastronômico personalizado, feito por chef de cozinha*, com restaurantes e pratos indicados para cada dia. [ajustar]
+
+Qual desses você provaria primeiro? 👇` },
+{ dest: "Atacama", n: 20, fase: "Viver o destino com a Araya", tema: "O povo atacamenho: a cultura que você conhece com nossos guias", img: "Foto de cultura local (artesanato, templo, pessoas com autorização)", conf: "", txt: `🏜️ *Série Atacama* · 20/24
+*O povo atacamenho*
+
+Muito antes do turismo, o deserto já era casa dos *Lickanantay*, o povo atacamenho. Muitas comunidades ainda cuidam dos lugares que você vai visitar. 🧡
+
+Com nossos guias, você entende a relação desse povo com a água, a terra e as montanhas, conhece a história da igreja de adobe de San Pedro e descobre por que alguns lugares são sagrados.
+
+É isso que transforma uma paisagem bonita em uma viagem que fica na memória.
+
+💬 Quer ver como fica o roteiro no Atacama para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Atacama", n: 21, fase: "Viver o destino com a Araya", tema: "Cheguei no Atacama! O que esperar do primeiro dia", img: "Foto da chegada ou da vista do hotel", conf: "Como funciona a recepção no destino", txt: `🏜️ *Série Atacama* · 21/24
+*Cheguei! E agora?*
+
+✈️ Você desembarca em *Calama*, e a nossa equipe já está te esperando para o traslado até San Pedro: cerca de 1h30 de estrada pelo deserto. 🚐
+
+🏡 *O primeiro dia é para ir com calma:* check-in, uma volta pelo centrinho de San Pedro e tempo para o corpo se acostumar com a altitude.
+
+💡 Beba bastante água e coma leve. Os passeios começam no ritmo certo para você aproveitar tudo.
+
+💬 Quer ver como fica o roteiro no Atacama para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Atacama", n: 22, fase: "Viver o destino com a Araya", tema: "Traslados: como funciona a busca no aeroporto", img: "Motorista com plaquinha no desembarque", conf: "Como o traslado funciona neste destino", txt: `🏜️ *Série Atacama* · 22/24
+*Como funciona a busca no aeroporto*
+
+🚐 Ao desembarcar em Calama, alguém da nossa equipe está te esperando. Sem fila de táxi e sem se preocupar com o caminho até San Pedro. 🙌
+
+✈️ *Por que pedimos tantos detalhes do voo?* Número, horário e aeroporto de chegada garantem que o motorista esteja no lugar certo, na hora certa. A nossa equipe confere cada voo antes da sua viagem.
+
+📌 *A sua parte:*
+• Mande os dados do voo assim que comprar a passagem
+• Mudou o voo? Avise a gente o quanto antes
+
+💬 Quer ver como fica o roteiro no Atacama para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Atacama", n: 23, fase: "Viver o destino com a Araya", tema: "Nossos guias e motoristas no Atacama", img: "Guia explicando a um grupo", conf: "Como funcionam os guias e motoristas neste destino", txt: `🏜️ *Série Atacama* · 23/24
+*Quem vai estar com você no deserto*
+
+No Atacama, o guia faz toda a diferença: ele sabe o melhor horário de cada lugar, conta a história do povo atacamenho e conhece o clima e as estradas em altitude. 🧭
+
+🚐 Os passeios são feitos em veículos preparados para o deserto, com motoristas que conhecem cada caminho. [ajustar]
+
+É o deserto contado por quem vive nele.
+
+💬 Quer ver como fica o roteiro no Atacama para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Atacama", n: 24, fase: "Viver o destino com a Araya", tema: "Como falar com a Araya durante a viagem", img: "Foto da equipe de atendimento", conf: "Canal e horários do pós-venda", txt: `🏜️ *Série Atacama* · 24/24
+*A gente não some depois que você embarca* 🧡
+
+Enquanto você estiver no Atacama, a nossa equipe acompanha a sua viagem pelo WhatsApp. [ajustar canal]
+
+💬 *Pode chamar a gente para:*
+• Confirmar horários dos passeios
+• Avisar de um atraso de voo
+• Tirar dúvidas do dia a dia
+• Qualquer imprevisto
+
+⏰ *Horário de atendimento:* [inserir]
+
+Você aproveita o deserto sabendo que tem alguém cuidando de tudo por perto.
+
+💬 Quer ver como fica o roteiro no Atacama para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Cusco e Machu Picchu", n: 1, fase: "Conhecer a Araya e o destino", tema: "Abrindo a série Cusco e Machu Picchu", img: "Machu Picchu com as montanhas ao fundo", conf: "", txt: `🏔️ *Série Cusco e Machu Picchu* · 1/24
+*Uma viagem pelo coração dos Andes*
+
+A partir de hoje, a série Cusco e Machu Picchu vai te mostrar o destino de perto: os passeios, os circuitos de Machu Picchu, a altitude, a melhor época, a mala e como cada detalhe do roteiro é pensado. 🧡
+
+📌 Salve os posts que quiser rever depois.
+
+Conta pra gente: *Machu Picchu já está na sua lista?* 👇` },
+{ dest: "Cusco e Machu Picchu", n: 2, fase: "Conhecer a Araya e o destino", tema: "Por que Cusco e Machu Picchu?", img: "Machu Picchu com as montanhas ao fundo", conf: "", txt: `🏔️ *Série Cusco e Machu Picchu* · 2/24
+*Por que Cusco e Machu Picchu?*
+
+Cusco foi a capital do Império Inca. Até hoje, muitas casas e igrejas estão de pé sobre muros incas, com pedras encaixadas sem argamassa. 🦙
+
+No Vale Sagrado, os mercados e os tecidos coloridos mostram uma cultura que segue viva. E no fim do caminho está *Machu Picchu*, uma das sete maravilhas do mundo moderno, no alto da montanha.
+
+É uma viagem no tempo, do começo ao fim. ✨
+
+💬 Quer ver como fica o roteiro para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Cusco e Machu Picchu", n: 3, fase: "Conhecer a Araya e o destino", tema: "Como funciona o roteiro pronto da Araya em Cusco", img: "Arte com os 4 passos sobre uma foto do destino", conf: "O que está incluído no roteiro deste destino", txt: `🏔️ *Série Cusco e Machu Picchu* · 3/24
+*Como funciona o roteiro pronto da Araya*
+
+1️⃣ *Você escolhe as datas.* A gente te ajuda a entender a época e quantos dias fazem sentido.
+2️⃣ *Nós montamos tudo na ordem certa:* city tour em Cusco, Vale Sagrado e Machu Picchu, pensando na altitude. [ajustar ao que está incluído]
+3️⃣ *Você recebe o dia a dia explicado:* horários, circuito de Machu Picchu e o que levar.
+4️⃣ *Durante a viagem, a gente está junto.* Qualquer imprevisto, é só chamar.
+
+✅ Ingresso, trem e horários encaixados, sem você precisar montar esse quebra-cabeça.
+
+💬 Quer ver como fica o roteiro para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Cusco e Machu Picchu", n: 4, fase: "Conhecer a Araya e o destino", tema: "Mapa: por onde o roteiro passa", img: "Mapa ilustrado com os pontos do roteiro", conf: "Cidades e pontos do roteiro atual", txt: `🏔️ *Série Cusco e Machu Picchu* · 4/24
+*Mapa: por onde o roteiro passa*
+
+✈️ *Lima:* onde normalmente fica a conexão dos voos [ajustar]
+📍 *Cusco:* a antiga capital inca, a 3.400 m
+🌽 *Vale Sagrado:* mais baixo que Cusco, com vilarejos, ruínas e mercados
+🚂 *Ollantaytambo:* de onde sai o trem para Machu Picchu
+🏞️ *Aguas Calientes:* a vila aos pés da montanha
+🏛️ *Machu Picchu:* a cidadela, a cerca de 2.400 m
+
+🗺️ Repare que Machu Picchu é mais baixo que Cusco. Essa diferença entra no desenho do roteiro.
+
+💬 Quer ver como fica o roteiro para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Cusco e Machu Picchu", n: 5, fase: "Conhecer a Araya e o destino", tema: "Melhor época para ir", img: "Montagem com o destino em diferentes estações", conf: "Conferir os períodos com a equipe de roteiros", txt: `🏔️ *Série Cusco e Machu Picchu* · 5/24
+*Qual a melhor época para ir?*
+
+☀️ *Maio a setembro (época seca):* céu mais aberto e pouca chuva. É a alta temporada.
+🌧️ *Dezembro a março (chuvas):* tudo fica verde, mas chove com frequência. A Trilha Inca fecha em fevereiro para manutenção.
+🍂 *Abril, outubro e novembro:* meses de transição, com menos movimento.
+
+🌿 Machu Picchu abre o ano todo, e cada época tem seu encanto.
+
+💡 Na alta temporada, ingresso e trem esgotam primeiro. Quanto antes a gente planejar, mais opções você tem.
+
+💬 Quer ver como fica o roteiro para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Cusco e Machu Picchu", n: 6, fase: "Conhecer a Araya e o destino", tema: "Mini guia dos passeios (parte 1)", img: "Carrossel com uma foto de cada passeio", conf: "Passeios do roteiro atual", txt: `🏔️ *Série Cusco e Machu Picchu* · 6/24
+*Mini guia dos passeios (parte 1)*
+
+🏙️ *City tour em Cusco:* a Praça de Armas, o Qoricancha (o templo do sol inca, com uma igreja construída por cima) e Sacsayhuamán, com pedras de várias toneladas encaixadas à perfeição.
+🌽 *Vale Sagrado:* mercados de artesanato e ruínas como Pisac e Ollantaytambo, entre montanhas e plantações em terraços.
+
+📸 Na parte 2: o trem e Machu Picchu.
+
+💬 Quer ver como fica o roteiro para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Cusco e Machu Picchu", n: 7, fase: "Conhecer a Araya e o destino", tema: "Mini guia dos passeios (parte 2)", img: "Carrossel com uma foto de cada passeio", conf: "Passeios do roteiro atual", txt: `🏔️ *Série Cusco e Machu Picchu* · 7/24
+*Mini guia dos passeios (parte 2)*
+
+🚂 *O trem até Aguas Calientes:* uma viagem entre montanhas, seguindo o rio Urubamba. Vale ir na janela.
+🏛️ *Machu Picchu:* o grande momento! Com o guia, você entende como os incas construíram a cidadela, para que servia cada parte e por que ela ficou escondida por séculos.
+
+💬 Quer ver como fica o roteiro para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Cusco e Machu Picchu", n: 8, fase: "Conhecer a Araya e o destino", tema: "Machu Picchu: qual circuito escolher?", img: "Foto do mirante clássico de Machu Picchu", conf: "Se o passeio está no roteiro ou é opcional", txt: `🏔️ *Série Cusco e Machu Picchu* · 8/24
+*Machu Picchu: qual circuito escolher?*
+
+Para proteger a cidadela, a visita é feita por *circuitos*: caminhos definidos, com horário de entrada marcado. 🎟️
+
+Cada circuito mostra um ângulo: alguns passam pelo mirante da foto clássica, outros entram mais na cidadela, e há opções com subida a montanhas, como Huayna Picchu.
+
+📅 Os ingressos são limitados por dia e por circuito. A gente indica o que combina com o que você quer ver e com o seu ritmo. [ajustar aos circuitos oferecidos]
+
+Foto clássica ou subir a montanha? Qual seria a sua escolha? 👇` },
+{ dest: "Cusco e Machu Picchu", n: 9, fase: "Planejar com a Araya", tema: "Quantos dias preciso? Por que a ordem do roteiro importa", img: "Foto de estrada ou paisagem do roteiro", conf: "Dias e ordem do roteiro atual", txt: `🏔️ *Série Cusco e Machu Picchu* · 9/24
+*Quantos dias preciso? E por que a ordem importa*
+
+Cusco fica a 3.400 m. O Vale Sagrado é mais baixo, e começar por ele ajuda o corpo a se acostumar antes de subir. [ajustar à ordem do roteiro]
+
+⛰️ Uma ordem bem pensada faz você chegar a Machu Picchu descansado, e não ofegante.
+
+🗓️ *Quantos dias?* De 5 a 7 dias para Cusco, Vale Sagrado e Machu Picchu com calma. [ajustar]
+
+💬 Quer ver como fica o roteiro para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Cusco e Machu Picchu", n: 10, fase: "Planejar com a Araya", tema: "Onde vou me hospedar? Como a Araya escolhe os hotéis", img: "Quarto de hotel com vista", conf: "Como a hospedagem é vendida hoje", txt: `🏔️ *Série Cusco e Machu Picchu* · 10/24
+*Onde vou me hospedar?*
+
+🏛️ *Em Cusco:* perto do centro histórico, para jantar e passear a pé pelas ruas de pedra.
+🌄 *No Vale Sagrado:* hospedagens mais tranquilas, cercadas de montanhas.
+🏞️ *Em Aguas Calientes:* dormir lá antes ou depois de Machu Picchu deixa o dia mais leve.
+
+Na hora de indicar, a gente olha a localização, o descanso e o seu perfil.
+
+[ajustar: hospedagem vendida à parte do roteiro]
+
+💬 Quer sugestões de hospedagem para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Cusco e Machu Picchu", n: 11, fase: "Planejar com a Araya", tema: "Ingressos e reservas: por que garantir com antecedência", img: "Foto da atração mais disputada", conf: "O que a Araya reserva para o cliente", txt: `🏔️ *Série Cusco e Machu Picchu* · 11/24
+*Ingressos: por que garantir com antecedência*
+
+🏛️ *Machu Picchu:* ingressos limitados por dia e por circuito, com horário marcado. Na alta temporada, esgotam com semanas de antecedência.
+🚂 *Trem:* lugares limitados, principalmente nos melhores horários.
+🎟️ *Boleto Turístico:* dá acesso a vários sítios de Cusco e do Vale Sagrado.
+
+[ajustar: o que a Araya reserva para o cliente]
+
+Ingresso, trem e horário precisam conversar entre si. É esse encaixe que a gente resolve antes da sua viagem.
+
+💬 Quer ver como fica o roteiro para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Cusco e Machu Picchu", n: 12, fase: "Planejar com a Araya", tema: "Documentos e seguro viagem", img: "Passaporte e RG com um mapa", conf: "Revisar as regras de entrada perto da data de publicação", txt: `🏔️ *Série Cusco e Machu Picchu* · 12/24
+*Documentos e seguro viagem*
+
+🇵🇪 *Peru:* brasileiros entram com *RG ou passaporte*.
+⚠️ O RG precisa ter *menos de 10 anos de emissão*, estar em bom estado e com a foto reconhecível.
+
+🎟️ *Atenção:* o documento usado na compra do ingresso de Machu Picchu é o que você precisa mostrar na entrada. Leve o mesmo!
+
+🛡️ *Seguro viagem:* a gente recomenda sempre.
+
+💬 Quer ver como fica o roteiro para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Cusco e Machu Picchu", n: 13, fase: "Planejar com a Araya", tema: "Moeda, câmbio e cartão", img: "Notas da moeda local", conf: "Se a equipe orienta o câmbio antes da viagem", txt: `🏔️ *Série Cusco e Machu Picchu* · 13/24
+*Moeda, câmbio e cartão*
+
+🇵🇪 A moeda do Peru é o *sol peruano*.
+
+💳 Em Cusco, restaurantes e lojas maiores aceitam cartão. Nos mercados, com artesãos e nos vilarejos do Vale Sagrado, leve dinheiro vivo.
+💵 O dólar também é bem aceito para trocar.
+
+💡 Pouco antes da sua viagem, a gente orienta a melhor forma de levar dinheiro.
+
+💬 Quer ver como fica o roteiro para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Cusco e Machu Picchu", n: 14, fase: "Planejar com a Araya", tema: "Como ficar conectado", img: "Pessoa com celular diante da paisagem", conf: "Se a Araya indica algum eSIM parceiro", txt: `🏔️ *Série Cusco e Machu Picchu* · 14/24
+*Como ficar conectado*
+
+📶 Cusco tem wi-fi nos hotéis e restaurantes, e o celular pega bem na cidade.
+⛰️ Nas estradas de montanha e em partes do Vale Sagrado, o sinal oscila.
+
+💡 *Opções:* eSIM (o mais prático), chip local ou plano internacional da sua operadora.
+📥 Baixe antes o roteiro, os documentos e o *ingresso de Machu Picchu*.
+
+💬 Quer ver como fica o roteiro para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Cusco e Machu Picchu", n: 15, fase: "Preparar a mala", tema: "A mala ideal", img: "Flatlay de mala com os itens", conf: "Orientações que a equipe já envia ao cliente", txt: `🏔️ *Série Cusco e Machu Picchu* · 15/24
+*A mala ideal*
+
+Nos Andes, o sol é forte de dia e as noites são frias. E Machu Picchu é mais quente e úmido que Cusco. A regra é: *camadas*. 😉
+
+🎒 *Não pode faltar:*
+• Camisetas leves, fleece e jaqueta corta-vento
+• Capa de chuva, principalmente de dezembro a março
+• Protetor solar e *repelente*: em Machu Picchu tem mosquito
+• Óculos de sol e chapéu
+• Garrafinha de água
+• Mochila pequena: Machu Picchu tem regra de tamanho
+
+📋 Antes da viagem, você recebe da gente as orientações de cada passeio. [ajustar]
+
+Salva este post para a hora de arrumar a mala! 📌` },
+{ dest: "Cusco e Machu Picchu", n: 16, fase: "Preparar a mala", tema: "Com que roupa eu vou? Roupas por passeio", img: "Carrossel com um look por passeio", conf: "Passeios do roteiro atual", txt: `🏔️ *Série Cusco e Machu Picchu* · 16/24
+*Com que roupa eu vou?*
+
+🏙️ *City tour em Cusco:* camadas, porque o dia esquenta e a noite esfria
+🌽 *Vale Sagrado:* roupa leve, um casaco e chapéu
+🏛️ *Machu Picchu:* roupa leve, capa de chuva e repelente
+🌙 *Noites em Cusco:* o casaco mais quente da mala
+
+Salva para consultar na viagem! 📌` },
+{ dest: "Cusco e Machu Picchu", n: 17, fase: "Preparar a mala", tema: "Calçado certo: preciso de bota de trekking?", img: "Foto de calçado em trilha ou passeio", conf: "", txt: `🏔️ *Série Cusco e Machu Picchu* · 17/24
+*Preciso de bota de trekking?*
+
+👟 Para a maioria dos passeios, um *tênis confortável e com boa aderência* resolve. Em Cusco e em Machu Picchu se anda muito, com escadas e pedras.
+
+🥾 Para trilhas ou para subir montanhas como Huayna Picchu, uma *bota leve de trekking* dá mais segurança.
+
+💡 Não estreie calçado na viagem: amacie antes!
+
+💬 Quer ver como fica o roteiro para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Cusco e Machu Picchu", n: 18, fase: "Preparar a mala", tema: "Saúde na viagem + kit farmácia", img: "Kit farmácia organizado em nécessaire", conf: "Revisar com cuidado (orientação de saúde)", txt: `🏔️ *Série Cusco e Machu Picchu* · 18/24
+*Saúde na viagem e kit farmácia*
+
+⛰️ *Altitude:* Cusco fica a 3.400 m. Nos primeiros dias, é comum sentir cansaço, falta de ar ou dor de cabeça. Vá com calma, beba água e coma leve.
+🍵 O *chá de coca* é uma tradição local, servido em quase todo hotel.
+☀️ *Sol forte:* protetor solar o dia todo.
+
+💊 *No kit farmácia:* seus remédios de uso contínuo, analgésico, remédio para o estômago, antialérgico, repelente e curativos.
+
+🩺 Se você tem alguma condição de saúde, converse com seu médico antes da viagem.
+
+💬 Quer ver como fica o roteiro para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Cusco e Machu Picchu", n: 19, fase: "Viver o destino com a Araya", tema: "Gastronomia de Cusco + o guia gastronômico da Araya", img: "Prato típico do destino", conf: "Se o guia gastronômico está disponível para este destino", txt: `🏔️ *Série Cusco e Machu Picchu* · 19/24
+*Cusco pelo paladar*
+
+Alguns sabores para provar nos Andes: 😋
+
+🌽 *Choclo*, o milho andino de grão gigante
+🌶️ *Rocoto relleno*, pimentão recheado típico de Arequipa e Cusco
+🥔 Batatas andinas: o Peru tem milhares de variedades
+🍹 *Chicha morada*, bebida de milho roxo
+🍸 E o *pisco sour*, claro
+
+🍽️ Nossos clientes recebem um *guia gastronômico personalizado, feito por chef de cozinha*, com restaurantes e pratos indicados para cada dia. [ajustar]
+
+Qual desses você provaria primeiro? 👇` },
+{ dest: "Cusco e Machu Picchu", n: 20, fase: "Viver o destino com a Araya", tema: "Cultura andina e quéchua: o que você conhece com nossos guias", img: "Foto de cultura local (artesanato, templo, pessoas com autorização)", conf: "", txt: `🏔️ *Série Cusco e Machu Picchu* · 20/24
+*A cultura inca está viva*
+
+Em Cusco, a cultura inca não ficou só nas ruínas. Ela está no *quéchua* falado nas ruas, nos tecidos coloridos, nos mercados e nas festas. 🧡
+
+Com os guias, você entende o significado dos templos, conhece técnicas de tecelagem passadas de geração em geração e descobre tradições como o *Inti Raymi*, a Festa do Sol, celebrada todo 24 de junho.
+
+É isso que transforma uma visita a ruínas em uma viagem pela história.
+
+💬 Quer ver como fica o roteiro para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Cusco e Machu Picchu", n: 21, fase: "Viver o destino com a Araya", tema: "Cheguei em Cusco! O que esperar do primeiro dia", img: "Foto da chegada ou da vista do hotel", conf: "Como funciona a recepção no destino", txt: `🏔️ *Série Cusco e Machu Picchu* · 21/24
+*Cheguei em Cusco! E agora?*
+
+✈️ No aeroporto de Cusco, a equipe local já está te esperando para o traslado até o hotel. 🚐
+
+🍵 *O primeiro dia é para ir com calma,* por causa da altitude: check-in, um chá de coca, uma volta leve pela Praça de Armas e descanso.
+
+💡 Beba bastante água e coma leve. Os passeios começam no ritmo certo para você aproveitar tudo.
+
+💬 Quer ver como fica o roteiro para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Cusco e Machu Picchu", n: 22, fase: "Viver o destino com a Araya", tema: "Traslados: como funciona a busca no aeroporto", img: "Motorista com plaquinha no desembarque", conf: "Como o traslado funciona neste destino", txt: `🏔️ *Série Cusco e Machu Picchu* · 22/24
+*Como funciona a busca no aeroporto*
+
+🚐 Ao desembarcar em Cusco, alguém da equipe local está te esperando. Sem fila de táxi e sem se preocupar com o caminho até o hotel. 🙌
+
+✈️ *Por que pedimos tantos detalhes do voo?* Número, horário e aeroporto de chegada garantem que o motorista esteja no lugar certo, na hora certa. A nossa equipe confere cada voo antes da sua viagem.
+
+📌 *A sua parte:*
+• Mande os dados do voo assim que comprar a passagem
+• Mudou o voo? Avise a gente o quanto antes
+
+💬 Quer ver como fica o roteiro para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Cusco e Machu Picchu", n: 23, fase: "Viver o destino com a Araya", tema: "Nossos guias e motoristas em Cusco", img: "Guia explicando a um grupo", conf: "Como funcionam os guias e motoristas neste destino", txt: `🏔️ *Série Cusco e Machu Picchu* · 23/24
+*Quem vai estar com você nos Andes*
+
+Em Cusco e Machu Picchu, o guia dá vida às pedras: conta a história de cada templo, explica a engenharia inca e mostra detalhes que passariam despercebidos. 🏛️
+
+🧭 Em Machu Picchu, a entrada é feita com guia e cada circuito tem regras próprias. Ter ao lado quem conhece tudo isso faz diferença. [ajustar]
+
+💬 Quer ver como fica o roteiro para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Cusco e Machu Picchu", n: 24, fase: "Viver o destino com a Araya", tema: "Como falar com a Araya durante a viagem", img: "Foto da equipe de atendimento", conf: "Canal e horários do pós-venda", txt: `🏔️ *Série Cusco e Machu Picchu* · 24/24
+*A gente não some depois que você embarca* 🧡
+
+Enquanto você estiver em Cusco, a nossa equipe acompanha a sua viagem pelo WhatsApp. [ajustar canal]
+
+💬 *Pode chamar a gente para:*
+• Confirmar horários dos passeios
+• Avisar de um atraso de voo
+• Tirar dúvidas do dia a dia
+• Qualquer imprevisto
+
+⏰ *Horário de atendimento:* [inserir]
+
+Você aproveita os Andes sabendo que tem alguém cuidando de tudo.
+
+💬 Quer ver como fica o roteiro para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Japão", n: 1, fase: "Conhecer a Araya e o destino", tema: "Abrindo a série Japão", img: "Templo em Kyoto ou cerejeiras com o Monte Fuji", conf: "", txt: `⛩️ *Série Japão* · 1/24
+*Uma viagem para um mundo diferente*
+
+A partir de hoje, a série Japão vai te mostrar o destino de perto: as cidades, as cerejeiras e o outono, os trens, a etiqueta, a mala e como cada detalhe do roteiro é pensado. 🧡
+
+📌 Salve os posts que quiser rever depois.
+
+Conta pra gente: *o Japão já está na sua lista?* 👇` },
+{ dest: "Japão", n: 2, fase: "Conhecer a Araya e o destino", tema: "Por que o Japão?", img: "Templo em Kyoto ou cerejeiras com o Monte Fuji", conf: "", txt: `⛩️ *Série Japão* · 2/24
+*Por que o Japão?*
+
+Templos de mil anos ao lado de arranha-céus. Trens-bala que saem no segundo marcado. Jardins cuidados pedra por pedra. E uma comida que vai muito além do sushi. 🍣🌸
+
+O que mais marca, porém, é o jeito japonês de fazer tudo com atenção e respeito. A gente volta olhando diferente para os próprios detalhes.
+
+💬 Quer ver como fica o roteiro no Japão para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Japão", n: 3, fase: "Conhecer a Araya e o destino", tema: "Como funciona o roteiro pronto da Araya no Japão", img: "Arte com os 4 passos sobre uma foto do destino", conf: "O que está incluído no roteiro deste destino", txt: `⛩️ *Série Japão* · 3/24
+*Como funciona o roteiro pronto da Araya no Japão*
+
+1️⃣ *Você escolhe as datas.* A gente te ajuda a entender a época e quantos dias fazem sentido.
+2️⃣ *Nós montamos tudo na ordem certa:* as cidades, os trens entre elas e as visitas com guia. [ajustar ao que está incluído]
+3️⃣ *Você recebe o dia a dia explicado:* horários, estações e o que levar.
+4️⃣ *Durante a viagem, a gente está junto.* Qualquer imprevisto, é só chamar.
+
+✅ Idioma, trens e etiqueta deixam de ser preocupação, e você só aproveita.
+
+💬 Quer ver como fica o roteiro no Japão para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Japão", n: 4, fase: "Conhecer a Araya e o destino", tema: "Mapa: por onde o roteiro passa", img: "Mapa ilustrado com os pontos do roteiro", conf: "Cidades e pontos do roteiro atual", txt: `⛩️ *Série Japão* · 4/24
+*Mapa: por onde o roteiro passa*
+
+🏙️ *Tóquio:* a capital, com bairros de personalidades bem diferentes
+🗻 *Monte Fuji e Hakone:* lagos, natureza e o vulcão mais famoso do país
+⛩️ *Kyoto:* a antiga capital, com templos e o bairro das gueixas
+🦌 *Nara:* o parque com cervos soltos e templos gigantes
+🍜 *Osaka:* a capital da comida de rua
+[ajustar às cidades do roteiro]
+
+🚄 Entre as cidades, o trem-bala faz o caminho em poucas horas.
+
+💬 Quer ver como fica o roteiro no Japão para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Japão", n: 5, fase: "Conhecer a Araya e o destino", tema: "Melhor época para ir", img: "Montagem com o destino em diferentes estações", conf: "Conferir os períodos com a equipe de roteiros", txt: `⛩️ *Série Japão* · 5/24
+*Qual a melhor época para ir?*
+
+🌸 *Fim de março e abril:* as cerejeiras. A época mais procurada do ano.
+☀️ *Junho a agosto:* quente e úmido, com festivais de rua e fogos de artifício.
+🍁 *Novembro:* as folhas ficam vermelhas e douradas, e o clima é agradável.
+❄️ *Dezembro a fevereiro:* frio, céu limpo e menos movimento.
+
+💡 Cerejeiras e outono lotam hotéis com meses de antecedência. Quanto antes a gente planejar, mais opções você tem.
+
+💬 Quer ver como fica o roteiro no Japão para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Japão", n: 6, fase: "Conhecer a Araya e o destino", tema: "Mini guia dos passeios (parte 1)", img: "Carrossel com uma foto de cada passeio", conf: "Passeios do roteiro atual", txt: `⛩️ *Série Japão* · 6/24
+*Mini guia dos passeios (parte 1)*
+
+🏙️ *Tóquio:* do templo Senso-ji, em Asakusa, ao cruzamento de Shibuya, o mais movimentado do mundo. Tradição e futuro na mesma tarde.
+🗻 *Monte Fuji:* com o céu limpo, a vista do vulcão nevado refletido no lago é de parar.
+
+📸 Na parte 2: Kyoto, Nara e Osaka.
+
+💬 Quer ver como fica o roteiro no Japão para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Japão", n: 7, fase: "Conhecer a Araya e o destino", tema: "Mini guia dos passeios (parte 2)", img: "Carrossel com uma foto de cada passeio", conf: "Passeios do roteiro atual", txt: `⛩️ *Série Japão* · 7/24
+*Mini guia dos passeios (parte 2)*
+
+⛩️ *Kyoto:* os milhares de portais vermelhos do Fushimi Inari, o Pavilhão Dourado e as ruelas de Gion.
+🦌 *Nara:* cervos que fazem reverência e um Buda de bronze de 15 metros.
+🍜 *Osaka:* as luzes de Dotonbori e a comida de rua na calçada.
+
+💬 Quer ver como fica o roteiro no Japão para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Japão", n: 8, fase: "Conhecer a Araya e o destino", tema: "Cerejeiras e folhas de outono: o calendário", img: "Cerejeiras em flor ou bordos vermelhos em um templo", conf: "Se o passeio está no roteiro ou é opcional", txt: `⛩️ *Série Japão* · 8/24
+*Cerejeiras e outono: o calendário*
+
+🌸 *Sakura (cerejeiras):* florescem entre o *fim de março e o começo de abril* na maior parte do roteiro. A data muda a cada ano e de cidade para cidade, e a florada dura poucos dias.
+🍁 *Koyo (folhas de outono):* o auge costuma ser em *novembro*, com jardins e templos em vermelho e dourado.
+
+📅 São as épocas mais procuradas do Japão. Por isso, essas viagens começam a ser planejadas cedo. 🗓️
+
+Cerejeiras ou outono: qual é a sua? 👇` },
+{ dest: "Japão", n: 9, fase: "Planejar com a Araya", tema: "Quantos dias preciso? Por que a ordem do roteiro importa", img: "Trem-bala com o Monte Fuji ao fundo", conf: "Dias e ordem do roteiro atual", txt: `⛩️ *Série Japão* · 9/24
+*Quantos dias preciso? E por que a ordem importa*
+
+🚄 O trem-bala é rápido, mas cada troca de cidade toma meio dia entre check-out, estação e check-in. Por isso a gente monta a sequência pelo caminho mais inteligente.
+
+⏰ *Fuso horário:* são 12 horas de diferença. Os primeiros dias do roteiro são pensados para você se adaptar.
+
+🗓️ *Quantos dias?* A partir de 10 dias para Tóquio, Kyoto e arredores com calma. [ajustar]
+
+💬 Quer ver como fica o roteiro no Japão para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Japão", n: 10, fase: "Planejar com a Araya", tema: "Onde vou me hospedar? Como a Araya escolhe os hotéis", img: "Quarto de ryokan com futon", conf: "Como a hospedagem é vendida hoje", txt: `⛩️ *Série Japão* · 10/24
+*Onde vou me hospedar?*
+
+🛏️ No Japão, os quartos costumam ser *menores* do que estamos acostumados, mas impecáveis em limpeza e organização.
+
+📍 Ficar perto das estações faz muita diferença no dia a dia.
+
+✨ *Uma noite especial:* o *ryokan*, a pousada tradicional, com futon, yukata, jantar típico e, em muitos, banho termal (onsen).
+
+[ajustar: hospedagem vendida à parte do roteiro]
+
+💬 Quer sugestões de hospedagem para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Japão", n: 11, fase: "Planejar com a Araya", tema: "Ingressos e reservas: por que garantir com antecedência", img: "Foto da atração mais disputada", conf: "O que a Araya reserva para o cliente", txt: `⛩️ *Série Japão* · 11/24
+*Reservas: por que garantir com antecedência*
+
+🎟️ Algumas atrações e experiências no Japão só funcionam com *reserva antecipada*, e as vagas somem rápido nas cerejeiras e no outono.
+🚄 Os trens entre as cidades também entram no planejamento.
+🏨 Em datas especiais, os hotéis lotam meses antes.
+
+[ajustar: o que a Araya reserva para o cliente]
+
+Com o roteiro da Araya, essas reservas ficam resolvidas antes da sua viagem.
+
+💬 Quer ver como fica o roteiro no Japão para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Japão", n: 12, fase: "Planejar com a Araya", tema: "Documentos e seguro viagem", img: "Passaporte com um mapa do Japão", conf: "Revisar as regras de entrada perto da data de publicação", txt: `⛩️ *Série Japão* · 12/24
+*Documentos e seguro viagem*
+
+🇯🇵 *Boa notícia:* brasileiros *não precisam de visto* para turismo de até *90 dias*. A isenção foi prorrogada até 29 de setembro de 2029.
+
+🛂 *Atenção:* é preciso *passaporte eletrônico, com chip*, válido para toda a viagem.
+
+🛡️ *Seguro viagem:* muito recomendado. O atendimento médico no Japão é excelente, mas caro.
+
+💬 Quer ver como fica o roteiro no Japão para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Japão", n: 13, fase: "Planejar com a Araya", tema: "Moeda, câmbio e cartão", img: "Notas de iene", conf: "Se a equipe orienta o câmbio antes da viagem", txt: `⛩️ *Série Japão* · 13/24
+*Moeda, câmbio e cartão*
+
+🇯🇵 A moeda do Japão é o *iene*.
+
+💳 O cartão é cada vez mais aceito, mas o *dinheiro vivo ainda é muito usado*, principalmente em templos, restaurantes pequenos e mercados.
+🏧 Os caixas das lojas de conveniência costumam aceitar cartão internacional.
+🙅 E no Japão *não se dá gorjeta*. Pode até soar como ofensa.
+
+💡 Pouco antes da sua viagem, a gente orienta a melhor forma de levar dinheiro.
+
+💬 Quer ver como fica o roteiro no Japão para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Japão", n: 14, fase: "Planejar com a Araya", tema: "Como ficar conectado", img: "Pessoa com celular em uma estação de trem", conf: "Se a Araya indica algum eSIM parceiro", txt: `⛩️ *Série Japão* · 14/24
+*Como ficar conectado*
+
+📶 Internet no Japão ajuda muito a se achar nas estações e nas cidades.
+
+📱 *Opções:*
+• *eSIM:* o mais prático, instalado antes de viajar
+• *Pocket wi-fi:* roteador portátil, bom para quem viaja em família
+• Plano internacional da sua operadora
+
+💡 Confira se o seu celular aceita eSIM e baixe o roteiro e os documentos antes de embarcar.
+
+💬 Quer ver como fica o roteiro no Japão para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Japão", n: 15, fase: "Preparar a mala", tema: "A mala ideal", img: "Mala pequena em estação de trem", conf: "Orientações que a equipe já envia ao cliente", txt: `⛩️ *Série Japão* · 15/24
+*A mala ideal*
+
+🧳 *Mala leve é a dica número 1.* Os deslocamentos são de trem, com escadas e estações cheias. Muitas vezes dá para *mandar a mala de uma cidade para a outra* e viajar só de mochila. [ajustar]
+
+🎒 *Não pode faltar:*
+• Roupas para a estação da viagem
+• Tênis bem confortável
+• *Adaptador de tomada* (dois pinos chatos)
+• Uma sacolinha para o lixo: quase não há lixeiras na rua
+• Meias em bom estado, porque você vai tirar o sapato
+
+📋 Antes da viagem, você recebe da gente as orientações de cada passeio. [ajustar]
+
+Salva este post para a hora de arrumar a mala! 📌` },
+{ dest: "Japão", n: 16, fase: "Preparar a mala", tema: "Com que roupa eu vou? Roupas por passeio", img: "Carrossel com um look por passeio", conf: "Passeios do roteiro atual", txt: `⛩️ *Série Japão* · 16/24
+*Com que roupa eu vou?*
+
+🏙️ *Cidades:* roupa prática para andar muito
+⛩️ *Templos e santuários:* roupa discreta; em alguns, se tira o sapato
+♨️ *Ryokan e onsen:* o hotel oferece o *yukata*, o roupão tradicional
+🗻 *Monte Fuji e Hakone:* um casaco a mais, porque é mais frio que nas cidades
+
+🌸 Na primavera e no outono, camadas leves. No verão, roupas frescas. No inverno, casaco quente.
+
+Salva para consultar na viagem! 📌` },
+{ dest: "Japão", n: 17, fase: "Preparar a mala", tema: "Calçado certo: preciso de bota de trekking?", img: "Tênis na entrada de um ryokan", conf: "", txt: `⛩️ *Série Japão* · 17/24
+*Preciso de bota de trekking?*
+
+👟 Não. No Japão você *anda muito* nas cidades, então o essencial é um tênis bem confortável.
+
+🧦 Escolha um calçado *fácil de tirar e calçar*. Em templos, ryokans e alguns restaurantes, se tira o sapato na entrada.
+
+💡 Não estreie calçado na viagem e leve meias em bom estado!
+
+💬 Quer ver como fica o roteiro no Japão para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Japão", n: 18, fase: "Preparar a mala", tema: "Saúde na viagem + kit farmácia", img: "Kit farmácia organizado em nécessaire", conf: "Revisar com cuidado (orientação de saúde)", txt: `⛩️ *Série Japão* · 18/24
+*Saúde na viagem e kit farmácia*
+
+💊 *Atenção aos remédios:* alguns remédios comuns no Brasil, como certos descongestionantes, são *proibidos ou controlados* no Japão. Confira antes de pôr na mala e leve a receita dos de uso contínuo.
+⏰ *Fuso de 12 horas:* nos primeiros dias, siga o horário local e tome sol de manhã.
+☀️ *No verão:* calor e umidade. Beba água o dia todo.
+
+🩺 Se você tem alguma condição de saúde, converse com seu médico antes da viagem.
+
+💬 Quer ver como fica o roteiro no Japão para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Japão", n: 19, fase: "Viver o destino com a Araya", tema: "Gastronomia do Japão + o guia gastronômico da Araya", img: "Prato típico do destino", conf: "Se o guia gastronômico está disponível para este destino", txt: `⛩️ *Série Japão* · 19/24
+*O Japão pelo paladar*
+
+Muito além do sushi: 😋
+
+🍜 *Ramen*, que cada região faz de um jeito
+🍤 *Tempurá* sequinho
+🥞 *Okonomiyaki* e *takoyaki*, as delícias de Osaka
+🥩 *Wagyu*, a carne japonesa mais famosa
+🍵 *Matchá*, no chá e nas sobremesas
+🍙 E até os lanches das lojas de conveniência surpreendem
+
+🍽️ Nossos clientes recebem um *guia gastronômico personalizado, feito por chef de cozinha*, com restaurantes e pratos indicados para cada dia. [ajustar]
+
+Qual desses você provaria primeiro? 👇` },
+{ dest: "Japão", n: 20, fase: "Viver o destino com a Araya", tema: "Tradições japonesas: o que você conhece com nossos guias", img: "Foto de cultura local (templo, cerimônia do chá, pessoas com autorização)", conf: "", txt: `⛩️ *Série Japão* · 20/24
+*As tradições que você entende com o guia*
+
+No Japão, o respeito e a atenção aos detalhes aparecem em tudo: no cumprimento, no chá servido, nos jardins. 🍵
+
+Com os guias, você aprende a diferença entre templos budistas e santuários xintoístas, o ritual na entrada de cada um, o universo das gueixas em Kyoto e os costumes que fazem do Japão um país único.
+
+Entender o porquê das coisas é o que transforma a viagem. 🙇
+
+💬 Quer ver como fica o roteiro no Japão para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Japão", n: 21, fase: "Viver o destino com a Araya", tema: "Cheguei no Japão! O que esperar do primeiro dia", img: "Foto da chegada ou da vista do hotel", conf: "Como funciona a recepção no destino", txt: `⛩️ *Série Japão* · 21/24
+*Cheguei no Japão! E agora?*
+
+✈️ Depois do voo longo, a equipe local já está te esperando no aeroporto para o traslado até o hotel. 🚐 [ajustar]
+
+😴 *O primeiro dia é para se adaptar ao fuso de 12 horas:* check-in, uma volta leve pelo bairro e, se der, dormir no horário local.
+
+💡 Os passeios começam no ritmo certo para você aproveitar tudo.
+
+💬 Quer ver como fica o roteiro no Japão para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Japão", n: 22, fase: "Viver o destino com a Araya", tema: "Traslados: como funciona a busca no aeroporto", img: "Motorista com plaquinha no desembarque", conf: "Como o traslado funciona neste destino", txt: `⛩️ *Série Japão* · 22/24
+*Como funciona a busca no aeroporto*
+
+🚐 Tóquio tem dois aeroportos, Narita e Haneda, e alguém da equipe local está te esperando no seu. Sem se perder com malas no metrô. 🙌
+
+✈️ *Por que pedimos tantos detalhes do voo?* Número, horário e aeroporto de chegada garantem que o motorista esteja no lugar certo, na hora certa. A nossa equipe confere cada voo antes da sua viagem.
+
+📌 *A sua parte:*
+• Mande os dados do voo assim que comprar a passagem
+• Mudou o voo? Avise a gente o quanto antes
+
+💬 Quer ver como fica o roteiro no Japão para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Japão", n: 23, fase: "Viver o destino com a Araya", tema: "Nossos guias e motoristas no Japão", img: "Guia explicando a um grupo", conf: "Como funcionam os guias e motoristas neste destino", txt: `⛩️ *Série Japão* · 23/24
+*Quem vai estar com você no Japão*
+
+No Japão, o guia vai muito além da história: explica a etiqueta de cada lugar, resolve a língua e os trens, e mostra o que um turista sozinho não perceberia. 🧭
+
+🗣️ Um guia que fala português e japonês fluente deixa a viagem leve, do restaurante à estação. [ajustar]
+
+💬 Quer ver como fica o roteiro no Japão para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Japão", n: 24, fase: "Viver o destino com a Araya", tema: "Como falar com a Araya durante a viagem", img: "Foto da equipe de atendimento", conf: "Canal e horários do pós-venda", txt: `⛩️ *Série Japão* · 24/24
+*A gente não some depois que você embarca* 🧡
+
+Enquanto você estiver no Japão, a nossa equipe acompanha a sua viagem pelo WhatsApp. Mesmo com 12 horas de fuso. [ajustar canal]
+
+💬 *Pode chamar a gente para:*
+• Confirmar horários dos passeios
+• Avisar de um atraso de voo
+• Tirar dúvidas do dia a dia
+• Qualquer imprevisto
+
+⏰ *Horário de atendimento:* [inserir]
+
+💬 Quer ver como fica o roteiro no Japão para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Egito", n: 1, fase: "Conhecer a Araya e o destino", tema: "Abrindo a série Egito", img: "Pirâmides de Gizé ou cruzeiro no Nilo", conf: "", txt: `🏺 *Série Egito* · 1/24
+*5 mil anos de história pela frente*
+
+A partir de hoje, a série Egito vai te mostrar o destino de perto: as pirâmides, o cruzeiro pelo Nilo, os templos, a melhor época, a mala e como cada detalhe do roteiro é pensado. 🧡
+
+📌 Salve os posts que quiser rever depois.
+
+Conta pra gente: *o Egito já está na sua lista?* 👇` },
+{ dest: "Egito", n: 2, fase: "Conhecer a Araya e o destino", tema: "Por que o Egito?", img: "Pirâmides de Gizé ou cruzeiro no Nilo", conf: "", txt: `🏺 *Série Egito* · 2/24
+*Por que o Egito?*
+
+Ficar de frente para as *Pirâmides de Gizé* é um daqueles momentos em que a ficha demora a cair. 🐪
+
+E o Egito vai muito além delas: templos do tamanho de cidades, tumbas pintadas há mais de 3 mil anos com cores ainda vivas, e o Nilo, o rio onde tudo começou.
+
+É a história que a gente estudou na escola, agora diante dos olhos. ✨
+
+💬 Quer ver como fica o roteiro no Egito para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Egito", n: 3, fase: "Conhecer a Araya e o destino", tema: "Como funciona o roteiro pronto da Araya no Egito", img: "Arte com os 4 passos sobre uma foto do destino", conf: "O que está incluído no roteiro deste destino", txt: `🏺 *Série Egito* · 3/24
+*Como funciona o roteiro pronto da Araya no Egito*
+
+1️⃣ *Você escolhe as datas.* A gente te ajuda a entender a época e quantos dias fazem sentido.
+2️⃣ *Nós montamos tudo na ordem certa:* pirâmides, museus, cruzeiro pelo Nilo e templos. [ajustar ao que está incluído]
+3️⃣ *Você recebe o dia a dia explicado:* horários, o que vestir e o que levar.
+4️⃣ *Durante a viagem, a gente está junto.* Qualquer imprevisto, é só chamar.
+
+✅ Do desembarque no Cairo ao último templo, você tem quem conduza.
+
+💬 Quer ver como fica o roteiro no Egito para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Egito", n: 4, fase: "Conhecer a Araya e o destino", tema: "Mapa: por onde o roteiro passa", img: "Mapa ilustrado com os pontos do roteiro", conf: "Cidades e pontos do roteiro atual", txt: `🏺 *Série Egito* · 4/24
+*Mapa: por onde o roteiro passa*
+
+🏙️ *Cairo:* a capital, porta de entrada do país
+🔺 *Gizé:* as pirâmides e a Esfinge, colados no Cairo
+🌊 *Aswan:* no sul, com o Nilo mais bonito do caminho
+🗿 *Abu Simbel:* os templos de Ramsés II, perto da fronteira com o Sudão
+🚢 *Rio Nilo:* o cruzeiro entre Aswan e Luxor
+🏛️ *Luxor:* Karnak, o templo de Luxor e o Vale dos Reis
+[ajustar às cidades do roteiro]
+
+🗺️ São distâncias grandes. O cruzeiro resolve boa parte delas: você navega de templo em templo sem trocar de hotel.
+
+💬 Quer ver como fica o roteiro no Egito para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Egito", n: 5, fase: "Conhecer a Araya e o destino", tema: "Melhor época para ir", img: "Montagem com o destino em diferentes estações", conf: "Conferir os períodos com a equipe de roteiros", txt: `🏺 *Série Egito* · 5/24
+*Qual a melhor época para ir?*
+
+🌤️ *Outubro a abril:* calor mais ameno. É a alta temporada.
+🔥 *Maio a setembro:* muito calor, principalmente no sul. Os passeios começam bem cedo.
+🌙 *Ramadã:* o mês sagrado muda alguns horários no país, e a data muda a cada ano.
+
+💡 Na alta temporada, cruzeiros e hotéis esgotam primeiro. Quanto antes a gente planejar, mais opções você tem.
+
+💬 Quer ver como fica o roteiro no Egito para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Egito", n: 6, fase: "Conhecer a Araya e o destino", tema: "Mini guia dos passeios (parte 1)", img: "Carrossel com uma foto de cada passeio", conf: "Passeios do roteiro atual", txt: `🏺 *Série Egito* · 6/24
+*Mini guia dos passeios (parte 1)*
+
+🔺 *Pirâmides de Gizé e a Esfinge:* a única das sete maravilhas do mundo antigo que ainda está de pé.
+🏛️ *Grande Museu Egípcio:* aos pés das pirâmides, com o tesouro de Tutancâmon. [ajustar aos museus do roteiro]
+🛍️ *Cairo histórico:* mesquitas, ruelas antigas e o mercado Khan el-Khalili.
+
+📸 Na parte 2: o Nilo, Luxor e Abu Simbel.
+
+💬 Quer ver como fica o roteiro no Egito para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Egito", n: 7, fase: "Conhecer a Araya e o destino", tema: "Mini guia dos passeios (parte 2)", img: "Carrossel com uma foto de cada passeio", conf: "Passeios do roteiro atual", txt: `🏺 *Série Egito* · 7/24
+*Mini guia dos passeios (parte 2)*
+
+🚢 *Cruzeiro pelo Nilo:* dias navegando entre templos, com o pôr do sol visto do deck.
+🏛️ *Luxor:* as colunas gigantes de Karnak, o templo de Luxor iluminado à noite e as tumbas do Vale dos Reis.
+🗿 *Abu Simbel:* templos esculpidos na rocha, que foram cortados em blocos e remontados para escapar das águas de uma represa.
+
+💬 Quer ver como fica o roteiro no Egito para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Egito", n: 8, fase: "Conhecer a Araya e o destino", tema: "Balão em Luxor: quando vale a pena?", img: "Balões ao nascer do sol sobre Luxor", conf: "Se o passeio está no roteiro ou é opcional", txt: `🏺 *Série Egito* · 8/24
+*Balão em Luxor: quando vale a pena?*
+
+Ver o sol nascer sobre os templos, flutuando de balão acima do Nilo, é um dos momentos mais marcantes do Egito. 🎈🌅
+
+🌤️ *De outubro a abril,* as manhãs são mais agradáveis e o céu costuma estar limpo.
+⏰ O voo sai bem cedo, antes do nascer do sol.
+🌬️ Depende do vento, por isso às vezes é remarcado. A gente deixa uma folga no roteiro para isso. [ajustar: passeio opcional]
+
+Você subiria no balão? 🎈👇` },
+{ dest: "Egito", n: 9, fase: "Planejar com a Araya", tema: "Quantos dias preciso? Por que a ordem do roteiro importa", img: "Barco no Nilo ao entardecer", conf: "Dias e ordem do roteiro atual", txt: `🏺 *Série Egito* · 9/24
+*Quantos dias preciso? E por que a ordem importa*
+
+🏙️ A viagem costuma começar pelo *Cairo e Gizé* e depois seguir para o sul, com o *cruzeiro pelo Nilo*, onde você visita vários templos sem trocar de hotel. [ajustar]
+
+☀️ Os horários são pensados para fugir do sol mais forte do dia: templos de manhã cedo e à tarde.
+
+🗓️ *Quantos dias?* A partir de 8 a 10 dias para o Cairo e o cruzeiro com calma. Alguns roteiros terminam com dias de praia no Mar Vermelho. [ajustar]
+
+💬 Quer ver como fica o roteiro no Egito para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Egito", n: 10, fase: "Planejar com a Araya", tema: "Onde vou me hospedar? Como a Araya escolhe os hotéis", img: "Cabine de cruzeiro com vista para o Nilo", conf: "Como a hospedagem é vendida hoje", txt: `🏺 *Série Egito* · 10/24
+*Onde vou me hospedar?*
+
+No Egito, a hospedagem tem duas partes:
+
+🏨 *No Cairo:* hotéis com boa estrutura, alguns com vista para as pirâmides ou para o Nilo
+🚢 *No cruzeiro:* o barco é o seu hotel por algumas noites, com cabine, refeições e paradas nos templos
+
+Na hora de indicar, a gente olha a localização, o conforto e o seu perfil.
+
+[ajustar: hospedagem vendida à parte do roteiro]
+
+💬 Quer sugestões de hospedagem para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Egito", n: 11, fase: "Planejar com a Araya", tema: "Ingressos e reservas: por que garantir com antecedência", img: "Foto da atração mais disputada", conf: "O que a Araya reserva para o cliente", txt: `🏺 *Série Egito* · 11/24
+*Ingressos: por que garantir com antecedência*
+
+🎟️ Cada sítio arqueológico tem sua entrada: pirâmides, templos, museus e tumbas.
+🗿 Algumas visitas, como o interior das pirâmides e certas tumbas do Vale dos Reis, têm *ingresso à parte* ou vagas limitadas.
+🚢 Cruzeiro e balão precisam de reserva antecipada na alta temporada.
+
+[ajustar: o que está incluído no roteiro]
+
+Com o roteiro da Araya, você sabe antes de viajar o que já está garantido.
+
+💬 Quer ver como fica o roteiro no Egito para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Egito", n: 12, fase: "Planejar com a Araya", tema: "Documentos e seguro viagem", img: "Passaporte com um mapa", conf: "Revisar as regras de entrada perto da data de publicação", txt: `🏺 *Série Egito* · 12/24
+*Documentos e seguro viagem*
+
+🛂 *Passaporte* com pelo menos *6 meses de validade* e *visto*.
+📋 O visto de turismo pode ser tirado *online* (e-Visa) ou *na chegada* ao aeroporto.
+💉 Confira a exigência do *certificado internacional de vacina contra febre amarela* para quem sai do Brasil.
+🛡️ *Seguro viagem:* essencial.
+
+⚠️ As regras mudam com frequência. A gente orienta cada cliente de acordo com o que vale nas datas da viagem.
+
+💬 Quer ver como fica o roteiro no Egito para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Egito", n: 13, fase: "Planejar com a Araya", tema: "Moeda, câmbio e cartão", img: "Notas de libra egípcia e dólares", conf: "Se a equipe orienta o câmbio antes da viagem", txt: `🏺 *Série Egito* · 13/24
+*Moeda, câmbio e cartão*
+
+🇪🇬 A moeda do Egito é a *libra egípcia*.
+
+💵 *Leve dólares em notas pequenas.* Eles ajudam muito no dia a dia.
+🤲 *Gorjeta faz parte da cultura* (o baksheesh): motoristas, guias, equipe do cruzeiro e até banheiros.
+💳 Hotéis e lojas maiores aceitam cartão, mas o dinheiro vivo é essencial.
+
+💡 Pouco antes da sua viagem, a gente orienta quanto levar.
+
+💬 Quer ver como fica o roteiro no Egito para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Egito", n: 14, fase: "Planejar com a Araya", tema: "Como ficar conectado", img: "Pessoa com celular diante da paisagem", conf: "Se a Araya indica algum eSIM parceiro", txt: `🏺 *Série Egito* · 14/24
+*Como ficar conectado*
+
+📶 Os hotéis do Cairo têm wi-fi, mas no cruzeiro a internet costuma ser *bem mais lenta*.
+
+📱 *Opções:* eSIM (o mais prático), chip local ou plano internacional da sua operadora.
+
+💡 Baixe o roteiro e os documentos no celular antes, para ter tudo em mãos mesmo sem sinal.
+
+💬 Quer ver como fica o roteiro no Egito para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Egito", n: 15, fase: "Preparar a mala", tema: "A mala ideal", img: "Flatlay de mala com os itens", conf: "Orientações que a equipe já envia ao cliente", txt: `🏺 *Série Egito* · 15/24
+*A mala ideal*
+
+☀️ De dia faz calor e o sol é forte. À noite, principalmente no inverno e no deserto, esfria.
+
+🎒 *Não pode faltar:*
+• Roupas leves e soltas, de tecido fresco
+• Peças que cubram *ombros e joelhos*, para mesquitas e lugares religiosos
+• Um lenço ou pashmina: cobre os ombros e protege do sol
+• Uma blusa de frio para a noite e o ar-condicionado
+• Protetor solar, óculos de sol e chapéu
+• Dólares em notas pequenas para as gorjetas
+
+📋 Antes da viagem, você recebe da gente as orientações de cada passeio. [ajustar]
+
+Salva este post para a hora de arrumar a mala! 📌` },
+{ dest: "Egito", n: 16, fase: "Preparar a mala", tema: "Com que roupa eu vou? Roupas por passeio", img: "Carrossel com um look por passeio", conf: "Passeios do roteiro atual", txt: `🏺 *Série Egito* · 16/24
+*Com que roupa eu vou?*
+
+🔺 *Pirâmides:* roupa leve, chapéu e óculos de sol
+🕌 *Mesquitas:* ombros e joelhos cobertos; mulheres com lenço no cabelo
+🏛️ *Templos:* roupa leve que cubra os ombros
+🚢 *Cruzeiro:* confortável de dia e um pouco mais arrumada no jantar
+🎈 *Balão ao amanhecer:* um casaco, porque cedo esfria
+
+Salva para consultar na viagem! 📌` },
+{ dest: "Egito", n: 17, fase: "Preparar a mala", tema: "Calçado certo: preciso de bota de trekking?", img: "Tênis na areia diante de um templo", conf: "", txt: `🏺 *Série Egito* · 17/24
+*Preciso de bota de trekking?*
+
+👟 Não. Um *tênis confortável e fechado* é o ideal: nos templos e no deserto tem muita areia e pedra.
+
+🩴 Uma sandália é bem-vinda no barco e nos momentos de descanso.
+
+💡 Não estreie calçado na viagem: amacie antes!
+
+💬 Quer ver como fica o roteiro no Egito para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Egito", n: 18, fase: "Preparar a mala", tema: "Saúde na viagem + kit farmácia", img: "Kit farmácia organizado em nécessaire", conf: "Revisar com cuidado (orientação de saúde)", txt: `🏺 *Série Egito* · 18/24
+*Saúde na viagem e kit farmácia*
+
+☀️ *Calor e sol:* beba muita água, use protetor e chapéu e evite o sol do meio-dia.
+🍽️ *Estômago:* prefira água mineral e vá com calma em saladas e frutas cruas nos primeiros dias.
+
+💊 *No kit farmácia:* seus remédios de uso contínuo, analgésico, *remédio para o estômago*, antialérgico, curativos e protetor solar.
+
+🩺 Se você tem alguma condição de saúde, converse com seu médico antes da viagem.
+
+💬 Quer ver como fica o roteiro no Egito para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Egito", n: 19, fase: "Viver o destino com a Araya", tema: "Gastronomia do Egito + o guia gastronômico da Araya", img: "Prato típico do destino", conf: "Se o guia gastronômico está disponível para este destino", txt: `🏺 *Série Egito* · 19/24
+*O Egito pelo paladar*
+
+Alguns sabores para provar: 😋
+
+🍝 *Koshari:* o prato mais popular, com arroz, macarrão, lentilha e molho de tomate
+🧆 *Falafel* egípcio, feito de fava
+🫘 *Ful medames*, o café da manhã típico
+🍞 *Aish baladi*, o pão que acompanha tudo
+🌺 *Karkadé*, o chá de hibisco, quente ou gelado
+
+🍽️ Nossos clientes recebem um *guia gastronômico personalizado, feito por chef de cozinha*, com restaurantes e pratos indicados para cada dia. [ajustar]
+
+Qual desses você provaria primeiro? 👇` },
+{ dest: "Egito", n: 20, fase: "Viver o destino com a Araya", tema: "A história do Egito contada por nossos guias", img: "Guia explicando hieróglifos em um templo", conf: "", txt: `🏺 *Série Egito* · 20/24
+*Quando as paredes começam a falar*
+
+Sem um bom guia, um templo egípcio são pedras bonitas. Com ele, cada parede vira uma história: os deuses, os faraós, os rituais e o dia a dia no antigo Egito. 📜
+
+E o Egito de hoje também encanta: a hospitalidade, o chá servido a toda hora, os mercados cheios de cor e de cheiro.
+
+Com os guias, que falam português, você entende o passado e o presente do país. 🧡 [ajustar]
+
+💬 Quer ver como fica o roteiro no Egito para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Egito", n: 21, fase: "Viver o destino com a Araya", tema: "Cheguei no Egito! O que esperar do primeiro dia", img: "Foto da chegada ou da vista do hotel", conf: "Como funciona a recepção no destino", txt: `🏺 *Série Egito* · 21/24
+*Cheguei no Cairo! E agora?*
+
+✈️ No desembarque, você já é recebido e tem ajuda com a imigração e o visto. Depois, segue com a equipe local para o hotel. 🚐 [ajustar: apoio com o visto na chegada]
+
+🌙 *O primeiro dia é para descansar* e se adaptar ao fuso. O Cairo é agitado, e a experiência começa já no caminho até o hotel.
+
+💡 Os passeios começam no ritmo certo para você aproveitar tudo.
+
+💬 Quer ver como fica o roteiro no Egito para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Egito", n: 22, fase: "Viver o destino com a Araya", tema: "Traslados: como funciona a busca no aeroporto", img: "Motorista com plaquinha no desembarque", conf: "Como o traslado funciona neste destino", txt: `🏺 *Série Egito* · 22/24
+*Como funciona a busca no aeroporto*
+
+🚐 No aeroporto do Cairo, alguém da equipe local está te esperando. Sem negociar táxi e sem se preocupar com o trânsito até o hotel. 🙌
+
+✈️ *Por que pedimos tantos detalhes do voo?* Número, horário e aeroporto de chegada garantem que o motorista esteja no lugar certo, na hora certa. A nossa equipe confere cada voo antes da sua viagem.
+
+📌 *A sua parte:*
+• Mande os dados do voo assim que comprar a passagem
+• Mudou o voo? Avise a gente o quanto antes
+
+💬 Quer ver como fica o roteiro no Egito para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Egito", n: 23, fase: "Viver o destino com a Araya", tema: "Nossos guias e motoristas no Egito", img: "Guia explicando a um grupo", conf: "Como funcionam os guias e motoristas neste destino", txt: `🏺 *Série Egito* · 23/24
+*Quem vai estar com você no Egito*
+
+No Egito, o guia é parte essencial da viagem: lê os hieróglifos, conta a história de cada faraó e ajusta os horários para você visitar os templos com mais calma. 📜
+
+🚐 Os deslocamentos são feitos com motoristas que conhecem o trânsito intenso do Cairo. [ajustar]
+
+💬 Quer ver como fica o roteiro no Egito para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Egito", n: 24, fase: "Viver o destino com a Araya", tema: "Como falar com a Araya durante a viagem", img: "Foto da equipe de atendimento", conf: "Canal e horários do pós-venda", txt: `🏺 *Série Egito* · 24/24
+*A gente não some depois que você embarca* 🧡
+
+Enquanto você estiver no Egito, a nossa equipe acompanha a sua viagem pelo WhatsApp. [ajustar canal]
+
+💬 *Pode chamar a gente para:*
+• Confirmar horários dos passeios
+• Avisar de um atraso de voo
+• Tirar dúvidas do dia a dia
+• Qualquer imprevisto
+
+⏰ *Horário de atendimento:* [inserir]
+
+Você aproveita o Egito sabendo que tem alguém cuidando de tudo.
+
+💬 Quer ver como fica o roteiro no Egito para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Ushuaia", n: 1, fase: "Conhecer a Araya e o destino", tema: "Abrindo a série Ushuaia", img: "Farol no Canal de Beagle ou pinguins", conf: "", txt: `🐧 *Série Ushuaia* · 1/24
+*Bem-vindo(a) ao fim do mundo*
+
+A partir de hoje, a série Ushuaia vai te mostrar o destino de perto: o Canal de Beagle, os pinguins, a neve, a melhor época, a mala e como cada detalhe do roteiro é pensado. 🧡
+
+📌 Salve os posts que quiser rever depois.
+
+Conta pra gente: *Ushuaia já está na sua lista?* 👇` },
+{ dest: "Ushuaia", n: 2, fase: "Conhecer a Araya e o destino", tema: "Por que Ushuaia?", img: "Farol no Canal de Beagle ou pinguins", conf: "", txt: `🐧 *Série Ushuaia* · 2/24
+*Por que Ushuaia?*
+
+Montanhas nevadas de um lado, o Canal de Beagle do outro. Ushuaia, na Terra do Fogo, é a cidade mais austral do mundo. 🌊🏔️
+
+Em poucos dias, você navega até um farol cercado de lobos-marinhos, caminha por florestas que terminam no mar e, na temporada certa, vê pinguins de perto.
+
+A sensação de estar no fim do mapa é difícil de explicar.
+
+💬 Quer ver como fica o roteiro em Ushuaia para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Ushuaia", n: 3, fase: "Conhecer a Araya e o destino", tema: "Como funciona o roteiro pronto da Araya em Ushuaia", img: "Arte com os 4 passos sobre uma foto do destino", conf: "O que está incluído no roteiro deste destino", txt: `🐧 *Série Ushuaia* · 3/24
+*Como funciona o roteiro pronto da Araya em Ushuaia*
+
+1️⃣ *Você escolhe as datas.* A gente te ajuda a entender a época e quantos dias fazem sentido.
+2️⃣ *Nós montamos tudo na ordem certa:* Canal de Beagle, Parque Nacional Tierra del Fuego e Trem do Fim do Mundo. [ajustar ao que está incluído]
+3️⃣ *Você recebe o dia a dia explicado:* horários, o que vestir e o que levar.
+4️⃣ *Durante a viagem, a gente está junto.* Se o tempo virar, a gente ajusta.
+
+✅ Num destino em que o clima manda, ter quem reorganize o dia faz diferença.
+
+💬 Quer ver como fica o roteiro em Ushuaia para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Ushuaia", n: 4, fase: "Conhecer a Araya e o destino", tema: "Mapa: por onde o roteiro passa", img: "Mapa ilustrado com os pontos do roteiro", conf: "Cidades e pontos do roteiro atual", txt: `🐧 *Série Ushuaia* · 4/24
+*Mapa: por onde o roteiro passa*
+
+📍 *Ushuaia:* a cidade, entre as montanhas e o mar
+🌊 *Canal de Beagle:* o caminho até o farol e as ilhas com lobos-marinhos e pinguins
+🌲 *Parque Nacional Tierra del Fuego:* florestas, lagos e baías, a poucos minutos da cidade
+🚂 *Trem do Fim do Mundo:* dentro do parque
+🏞️ *Lagos Escondido e Fagnano:* no interior da ilha
+[ajustar aos passeios do roteiro]
+
+🗺️ Tudo fica relativamente perto, mas o clima define a ordem do dia.
+
+💬 Quer ver como fica o roteiro em Ushuaia para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Ushuaia", n: 5, fase: "Conhecer a Araya e o destino", tema: "Melhor época para ir", img: "Montagem com o destino em diferentes estações", conf: "Conferir os períodos com a equipe de roteiros", txt: `🐧 *Série Ushuaia* · 5/24
+*Qual a melhor época para ir?*
+
+☀️ *Outubro a março:* dias longos, trilhas, navegações e a temporada dos *pinguins* 🐧
+🍂 *Abril e maio:* as florestas ficam coloridas
+❄️ *Junho a setembro:* a cidade coberta de neve, com clima de montanha
+
+💡 Em qualquer época, o tempo muda rápido: sol, vento e garoa no mesmo dia.
+
+💬 Quer ver como fica o roteiro em Ushuaia para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Ushuaia", n: 6, fase: "Conhecer a Araya e o destino", tema: "Mini guia dos passeios (parte 1)", img: "Carrossel com uma foto de cada passeio", conf: "Passeios do roteiro atual", txt: `🐧 *Série Ushuaia* · 6/24
+*Mini guia dos passeios (parte 1)*
+
+🌊 *Navegação pelo Canal de Beagle:* até o Farol Les Eclaireurs, passando por ilhas com lobos-marinhos, cormorões e albatrozes.
+🌲 *Parque Nacional Tierra del Fuego:* florestas e lagos até a Baía Lapataia, onde termina a Ruta 3, a estrada que vem de Buenos Aires.
+
+📸 Na parte 2: o trem, os lagos e os pinguins.
+
+💬 Quer ver como fica o roteiro em Ushuaia para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Ushuaia", n: 7, fase: "Conhecer a Araya e o destino", tema: "Mini guia dos passeios (parte 2)", img: "Carrossel com uma foto de cada passeio", conf: "Passeios do roteiro atual", txt: `🐧 *Série Ushuaia* · 7/24
+*Mini guia dos passeios (parte 2)*
+
+🚂 *Trem do Fim do Mundo:* o trem que lembra o tempo em que presos da antiga prisão buscavam lenha na floresta.
+🏞️ *Lagos Escondido e Fagnano:* montanhas e lagos no coração da Terra do Fogo.
+🐧 *Pinguins:* na temporada, a visita às colônias é um dos momentos mais emocionantes da viagem.
+
+💬 Quer ver como fica o roteiro em Ushuaia para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Ushuaia", n: 8, fase: "Conhecer a Araya e o destino", tema: "Pinguins: quando dá para ver?", img: "Pinguins em uma ilha do Canal de Beagle", conf: "Se o passeio está no roteiro ou é opcional", txt: `🐧 *Série Ushuaia* · 8/24
+*Pinguins: quando dá para ver?*
+
+Ver pinguins de perto é o sonho de muita gente que vai a Ushuaia! 🐧
+
+📅 *Temporada:* eles chegam às ilhas do Canal de Beagle na primavera e ficam até o fim do verão, mais ou menos *de outubro a março*. No resto do ano, estão no mar.
+
+🚢 As saídas para ver os pinguins têm vagas limitadas e são muito procuradas.
+
+Se esse é o seu sonho, a gente monta o roteiro na época certa. [ajustar ao passeio oferecido]
+
+Quem aqui sonha em ver um pinguim de pertinho? 🙋👇` },
+{ dest: "Ushuaia", n: 9, fase: "Planejar com a Araya", tema: "Quantos dias preciso? Por que a ordem do roteiro importa", img: "Barco no Canal de Beagle", conf: "Dias e ordem do roteiro atual", txt: `🐧 *Série Ushuaia* · 9/24
+*Quantos dias preciso? E por que a ordem importa*
+
+🌬️ Em Ushuaia, as navegações dependem do vento. Por isso o roteiro da Araya deixa espaço para remarcar, se o tempo não ajudar. [ajustar]
+
+🧊 *Vai combinar com a Patagônia?* Ushuaia e El Calafate formam uma dupla perfeita, e a ordem das cidades muda o aproveitamento.
+
+🗓️ *Quantos dias?* De 3 a 4 dias para os principais passeios com calma. [ajustar]
+
+💬 Quer ver como fica o roteiro em Ushuaia para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Ushuaia", n: 10, fase: "Planejar com a Araya", tema: "Onde vou me hospedar? Como a Araya escolhe os hotéis", img: "Quarto com vista para o Canal de Beagle", conf: "Como a hospedagem é vendida hoje", txt: `🐧 *Série Ushuaia* · 10/24
+*Onde vou me hospedar?*
+
+🏙️ *No centro:* perto do porto e dos restaurantes, para fazer tudo a pé.
+🏔️ *Na montanha:* com vista para o Canal de Beagle, mais silencioso.
+
+Na hora de indicar, a gente olha a localização, o conforto (com o frio, um hotel bem aquecido faz diferença!) e o seu perfil.
+
+[ajustar: hospedagem vendida à parte do roteiro]
+
+💬 Quer sugestões de hospedagem para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Ushuaia", n: 11, fase: "Planejar com a Araya", tema: "Ingressos e reservas: por que garantir com antecedência", img: "Foto da atração mais disputada", conf: "O que a Araya reserva para o cliente", txt: `🐧 *Série Ushuaia* · 11/24
+*Reservas: por que garantir com antecedência*
+
+🌲 *Parque Nacional Tierra del Fuego:* cobra entrada.
+🚢 *Navegações e pinguins:* vagas limitadas, e as saídas para os pinguins esgotam na alta temporada.
+🚂 *Trem do Fim do Mundo:* os horários mais procurados lotam.
+
+[ajustar: o que a Araya reserva para o cliente]
+
+Com o roteiro da Araya, essas reservas ficam resolvidas antes da sua viagem.
+
+💬 Quer ver como fica o roteiro em Ushuaia para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Ushuaia", n: 12, fase: "Planejar com a Araya", tema: "Documentos e seguro viagem", img: "Passaporte e RG com um mapa", conf: "Revisar as regras de entrada perto da data de publicação", txt: `🐧 *Série Ushuaia* · 12/24
+*Documentos e seguro viagem*
+
+🇦🇷 *Argentina:* brasileiros entram com *RG ou passaporte*.
+⚠️ O RG precisa ter *menos de 10 anos de emissão*, estar em bom estado e com a foto reconhecível.
+
+🛡️ *Seguro viagem:* a gente recomenda sempre. No inverno, confira se ele cobre atividades na neve.
+
+💬 Quer ver como fica o roteiro em Ushuaia para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Ushuaia", n: 13, fase: "Planejar com a Araya", tema: "Moeda, câmbio e cartão", img: "Notas da moeda local", conf: "Se a equipe orienta o câmbio antes da viagem", txt: `🐧 *Série Ushuaia* · 13/24
+*Moeda, câmbio e cartão*
+
+🇦🇷 A moeda da Argentina é o *peso argentino*.
+
+💳 Em Ushuaia, a maioria dos lugares aceita cartão. Leve um pouco de dinheiro vivo para gastos pequenos.
+
+⚠️ O câmbio na Argentina muda bastante. Pouco antes da sua viagem, a gente orienta a melhor forma de levar dinheiro.
+
+💬 Quer ver como fica o roteiro em Ushuaia para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Ushuaia", n: 14, fase: "Planejar com a Araya", tema: "Como ficar conectado", img: "Pessoa com celular diante da paisagem", conf: "Se a Araya indica algum eSIM parceiro", txt: `🐧 *Série Ushuaia* · 14/24
+*Como ficar conectado*
+
+📶 Em Ushuaia, tem wi-fi nos hotéis e restaurantes, e o celular pega na cidade.
+🌲 No Parque Nacional e em algumas navegações, o sinal some.
+
+💡 *Opções:* eSIM (o mais prático), chip local ou plano internacional da sua operadora. Baixe o roteiro e os documentos antes.
+
+💬 Quer ver como fica o roteiro em Ushuaia para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Ushuaia", n: 15, fase: "Preparar a mala", tema: "A mala ideal", img: "Flatlay de mala com os itens", conf: "Orientações que a equipe já envia ao cliente", txt: `🐧 *Série Ushuaia* · 15/24
+*A mala ideal*
+
+O tempo muda rápido: sol, vento e garoa no mesmo dia. A palavra é *camadas*. 😄
+
+🎒 *Não pode faltar:*
+• Blusa térmica e fleece
+• *Jaqueta impermeável e corta-vento*
+• Gorro, luvas e cachecol, mesmo no verão
+• Óculos de sol e protetor solar
+• Mochila pequena para os passeios
+❄️ *No inverno:* roupa térmica completa e jaqueta de pluma
+
+📋 Antes da viagem, você recebe da gente as orientações de cada passeio. [ajustar]
+
+Salva este post para a hora de arrumar a mala! 📌` },
+{ dest: "Ushuaia", n: 16, fase: "Preparar a mala", tema: "Com que roupa eu vou? Roupas por passeio", img: "Carrossel com um look por passeio", conf: "Passeios do roteiro atual", txt: `🐧 *Série Ushuaia* · 16/24
+*Com que roupa eu vou?*
+
+🌊 *Canal de Beagle:* venta muito no convés. Capricha no casaco e no gorro para as fotos
+🌲 *Parque Nacional:* camadas, calça confortável e jaqueta impermeável
+🚂 *Trem do Fim do Mundo:* um casaco quentinho
+❄️ *Inverno:* roupa térmica completa, jaqueta de pluma, luvas e gorro
+
+Salva para consultar na viagem! 📌` },
+{ dest: "Ushuaia", n: 17, fase: "Preparar a mala", tema: "Calçado certo: preciso de bota de trekking?", img: "Bota de trekking em trilha com neve", conf: "", txt: `🐧 *Série Ushuaia* · 17/24
+*Preciso de bota de trekking?*
+
+🥾 Em Ushuaia, uma *bota impermeável* é a melhor escolha: tem trilha, barro e, no inverno, neve e gelo.
+
+👟 No verão, um tênis confortável resolve nos passeios mais leves.
+
+💡 Leve meias grossas e não estreie calçado na viagem: amacie antes!
+
+💬 Quer ver como fica o roteiro em Ushuaia para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Ushuaia", n: 18, fase: "Preparar a mala", tema: "Saúde na viagem + kit farmácia", img: "Kit farmácia organizado em nécessaire", conf: "Revisar com cuidado (orientação de saúde)", txt: `🐧 *Série Ushuaia* · 18/24
+*Saúde na viagem e kit farmácia*
+
+🥶 *Frio e vento:* a sensação térmica cai bastante. Proteja mãos, rosto e orelhas.
+☀️ *Sol:* mesmo no frio, protetor solar e óculos de sol.
+🚢 *Enjoo:* nas navegações, o barco pode balançar. Se você costuma enjoar, leve remédio.
+
+💊 *No kit farmácia:* seus remédios de uso contínuo, analgésico, remédio para enjoo, antialérgico e hidratante labial.
+
+🩺 Se você tem alguma condição de saúde, converse com seu médico antes da viagem.
+
+💬 Quer ver como fica o roteiro em Ushuaia para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Ushuaia", n: 19, fase: "Viver o destino com a Araya", tema: "Gastronomia de Ushuaia + o guia gastronômico da Araya", img: "Prato típico do destino", conf: "Se o guia gastronômico está disponível para este destino", txt: `🐧 *Série Ushuaia* · 19/24
+*Ushuaia pelo paladar*
+
+Alguns sabores do fim do mundo: 😋
+
+🦀 *Centolla*, o caranguejo-real, estrela da cozinha local
+🐑 *Cordeiro fueguino*, assado lentamente na brasa
+🐟 *Merluza negra* e outros peixes de águas geladas
+🍫 Chocolates e cafés quentinhos para os dias frios
+
+🍽️ Nossos clientes recebem um *guia gastronômico personalizado, feito por chef de cozinha*, com restaurantes e pratos indicados para cada dia. [ajustar]
+
+Qual desses você provaria primeiro? 👇` },
+{ dest: "Ushuaia", n: 20, fase: "Viver o destino com a Araya", tema: "A vida na cidade mais austral do mundo, com nossos guias", img: "Antigo presídio de Ushuaia ou paisagem do canal", conf: "", txt: `🐧 *Série Ushuaia* · 20/24
+*A vida no fim do mundo*
+
+Ushuaia cresceu em volta de uma *antiga prisão*, que hoje é museu. E muito antes disso, a região era casa dos *yámanas*, um povo que vivia da pesca no Canal de Beagle, enfrentando o frio em canoas. 🧡
+
+Com os guias, você conhece essas histórias, entende como é morar no fim do mundo e descobre os detalhes da natureza da Terra do Fogo.
+
+💬 Quer ver como fica o roteiro em Ushuaia para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Ushuaia", n: 21, fase: "Viver o destino com a Araya", tema: "Cheguei em Ushuaia! O que esperar do primeiro dia", img: "Foto da chegada ou da vista do hotel", conf: "Como funciona a recepção no destino", txt: `🐧 *Série Ushuaia* · 21/24
+*Cheguei em Ushuaia! E agora?*
+
+✈️ A chegada já impressiona: o avião desce entre montanhas e o canal. No aeroporto, a equipe local está te esperando para o traslado até o hotel. 🚐
+
+🏔️ *No primeiro dia:* check-in, uma volta pela avenida principal e pelo porto, e um jantar com a cozinha local.
+
+💡 Os passeios começam no ritmo certo para você aproveitar tudo.
+
+💬 Quer ver como fica o roteiro em Ushuaia para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Ushuaia", n: 22, fase: "Viver o destino com a Araya", tema: "Traslados: como funciona a busca no aeroporto", img: "Motorista com plaquinha no desembarque", conf: "Como o traslado funciona neste destino", txt: `🐧 *Série Ushuaia* · 22/24
+*Como funciona a busca no aeroporto*
+
+🚐 No aeroporto de Ushuaia, alguém da equipe local está te esperando. Sem fila de táxi e sem se preocupar com o caminho até o hotel. 🙌
+
+✈️ *Por que pedimos tantos detalhes do voo?* Número, horário e aeroporto de chegada garantem que o motorista esteja no lugar certo, na hora certa. A nossa equipe confere cada voo antes da sua viagem.
+
+📌 *A sua parte:*
+• Mande os dados do voo assim que comprar a passagem
+• Mudou o voo? Avise a gente o quanto antes
+
+💬 Quer ver como fica o roteiro em Ushuaia para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Ushuaia", n: 23, fase: "Viver o destino com a Araya", tema: "Nossos guias e motoristas em Ushuaia", img: "Guia explicando a um grupo", conf: "Como funcionam os guias e motoristas neste destino", txt: `🐧 *Série Ushuaia* · 23/24
+*Quem vai estar com você no fim do mundo*
+
+Em Ushuaia, o guia conhece o clima, o melhor horário de cada passeio e as histórias da Terra do Fogo. 🧭
+
+🌊 Nas navegações, a equipe a bordo mostra os animais e conta tudo sobre o Canal de Beagle. [ajustar]
+
+💬 Quer ver como fica o roteiro em Ushuaia para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Ushuaia", n: 24, fase: "Viver o destino com a Araya", tema: "Como falar com a Araya durante a viagem", img: "Foto da equipe de atendimento", conf: "Canal e horários do pós-venda", txt: `🐧 *Série Ushuaia* · 24/24
+*A gente não some depois que você embarca* 🧡
+
+Enquanto você estiver em Ushuaia, a nossa equipe acompanha a sua viagem pelo WhatsApp. [ajustar canal]
+
+💬 *Pode chamar a gente para:*
+• Confirmar horários dos passeios
+• Avisar de um atraso de voo
+• Tirar dúvidas do dia a dia
+• Qualquer imprevisto
+
+⏰ *Horário de atendimento:* [inserir]
+
+Você aproveita o fim do mundo sabendo que tem alguém cuidando de tudo.
+
+💬 Quer ver como fica o roteiro em Ushuaia para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Mendoza", n: 1, fase: "Conhecer a Araya e o destino", tema: "Abrindo a série Mendoza", img: "Vinhedo com a Cordilheira ao fundo", conf: "", txt: `🍷 *Série Mendoza* · 1/24
+*Vinho, montanha e o Aconcágua*
+
+A partir de hoje, a série Mendoza vai te mostrar o destino de perto: as regiões de vinícolas, a Alta Montanha, a vindima, a mala e como cada detalhe do roteiro é pensado. 🧡
+
+📌 Salve os posts que quiser rever depois.
+
+Conta pra gente: *Mendoza já está na sua lista?* 👇` },
+{ dest: "Mendoza", n: 2, fase: "Conhecer a Araya e o destino", tema: "Por que Mendoza?", img: "Vinhedo com a Cordilheira ao fundo", conf: "", txt: `🍷 *Série Mendoza* · 2/24
+*Por que Mendoza?*
+
+Almoçar numa vinícola, com uma taça de *Malbec* e a Cordilheira dos Andes nevada ao fundo. Isso é Mendoza. 🏔️🍇
+
+É a maior região produtora de vinho da Argentina, e fica a poucas horas do Aconcágua, a montanha mais alta das Américas.
+
+Vinho, mesa farta e paisagem de montanha na mesma viagem.
+
+💬 Quer ver como fica o roteiro em Mendoza para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Mendoza", n: 3, fase: "Conhecer a Araya e o destino", tema: "Como funciona o roteiro pronto da Araya em Mendoza", img: "Arte com os 4 passos sobre uma foto do destino", conf: "O que está incluído no roteiro deste destino", txt: `🍷 *Série Mendoza* · 3/24
+*Como funciona o roteiro pronto da Araya em Mendoza*
+
+1️⃣ *Você escolhe as datas.* A gente te ajuda a entender a época e quantos dias fazem sentido.
+2️⃣ *Nós montamos tudo na ordem certa:* vinícolas por região, almoços harmonizados e Alta Montanha. [ajustar ao que está incluído]
+3️⃣ *Você recebe o dia a dia explicado:* horários, reservas e o que levar.
+4️⃣ *Durante a viagem, a gente está junto.* Qualquer imprevisto, é só chamar.
+
+✅ As vinícolas mais disputadas reservadas, e você só escolhe o vinho.
+
+💬 Quer ver como fica o roteiro em Mendoza para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Mendoza", n: 4, fase: "Conhecer a Araya e o destino", tema: "Mapa: por onde o roteiro passa", img: "Mapa ilustrado com os pontos do roteiro", conf: "Cidades e pontos do roteiro atual", txt: `🍷 *Série Mendoza* · 4/24
+*Mapa: por onde o roteiro passa*
+
+🏙️ *Mendoza:* a cidade, com ruas arborizadas e praças
+🍇 *Luján de Cuyo e Maipú:* as regiões de vinícolas mais perto da cidade
+🏔️ *Valle de Uco:* vinícolas aos pés da Cordilheira, a cerca de 1h30 da cidade
+⛰️ *Alta Montanha:* a estrada pela Cordilheira até o mirante do Aconcágua
+[ajustar às regiões do roteiro]
+
+🗺️ Cada região fica numa direção. Organizar os dias por região poupa horas de estrada.
+
+💬 Quer ver como fica o roteiro em Mendoza para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Mendoza", n: 5, fase: "Conhecer a Araya e o destino", tema: "Melhor época para ir", img: "Montagem com o destino em diferentes estações", conf: "Conferir os períodos com a equipe de roteiros", txt: `🍷 *Série Mendoza* · 5/24
+*Qual a melhor época para ir?*
+
+🍇 *Fevereiro e março:* a vindima, a colheita da uva e a grande festa da cidade
+🍂 *Abril e maio:* vinhedos dourados e avermelhados
+❄️ *Junho a agosto:* neve na Cordilheira e dias frios de sol
+🌸 *Setembro a novembro:* os vinhedos voltam a brotar
+
+☀️ Mendoza tem sol quase o ano todo.
+
+💡 A vindima é a época mais procurada. Quanto antes a gente planejar, mais opções você tem.
+
+💬 Quer ver como fica o roteiro em Mendoza para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Mendoza", n: 6, fase: "Conhecer a Araya e o destino", tema: "Mini guia dos passeios (parte 1)", img: "Carrossel com uma foto de cada passeio", conf: "Passeios do roteiro atual", txt: `🍷 *Série Mendoza* · 6/24
+*Mini guia dos passeios (parte 1)*
+
+🍷 *Luján de Cuyo e Maipú:* degustações, visita às adegas e muito Malbec.
+🏔️ *Valle de Uco:* vinícolas de arquitetura moderna, com a Cordilheira inteira na janela.
+🍽️ *Almoço harmonizado:* uma refeição longa, de vários tempos, cada prato com o seu vinho.
+
+📸 Na parte 2: a Alta Montanha e o Aconcágua.
+
+💬 Quer ver como fica o roteiro em Mendoza para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Mendoza", n: 7, fase: "Conhecer a Araya e o destino", tema: "Mini guia dos passeios (parte 2)", img: "Carrossel com uma foto de cada passeio", conf: "Passeios do roteiro atual", txt: `🍷 *Série Mendoza* · 7/24
+*Mini guia dos passeios (parte 2)*
+
+⛰️ *Alta Montanha:* um dia inteiro pela Cordilheira dos Andes, entre lagos e vales.
+🌉 *Puente del Inca:* uma ponte natural de pedra, colorida pelos minerais das águas termais.
+🏔️ *Mirante do Aconcágua:* a vista da montanha mais alta das Américas, com 6.961 m.
+
+💬 Quer ver como fica o roteiro em Mendoza para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Mendoza", n: 8, fase: "Conhecer a Araya e o destino", tema: "Vindima: quando vale a pena ir?", img: "Colheita de uva no vinhedo", conf: "Se o passeio está no roteiro ou é opcional", txt: `🍷 *Série Mendoza* · 8/24
+*Vindima: quando vale a pena ir?*
+
+A *vindima* é a colheita da uva, e Mendoza vive esse momento intensamente. 🍇
+
+📅 *Quando:* entre *fevereiro e março*. No começo de março acontece a *Festa Nacional da Vindima*, com desfiles e celebração pela cidade.
+
+🍷 Nas vinícolas, você vê a uva sendo colhida e o vinho começando a nascer.
+
+⚠️ É alta temporada: hotéis e vinícolas lotam cedo.
+
+Você iria na vindima ou prefere o outono dourado? 👇` },
+{ dest: "Mendoza", n: 9, fase: "Planejar com a Araya", tema: "Quantos dias preciso? Por que a ordem do roteiro importa", img: "Estrada da Alta Montanha", conf: "Dias e ordem do roteiro atual", txt: `🍷 *Série Mendoza* · 9/24
+*Quantos dias preciso? E por que a ordem importa*
+
+🍷 *Vinícolas:* cada região fica numa direção. Agrupar os dias por região evita horas de estrada.
+⛰️ *Alta Montanha:* sobe a grande altitude e depende do clima. No inverno, a estrada pode fechar por neve, então o roteiro deixa uma folga para remarcar.
+
+🗓️ *Quantos dias?* De 4 a 5 dias para vinícolas e Alta Montanha com calma. [ajustar]
+
+💬 Quer ver como fica o roteiro em Mendoza para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Mendoza", n: 10, fase: "Planejar com a Araya", tema: "Onde vou me hospedar? Como a Araya escolhe os hotéis", img: "Quarto com vista para os vinhedos", conf: "Como a hospedagem é vendida hoje", txt: `🍷 *Série Mendoza* · 10/24
+*Onde vou me hospedar?*
+
+Duas experiências bem diferentes:
+
+🏙️ *Na cidade:* perto de restaurantes, praças e da vida mendocina
+🍇 *Numa vinícola:* acordar no meio dos vinhedos, com a Cordilheira na janela
+
+Na hora de indicar, a gente olha a localização, o conforto e o seu perfil.
+
+[ajustar: hospedagem vendida à parte do roteiro]
+
+💬 Quer sugestões de hospedagem para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Mendoza", n: 11, fase: "Planejar com a Araya", tema: "Ingressos e reservas: por que garantir com antecedência", img: "Foto da vinícola mais disputada", conf: "O que a Araya reserva para o cliente", txt: `🍷 *Série Mendoza* · 11/24
+*Reservas: por que garantir com antecedência*
+
+🍷 As visitas às vinícolas *só funcionam com reserva*, e as mais procuradas recebem poucos grupos por dia.
+🍽️ Os almoços harmonizados também têm vagas limitadas.
+🍇 Na vindima, tudo lota mais rápido.
+
+[ajustar: o que a Araya reserva para o cliente]
+
+Com o roteiro da Araya, as reservas ficam resolvidas antes da sua viagem. 🥂
+
+💬 Quer ver como fica o roteiro em Mendoza para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Mendoza", n: 12, fase: "Planejar com a Araya", tema: "Documentos e seguro viagem", img: "Passaporte e RG com um mapa", conf: "Revisar as regras de entrada perto da data de publicação", txt: `🍷 *Série Mendoza* · 12/24
+*Documentos e seguro viagem*
+
+🇦🇷 *Argentina:* brasileiros entram com *RG ou passaporte*.
+⚠️ O RG precisa ter *menos de 10 anos de emissão*, estar em bom estado e com a foto reconhecível.
+
+🛡️ *Seguro viagem:* a gente recomenda sempre.
+
+💬 Quer ver como fica o roteiro em Mendoza para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Mendoza", n: 13, fase: "Planejar com a Araya", tema: "Moeda, câmbio e cartão", img: "Notas da moeda local", conf: "Se a equipe orienta o câmbio antes da viagem", txt: `🍷 *Série Mendoza* · 13/24
+*Moeda, câmbio e cartão*
+
+🇦🇷 A moeda da Argentina é o *peso argentino*.
+
+💳 Em Mendoza, a maioria das vinícolas, restaurantes e lojas aceita cartão. Leve um pouco de dinheiro vivo.
+
+⚠️ O câmbio na Argentina muda bastante. Pouco antes da sua viagem, a gente orienta a melhor forma de levar dinheiro.
+
+💬 Quer ver como fica o roteiro em Mendoza para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Mendoza", n: 14, fase: "Planejar com a Araya", tema: "Como ficar conectado", img: "Pessoa com celular diante da paisagem", conf: "Se a Araya indica algum eSIM parceiro", txt: `🍷 *Série Mendoza* · 14/24
+*Como ficar conectado*
+
+📶 Mendoza tem wi-fi nos hotéis, restaurantes e na maioria das vinícolas, e o celular pega bem na cidade.
+⛰️ Na Alta Montanha, o sinal some em boa parte do caminho.
+
+💡 *Opções:* eSIM (o mais prático), chip local ou plano internacional da sua operadora.
+
+💬 Quer ver como fica o roteiro em Mendoza para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Mendoza", n: 15, fase: "Preparar a mala", tema: "A mala ideal", img: "Flatlay de mala com os itens", conf: "Orientações que a equipe já envia ao cliente", txt: `🍷 *Série Mendoza* · 15/24
+*A mala ideal*
+
+Mendoza tem clima seco e muito sol, mas a temperatura muda bastante entre o dia e a noite, e entre a cidade e a montanha.
+
+🎒 *Não pode faltar:*
+• Roupas em camadas
+• Um look mais arrumado para os almoços nas vinícolas
+• Casaco quente para a Alta Montanha, mesmo no verão
+• Protetor solar, óculos de sol e hidratante
+• Espaço na mala para trazer vinho 🍷 (confira as regras da companhia aérea e da Receita)
+
+📋 Antes da viagem, você recebe da gente as orientações de cada passeio. [ajustar]
+
+Salva este post para a hora de arrumar a mala! 📌` },
+{ dest: "Mendoza", n: 16, fase: "Preparar a mala", tema: "Com que roupa eu vou? Roupas por passeio", img: "Carrossel com um look por passeio", conf: "Passeios do roteiro atual", txt: `🍷 *Série Mendoza* · 16/24
+*Com que roupa eu vou?*
+
+🍷 *Vinícolas:* confortável e um pouco mais arrumada, ótima para as fotos entre os vinhedos
+🍽️ *Almoço harmonizado:* um look leve e elegante
+⛰️ *Alta Montanha:* casaco, gorro e óculos de sol, porque lá em cima faz frio
+🏙️ *Noite na cidade:* um casaco leve
+
+Salva para consultar na viagem! 📌` },
+{ dest: "Mendoza", n: 17, fase: "Preparar a mala", tema: "Calçado certo: preciso de bota de trekking?", img: "Tênis entre as fileiras do vinhedo", conf: "", txt: `🍷 *Série Mendoza* · 17/24
+*Preciso de bota de trekking?*
+
+👟 Não. Um *tênis confortável* é o ideal: nas vinícolas se anda pelos vinhedos e pela terra.
+🥾 Na Alta Montanha, um calçado fechado e firme dá mais segurança nas paradas.
+
+💡 Deixe o salto em casa: nos vinhedos ele afunda na terra! 😄
+
+💬 Quer ver como fica o roteiro em Mendoza para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Mendoza", n: 18, fase: "Preparar a mala", tema: "Saúde na viagem + kit farmácia", img: "Kit farmácia organizado em nécessaire", conf: "Revisar com cuidado (orientação de saúde)", txt: `🍷 *Série Mendoza* · 18/24
+*Saúde na viagem e kit farmácia*
+
+⛰️ *Alta Montanha:* o passeio chega a grande altitude. Vá com calma, beba água e evite álcool antes.
+☀️ *Sol forte e clima seco:* protetor solar, hidratante e muita água.
+🍷 *Degustações:* intercale o vinho com água!
+
+💊 *No kit farmácia:* seus remédios de uso contínuo, analgésico, remédio para o estômago e antialérgico.
+
+🩺 Se você tem alguma condição de saúde, converse com seu médico antes da viagem.
+
+💬 Quer ver como fica o roteiro em Mendoza para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Mendoza", n: 19, fase: "Viver o destino com a Araya", tema: "Gastronomia de Mendoza + o guia gastronômico da Araya", img: "Prato típico do destino", conf: "Se o guia gastronômico está disponível para este destino", txt: `🍷 *Série Mendoza* · 19/24
+*Mendoza pelo paladar*
+
+Alguns sabores para provar: 😋
+
+🥟 *Empanadas mendocinas*, de carne e cebola, assadas no forno
+🥩 O *assado* argentino, sem pressa
+🫒 O *azeite de oliva* da região, excelente
+🍷 E os vinhos, com o Malbec como estrela
+
+🍽️ Nossos clientes recebem um *guia gastronômico personalizado, feito por chef de cozinha*, com restaurantes e pratos indicados para cada dia. [ajustar]
+
+Tinto, branco ou rosé? 👇` },
+{ dest: "Mendoza", n: 20, fase: "Viver o destino com a Araya", tema: "A cultura do vinho mendocino, com nossos guias", img: "Acequia em rua arborizada de Mendoza", conf: "", txt: `🍷 *Série Mendoza* · 20/24
+*Um oásis no pé dos Andes*
+
+Mendoza fica em pleno deserto e só existe graças à água que desce da Cordilheira. As *acequias*, canais de irrigação que correm pelas ruas, explicam por que a cidade é tão verde. 🌳
+
+Com os guias, você entende como se faz vinho no pé dos Andes, conhece a história dos imigrantes que trouxeram as videiras e descobre o ritmo mendocino, com a siesta e os jantares que começam tarde.
+
+💬 Quer ver como fica o roteiro em Mendoza para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Mendoza", n: 21, fase: "Viver o destino com a Araya", tema: "Cheguei em Mendoza! O que esperar do primeiro dia", img: "Foto da chegada ou da vista do hotel", conf: "Como funciona a recepção no destino", txt: `🍷 *Série Mendoza* · 21/24
+*Cheguei em Mendoza! E agora?*
+
+✈️ No aeroporto de Mendoza, a equipe local já está te esperando para o traslado até o hotel. 🚐
+
+🍷 *No primeiro dia:* check-in, uma volta pelas praças e, à noite, o primeiro Malbec.
+
+💡 Os passeios começam no ritmo certo para você aproveitar tudo.
+
+💬 Quer ver como fica o roteiro em Mendoza para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Mendoza", n: 22, fase: "Viver o destino com a Araya", tema: "Traslados: como funciona a busca no aeroporto", img: "Motorista com plaquinha no desembarque", conf: "Como o traslado funciona neste destino", txt: `🍷 *Série Mendoza* · 22/24
+*Como funciona a busca no aeroporto*
+
+🚐 No aeroporto de Mendoza, alguém da equipe local está te esperando. Sem fila de táxi e sem se preocupar com o caminho até o hotel. 🙌
+
+✈️ *Por que pedimos tantos detalhes do voo?* Número, horário e aeroporto de chegada garantem que o motorista esteja no lugar certo, na hora certa. A nossa equipe confere cada voo antes da sua viagem.
+
+📌 *A sua parte:*
+• Mande os dados do voo assim que comprar a passagem
+• Mudou o voo? Avise a gente o quanto antes
+
+💬 Quer ver como fica o roteiro em Mendoza para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Mendoza", n: 23, fase: "Viver o destino com a Araya", tema: "Nossos guias e motoristas em Mendoza", img: "Guia explicando a um grupo na vinícola", conf: "Como funcionam os guias e motoristas neste destino", txt: `🍷 *Série Mendoza* · 23/24
+*Quem vai estar com você em Mendoza*
+
+Em Mendoza, o guia conhece as vinícolas, os produtores e as histórias por trás de cada rótulo. 🍷
+
+⛰️ Na Alta Montanha, ter ao lado quem conhece a estrada e o clima da Cordilheira faz toda a diferença. [ajustar]
+
+E com motorista, ninguém precisa escolher entre dirigir e provar o vinho. 😉
+
+💬 Quer ver como fica o roteiro em Mendoza para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Mendoza", n: 24, fase: "Viver o destino com a Araya", tema: "Como falar com a Araya durante a viagem", img: "Foto da equipe de atendimento", conf: "Canal e horários do pós-venda", txt: `🍷 *Série Mendoza* · 24/24
+*A gente não some depois que você embarca* 🧡
+
+Enquanto você estiver em Mendoza, a nossa equipe acompanha a sua viagem pelo WhatsApp. [ajustar canal]
+
+💬 *Pode chamar a gente para:*
+• Confirmar horários dos passeios
+• Avisar de um atraso de voo
+• Tirar dúvidas do dia a dia
+• Qualquer imprevisto
+
+⏰ *Horário de atendimento:* [inserir]
+
+Você aproveita Mendoza sabendo que tem alguém cuidando de tudo.
+
+💬 Quer ver como fica o roteiro em Mendoza para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Patagônia", n: 1, fase: "Conhecer a Araya e o destino", tema: "Abrindo a série Patagônia", img: "Glaciar Perito Moreno das passarelas", conf: "", txt: `🧊 *Série Patagônia* · 1/24
+*Geleiras, montanhas e muito vento*
+
+A partir de hoje, a série Patagônia vai te mostrar o destino de perto: as geleiras, as montanhas, as navegações, a melhor época, a mala e como cada detalhe do roteiro é pensado. 🧡
+
+📌 Salve os posts que quiser rever depois.
+
+Conta pra gente: *a Patagônia já está na sua lista?* 👇` },
+{ dest: "Patagônia", n: 2, fase: "Conhecer a Araya e o destino", tema: "Por que a Patagônia?", img: "Glaciar Perito Moreno das passarelas", conf: "", txt: `🧊 *Série Patagônia* · 2/24
+*Por que a Patagônia?*
+
+Ver o *Perito Moreno* de perto arrepia: o gelo estala, blocos do tamanho de prédios caem na água, e o azul é de um tom que nenhuma foto mostra direito. 💙
+
+Do outro lado da Cordilheira, as torres de granito de *Torres del Paine* aparecem no fim de cada trilha. [ajustar: lado chileno no roteiro]
+
+É uma paisagem gigante, que faz a gente se sentir pequeno.
+
+💬 Quer ver como fica o roteiro na Patagônia para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Patagônia", n: 3, fase: "Conhecer a Araya e o destino", tema: "Como funciona o roteiro pronto da Araya na Patagônia", img: "Arte com os 4 passos sobre uma foto do destino", conf: "O que está incluído no roteiro deste destino", txt: `🧊 *Série Patagônia* · 3/24
+*Como funciona o roteiro pronto da Araya na Patagônia*
+
+1️⃣ *Você escolhe as datas.* A gente te ajuda a entender a época e quantos dias fazem sentido.
+2️⃣ *Nós montamos tudo na ordem certa:* geleiras, navegações e trilhas, sem idas e voltas. [ajustar ao que está incluído]
+3️⃣ *Você recebe o dia a dia explicado:* horários, distâncias e o que vestir.
+4️⃣ *Durante a viagem, a gente está junto.* Se o tempo virar, a gente ajusta.
+
+✅ Num destino de distâncias enormes, a ordem dos dias é o que faz a viagem render.
+
+💬 Quer ver como fica o roteiro na Patagônia para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Patagônia", n: 4, fase: "Conhecer a Araya e o destino", tema: "Mapa: por onde o roteiro passa", img: "Mapa ilustrado com os pontos do roteiro", conf: "Cidades e pontos do roteiro atual (lado argentino e/ou chileno)", txt: `🧊 *Série Patagônia* · 4/24
+*Mapa: por onde o roteiro passa*
+
+🇦🇷 *Lado argentino*
+📍 *El Calafate:* a porta de entrada para as geleiras
+🧊 *Glaciar Perito Moreno:* a cerca de 80 km de El Calafate
+🏔️ *El Chaltén:* a capital do trekking, aos pés do Fitz Roy, a cerca de 3h de estrada
+
+🇨🇱 *Lado chileno*
+📍 *Puerto Natales:* a base para Torres del Paine
+🏔️ *Parque Nacional Torres del Paine:* lagos, torres de granito e glaciares
+[ajustar às cidades do roteiro]
+
+🗺️ As distâncias são grandes, e o desenho do roteiro faz toda a diferença.
+
+💬 Quer ver como fica o roteiro na Patagônia para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Patagônia", n: 5, fase: "Conhecer a Araya e o destino", tema: "Melhor época para ir", img: "Montagem com o destino em diferentes estações", conf: "Conferir os períodos com a equipe de roteiros", txt: `🧊 *Série Patagônia* · 5/24
+*Qual a melhor época para ir?*
+
+☀️ *Outubro a abril:* a temporada, com dias longos e todos os passeios funcionando
+🌞 *Dezembro a fevereiro:* o sol se põe quase às 22h
+🍂 *Março e abril:* as árvores ficam vermelhas e amarelas
+❄️ *Inverno:* parte dos serviços fecha, principalmente em El Chaltén
+
+💡 Dezembro a fevereiro é o pico. Quanto antes a gente planejar, mais opções você tem.
+
+💬 Quer ver como fica o roteiro na Patagônia para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Patagônia", n: 6, fase: "Conhecer a Araya e o destino", tema: "Mini guia dos passeios (parte 1)", img: "Carrossel com uma foto de cada passeio", conf: "Passeios do roteiro atual", txt: `🧊 *Série Patagônia* · 6/24
+*Mini guia dos passeios (parte 1)*
+
+🧊 *Passarelas do Perito Moreno:* de frente para a parede de gelo, ouvindo os estalos.
+🚢 *Navegação até o glaciar:* de barco, bem perto da parede de 60 metros.
+🥾 *Minitrekking:* para os aventureiros, uma caminhada de crampons sobre o gelo. [ajustar]
+
+📸 Na parte 2: as outras geleiras e as trilhas.
+
+💬 Quer ver como fica o roteiro na Patagônia para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Patagônia", n: 7, fase: "Conhecer a Araya e o destino", tema: "Mini guia dos passeios (parte 2)", img: "Carrossel com uma foto de cada passeio", conf: "Passeios do roteiro atual", txt: `🧊 *Série Patagônia* · 7/24
+*Mini guia dos passeios (parte 2)*
+
+🚢 *Navegação pelo Lago Argentino:* entre icebergs e paredes de gelo.
+🏔️ *El Chaltén:* trilhas com vista para o Fitz Roy, para todos os níveis.
+🇨🇱 *Torres del Paine:* lagos turquesa, as torres de granito e os glaciares Balmaceda e Serrano, de barco. [ajustar]
+🐑 *Estâncias:* a vida no campo patagônico, com cordeiro na brasa.
+
+💬 Quer ver como fica o roteiro na Patagônia para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Patagônia", n: 8, fase: "Conhecer a Araya e o destino", tema: "Perito Moreno: qual a melhor época?", img: "Bloco de gelo caindo do Perito Moreno", conf: "Se o passeio está no roteiro ou é opcional", txt: `🧊 *Série Patagônia* · 8/24
+*Perito Moreno: qual a melhor época?*
+
+🧊 A temporada vai de *outubro a abril*.
+
+☀️ *No verão:* dias longos e todos os passeios funcionando, inclusive navegações e minitrekking.
+🍂 *No outono:* as cores das árvores emolduram o gelo.
+
+💡 Os blocos se desprendem ao longo do dia, sem hora marcada. Quanto mais tempo nas passarelas, maior a chance de ver esse espetáculo. É por isso que o roteiro não corre nesse dia. 🧡
+
+Você já ouviu o barulho de um glaciar? 👇` },
+{ dest: "Patagônia", n: 9, fase: "Planejar com a Araya", tema: "Quantos dias preciso? Por que a ordem do roteiro importa", img: "Estrada patagônica com montanhas", conf: "Dias e ordem do roteiro atual", txt: `🧊 *Série Patagônia* · 9/24
+*Quantos dias preciso? E por que a ordem importa*
+
+🏔️ El Calafate e El Chaltén ficam a cerca de 3h de estrada, e Puerto Natales, do outro lado da fronteira, a umas 5h. Agrupar os dias de cada base evita idas e voltas. [ajustar]
+🐧 *Vai combinar com Ushuaia?* É uma dupla perfeita, e a ordem das cidades conta.
+
+🗓️ *Quantos dias?* De 5 a 7 dias para o Perito Moreno, as navegações e as trilhas. [ajustar]
+
+💬 Quer ver como fica o roteiro na Patagônia para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Patagônia", n: 10, fase: "Planejar com a Araya", tema: "Onde vou me hospedar? Como a Araya escolhe os hotéis", img: "Quarto com vista para o Lago Argentino", conf: "Como a hospedagem é vendida hoje", txt: `🧊 *Série Patagônia* · 10/24
+*Onde vou me hospedar?*
+
+📍 *El Calafate:* no centro, perto dos restaurantes, ou com vista para o Lago Argentino.
+🏔️ *El Chaltén:* hospedagens mais simples e aconchegantes, clima de vila de montanha.
+
+Na hora de indicar, a gente olha a localização, o conforto (com o frio, um hotel bem aquecido faz diferença!) e o seu perfil.
+
+[ajustar: hospedagem vendida à parte do roteiro]
+
+💬 Quer sugestões de hospedagem para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Patagônia", n: 11, fase: "Planejar com a Araya", tema: "Ingressos e reservas: por que garantir com antecedência", img: "Foto da atração mais disputada", conf: "O que a Araya reserva para o cliente", txt: `🧊 *Série Patagônia* · 11/24
+*Reservas: por que garantir com antecedência*
+
+🧊 *Parque Nacional Los Glaciares*, onde fica o Perito Moreno: cobra entrada.
+🚢 *Navegações:* vagas limitadas na alta temporada.
+🥾 *Minitrekking:* vagas bem limitadas, com regras de idade e condicionamento físico.
+
+[ajustar: o que a Araya reserva para o cliente]
+
+Com o roteiro da Araya, essas reservas ficam resolvidas antes da sua viagem.
+
+💬 Quer ver como fica o roteiro na Patagônia para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Patagônia", n: 12, fase: "Planejar com a Araya", tema: "Documentos e seguro viagem", img: "Passaporte e RG com um mapa", conf: "Revisar as regras de entrada perto da data de publicação", txt: `🧊 *Série Patagônia* · 12/24
+*Documentos e seguro viagem*
+
+🇦🇷🇨🇱 *Argentina e Chile:* brasileiros entram com *RG ou passaporte*.
+⚠️ O RG precisa ter *menos de 10 anos de emissão*, estar em bom estado e com a foto reconhecível.
+
+🛡️ *Seguro viagem:* a gente recomenda sempre. Confira se ele cobre trilhas e atividades de aventura, como o minitrekking.
+
+💬 Quer ver como fica o roteiro na Patagônia para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Patagônia", n: 13, fase: "Planejar com a Araya", tema: "Moeda, câmbio e cartão", img: "Notas da moeda local", conf: "Se a equipe orienta o câmbio antes da viagem", txt: `🧊 *Série Patagônia* · 13/24
+*Moeda, câmbio e cartão*
+
+🇦🇷 Na Argentina, *peso argentino*. 🇨🇱 No Chile, *peso chileno*.
+
+💳 Em El Calafate, a maioria dos lugares aceita cartão. Em El Chaltén, o dinheiro vivo é mais importante.
+
+⚠️ O câmbio na Argentina muda bastante. Pouco antes da sua viagem, a gente orienta a melhor forma de levar dinheiro.
+
+💬 Quer ver como fica o roteiro na Patagônia para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Patagônia", n: 14, fase: "Planejar com a Araya", tema: "Como ficar conectado", img: "Pessoa com celular diante da paisagem", conf: "Se a Araya indica algum eSIM parceiro", txt: `🧊 *Série Patagônia* · 14/24
+*Como ficar conectado*
+
+📶 Em El Calafate, tem wi-fi nos hotéis e restaurantes. Em El Chaltén, a internet é mais lenta.
+🏔️ Nas trilhas e estradas, o sinal some em boa parte do caminho.
+
+💡 *Opções:* eSIM (o mais prático), chip local ou plano internacional da sua operadora. Baixe o roteiro e os documentos antes.
+
+💬 Quer ver como fica o roteiro na Patagônia para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Patagônia", n: 15, fase: "Preparar a mala", tema: "A mala ideal", img: "Flatlay de mala com os itens", conf: "Orientações que a equipe já envia ao cliente", txt: `🧊 *Série Patagônia* · 15/24
+*A mala ideal*
+
+O vento patagônico é famoso e derruba a sensação térmica. Mesmo no verão, leve roupa de frio. 🌬️
+
+🎒 *Não pode faltar:*
+• Primeira pele (térmica) e fleece
+• *Jaqueta impermeável e corta-vento*, a peça mais importante
+• Gorro, luvas e cachecol
+• Óculos de sol: o reflexo do gelo é forte
+• Protetor solar e labial
+• Mochila pequena para os passeios
+
+📋 Antes da viagem, você recebe da gente as orientações de cada passeio. [ajustar]
+
+Salva este post para a hora de arrumar a mala! 📌` },
+{ dest: "Patagônia", n: 16, fase: "Preparar a mala", tema: "Com que roupa eu vou? Roupas por passeio", img: "Carrossel com um look por passeio", conf: "Passeios do roteiro atual", txt: `🧊 *Série Patagônia* · 16/24
+*Com que roupa eu vou?*
+
+🧊 *Passarelas do Perito Moreno:* camadas e jaqueta corta-vento
+🚢 *Navegação:* o casaco mais quente, porque no convés venta e esfria
+🥾 *Minitrekking:* roupa impermeável, luvas e óculos de sol [ajustar às regras do passeio]
+🏔️ *Trilhas:* camadas fáceis de tirar e pôr, e jaqueta impermeável
+
+Salva para consultar na viagem! 📌` },
+{ dest: "Patagônia", n: 17, fase: "Preparar a mala", tema: "Calçado certo: preciso de bota de trekking?", img: "Bota de trekking em trilha", conf: "", txt: `🧊 *Série Patagônia* · 17/24
+*Preciso de bota de trekking?*
+
+👟 Para as passarelas do Perito Moreno, um *tênis confortável* resolve.
+🥾 Para as trilhas e o minitrekking, uma *bota de trekking impermeável* é o ideal.
+
+💡 Não estreie calçado na viagem: amacie antes!
+
+💬 Quer ver como fica o roteiro na Patagônia para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Patagônia", n: 18, fase: "Preparar a mala", tema: "Saúde na viagem + kit farmácia", img: "Kit farmácia organizado em nécessaire", conf: "Revisar com cuidado (orientação de saúde)", txt: `🧊 *Série Patagônia* · 18/24
+*Saúde na viagem e kit farmácia*
+
+🌬️ *Vento e frio:* proteja mãos, rosto e lábios.
+☀️ *Sol:* o reflexo do gelo é forte. Protetor solar e óculos de sol sempre.
+🥾 *Trilhas:* respeite o seu ritmo e beba água.
+
+💊 *No kit farmácia:* seus remédios de uso contínuo, analgésico, antialérgico, curativos para bolhas e hidratante labial.
+
+🩺 Se você tem alguma condição de saúde, converse com seu médico antes da viagem.
+
+💬 Quer ver como fica o roteiro na Patagônia para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Patagônia", n: 19, fase: "Viver o destino com a Araya", tema: "Gastronomia da Patagônia + o guia gastronômico da Araya", img: "Cordeiro patagônico na brasa", conf: "Se o guia gastronômico está disponível para este destino", txt: `🧊 *Série Patagônia* · 19/24
+*A Patagônia pelo paladar*
+
+Alguns sabores para provar: 😋
+
+🐑 *Cordeiro patagônico*, assado devagar na brasa, em cruz
+🫐 *Calafate*, a frutinha que dá nome à cidade, em geleia e sorvete
+🐟 *Truta* dos lagos da região
+🍫 Chocolates e cervejas artesanais para o fim do dia
+
+🍽️ Nossos clientes recebem um *guia gastronômico personalizado, feito por chef de cozinha*, com restaurantes e pratos indicados para cada dia. [ajustar]
+
+Diz a lenda que quem come calafate volta à Patagônia. Você provaria? 👇` },
+{ dest: "Patagônia", n: 20, fase: "Viver o destino com a Araya", tema: "A vida na Patagônia, com nossos guias", img: "Estância patagônica", conf: "", txt: `🧊 *Série Patagônia* · 20/24
+*A vida na Patagônia*
+
+A Patagônia tem uma história de pioneiros: as *estâncias* de criação de ovelhas, os gaúchos patagônicos e, muito antes, os *tehuelches*, que viveram por milhares de anos nessas terras. 🧡
+
+Com os guias, você conhece essas histórias, entende como as geleiras se formam e por que estão recuando, e descobre como é viver num lugar de natureza tão intensa.
+
+💬 Quer ver como fica o roteiro na Patagônia para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Patagônia", n: 21, fase: "Viver o destino com a Araya", tema: "Cheguei na Patagônia! O que esperar do primeiro dia", img: "Foto da chegada ou da vista do hotel", conf: "Como funciona a recepção no destino", txt: `🧊 *Série Patagônia* · 21/24
+*Cheguei na Patagônia! E agora?*
+
+✈️ A chegada a El Calafate já impressiona, com o Lago Argentino turquesa pela janela. No aeroporto, a equipe local está te esperando para o traslado até o hotel. 🚐 [ajustar à cidade de chegada]
+
+🏔️ *No primeiro dia:* check-in, uma volta pela avenida principal e um jantar com cordeiro patagônico.
+
+💡 Os passeios começam no ritmo certo para você aproveitar tudo.
+
+💬 Quer ver como fica o roteiro na Patagônia para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Patagônia", n: 22, fase: "Viver o destino com a Araya", tema: "Traslados: como funciona a busca no aeroporto", img: "Motorista com plaquinha no desembarque", conf: "Como o traslado funciona neste destino", txt: `🧊 *Série Patagônia* · 22/24
+*Como funciona a busca no aeroporto*
+
+🚐 No aeroporto, alguém da equipe local está te esperando. Sem fila de táxi e sem se preocupar com o caminho até o hotel. 🙌
+
+✈️ *Por que pedimos tantos detalhes do voo?* Número, horário e aeroporto de chegada garantem que o motorista esteja no lugar certo, na hora certa. A nossa equipe confere cada voo antes da sua viagem.
+
+📌 *A sua parte:*
+• Mande os dados do voo assim que comprar a passagem
+• Mudou o voo? Avise a gente o quanto antes
+
+💬 Quer ver como fica o roteiro na Patagônia para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Patagônia", n: 23, fase: "Viver o destino com a Araya", tema: "Nossos guias e motoristas na Patagônia", img: "Guia explicando a um grupo", conf: "Como funcionam os guias e motoristas neste destino", txt: `🧊 *Série Patagônia* · 23/24
+*Quem vai estar com você na Patagônia*
+
+Na Patagônia, o guia conhece o clima, as distâncias e o melhor horário de cada passeio, e explica tudo sobre as geleiras. 🧊
+
+🚐 Nas estradas longas, motoristas que conhecem a região deixam o caminho tranquilo. [ajustar]
+
+💬 Quer ver como fica o roteiro na Patagônia para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+{ dest: "Patagônia", n: 24, fase: "Viver o destino com a Araya", tema: "Como falar com a Araya durante a viagem", img: "Foto da equipe de atendimento", conf: "Canal e horários do pós-venda", txt: `🧊 *Série Patagônia* · 24/24
+*A gente não some depois que você embarca* 🧡
+
+Enquanto você estiver na Patagônia, a nossa equipe acompanha a sua viagem pelo WhatsApp. [ajustar canal]
+
+💬 *Pode chamar a gente para:*
+• Confirmar horários dos passeios
+• Avisar de um atraso de voo
+• Tirar dúvidas do dia a dia
+• Qualquer imprevisto
+
+⏰ *Horário de atendimento:* [inserir]
+
+Você aproveita a Patagônia sabendo que tem alguém cuidando de tudo.
+
+💬 Quer ver como fica o roteiro na Patagônia para as suas datas? Chama a gente: [link do WhatsApp de vendas]` },
+];
+
 // ---------- comunidade do WhatsApp: cronograma de posts, texto no formato do WhatsApp e criador de artes ----------
 // Coleções: comunidade (um documento por post), comunidadeFotos (a foto da arte de cada post, já reduzida),
 // comunidadeFontes (os arquivos das fontes da marca, só para quem tem acesso) e config/comunidade (links de vendas).
@@ -3266,7 +5118,11 @@ const CM_FONTES = [
   { slot: "cavello", nome: "Cavello", familia: "AR Cavello", peso: 400, uso: "Destaques (H4)" },
 ];
 const CM_F = { h1: '"AR Mouris", "Cormorant Garamond", Georgia, serif', grift: '"AR Grift", Outfit, Montserrat, sans-serif', cav: '"AR Cavello", "Cutive", "AR Grift", serif' };
-const cmPosts = () => Object.values(S.cm.posts).sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
+const CM_FASES = ["Conhecer a Araya e o destino", "Planejar com a Araya", "Preparar a mala", "Viver o destino com a Araya"];
+const CM_SERIES_ORDEM = ["Atacama", "Cusco e Machu Picchu", "Japão", "Egito", "Ushuaia", "Mendoza", "Patagônia"];
+const cmIdxSerie = (s) => { const i = CM_SERIES_ORDEM.indexOf(s); return i < 0 ? 99 : i; };
+const cmPosts = () => Object.values(S.cm.posts).sort((a, b) => (a.serie ? 1 : 0) - (b.serie ? 1 : 0) || (a.serie ? cmIdxSerie(a.serie) - cmIdxSerie(b.serie) || (a.numero || 0) - (b.numero || 0) : (a.ordem || 0) - (b.ordem || 0)));
+const cmDaVisao = (visao) => cmPosts().filter(p => visao === "series" ? !!p.serie : !p.serie);
 const cmAtual = () => S.cm.sel && S.cm.posts[S.cm.sel] ? S.cm.posts[S.cm.sel] : null;
 // tira emojis e a marcação do WhatsApp, para o título da arte
 const cmLimpo = (t) => String(t || "").replace(/[*_~`]/g, "").replace(/\p{Extended_Pictographic}|️|‍|[\u{1F1E6}-\u{1F1FF}]/gu, "").replace(/\s+/g, " ").trim();
@@ -3319,35 +5175,41 @@ async function carregarComunidade() {
   if (!S.cm.sel) { const prox = cmPosts().find(p => p.status !== "Publicado"); S.cm.sel = prox ? prox.id : (cmPosts()[0] || {}).id || null; }
 }
 function comunidadeView() {
-  const head = `<div class="section-head"><div><h2>Comunidade</h2><p>Cronograma de posts da comunidade no WhatsApp. Prepare o texto e a arte aqui, depois é só copiar e colar na comunidade.</p></div>
-    <div class="row">${S.cm.loaded && !S.cm.erro ? `<button type="button" class="btn ghost" data-cm="fontes">Fontes da marca</button><button type="button" class="btn ghost" data-cm="config">Links de vendas</button><button type="button" class="btn primary" data-cm="novo">Novo post</button>` : ""}</div></div>`;
+  const head = `<div class="section-head"><div><h2>Comunidade</h2><p>Posts da comunidade no WhatsApp. Prepare o texto e a arte aqui, depois é só copiar e colar na comunidade.</p></div>
+    <div class="row">${S.cm.loaded && !S.cm.erro ? `<button type="button" class="btn ghost" data-cm="banco">Banco de fotos</button><button type="button" class="btn ghost" data-cm="fontes">Fontes da marca</button><button type="button" class="btn ghost" data-cm="config">Links de vendas</button><button type="button" class="btn primary" data-cm="novo">Novo post</button>` : ""}</div></div>`;
   if (!S.cm.loaded) { if (!S.cm.loading) carregarComunidade().then(render); return head + `<div class="empty"><strong>Carregando os posts…</strong></div>`; }
   if (S.cm.erro) return head + `<div class="banner warn-b"><span>Para ativar esta aba, publique as regras novas do Firestore (arquivo regras-firestore).</span></div>`;
-  const todos = cmPosts();
-  if (!todos.length) return head + `<div class="empty"><strong>Nenhum post ainda</strong><span>Traga os 28 posts do cronograma que você montou na planilha, ou comece um post do zero.</span>
-    <div class="row" style="justify-content:center"><button type="button" class="btn primary" data-cm="importar">Trazer os 28 posts do cronograma</button></div></div>`;
-  const f = S.cm.filtro || "todos", fd = S.cm.dest || "";
-  const conta = (st) => todos.filter(p => p.status === st).length;
-  const lista = todos.filter(p => (f === "todos" || p.status === f) && (!fd || p.destino === fd));
-  const semanas = []; lista.forEach(p => { const k = p.semana || "Sem semana"; let g = semanas.find(x => x.k === k); if (!g) semanas.push(g = { k, ps: [] }); g.ps.push(p); });
-  if (S.cm.sel && !lista.some(p => p.id === S.cm.sel) && lista.length) S.cm.sel = lista[0].id;
-  const pub = conta("Publicado"), prox = todos.find(p => p.status !== "Publicado");
+  if (!S.cm.visao) { try { S.cm.visao = localStorage.getItem("araya-cm-visao") || ""; } catch (_) {} if (!["semanal", "series"].includes(S.cm.visao)) S.cm.visao = "semanal"; }
+  const visao = S.cm.visao, todos = cmDaVisao(visao), nSem = cmDaVisao("semanal").length, nSer = cmDaVisao("series").length;
+  const subnav = `<nav class="subnav" aria-label="Conjunto de posts"><button type="button" data-cm-visao="semanal" aria-current="${visao === "semanal"}">Cronograma semanal · ${nSem}</button><button type="button" data-cm-visao="series" aria-current="${visao === "series"}">Séries por destino · ${nSer}</button></nav>`;
   const faltaLink = !cmLinks().some(l => l && l.url), faltaFonte = CM_FONTES.some(x => !(S.cm.fontes || {})[x.slot]);
   const avisos = (faltaLink ? `<div class="banner"><span><strong>Cadastre os links de vendas</strong> para eles entrarem sozinhos no lugar de ${esc(CM_LINK_PH)}, conforme o destino de cada post.</span><button type="button" class="btn sm primary" data-cm="config">Cadastrar links</button></div>` : "")
     + (faltaFonte ? `<div class="banner"><span><strong>As fontes da marca ainda não foram enviadas.</strong> Enquanto isso, as artes usam fontes parecidas. Envie os arquivos da Mouris, Grift e Cavello para as artes ficarem iguais ao Brand Guide.</span><button type="button" class="btn sm" data-cm="fontes">Enviar fontes</button></div>` : "");
+  if (!todos.length) return head + avisos + subnav + (visao === "series"
+    ? `<div class="empty"><strong>Nenhuma série ainda</strong><span>Traga as 7 séries por destino (24 posts cada), já revisadas no tom do Brand Guide.</span><div class="row" style="justify-content:center"><button type="button" class="btn primary" data-cm="importar-series">Trazer as 7 séries (168 posts)</button></div></div>`
+    : `<div class="empty"><strong>Nenhum post ainda</strong><span>Traga os 28 posts do cronograma semanal, ou comece um post do zero.</span><div class="row" style="justify-content:center"><button type="button" class="btn primary" data-cm="importar">Trazer os 28 posts do cronograma</button></div></div>`);
+  const f = S.cm.filtro || "todos", fd = S.cm.dest || "";
+  const conta = (st) => todos.filter(p => p.status === st).length;
+  const lista = todos.filter(p => (f === "todos" || p.status === f) && (!fd || p.destino === fd));
+  const grupos = []; lista.forEach(p => { const k = visao === "series" ? (p.serie || "Sem série") + " · " + (p.fase || "Sem fase") : (p.semana || "Sem semana"); let g = grupos.find(x => x.k === k); if (!g) grupos.push(g = { k, ps: [] }); g.ps.push(p); });
+  if (!S.cm.sel || !lista.some(p => p.id === S.cm.sel)) S.cm.sel = lista.length ? (lista.find(p => p.status !== "Publicado") || lista[0]).id : null;
+  const pub = conta("Publicado"), prox = todos.find(p => p.status !== "Publicado");
+  const proxTxt = !prox ? "Tudo publicado 🎉" : visao === "series" ? `Próximo: ${esc(prox.serie)} · ${prox.numero}/24` : `Próximo: ${esc(prox.semana || "")} · ${esc(prox.dia || "")}`;
   const tiles = `<div class="tiles">
-    <div class="tile feature"><span class="k">Publicados</span><span class="v">${pub} de ${todos.length}</span><span class="d">${prox ? "Próximo: " + esc(prox.semana || "") + " · " + esc(prox.dia || "") : "Cronograma completo 🎉"}</span></div>
+    <div class="tile feature"><span class="k">Publicados</span><span class="v">${pub} de ${todos.length}</span><span class="d">${proxTxt}</span></div>
     <div class="tile"><span class="k">Prontos para publicar</span><span class="v">${conta("Conteúdo revisado")}</span><span class="d">Conteúdo revisado</span></div>
     <div class="tile"><span class="k">Esperando revisão</span><span class="v">${conta("Esperando revisão")}</span><span class="d">${conta("Sem conteúdo")} ainda sem conteúdo</span></div></div>`;
+  const destinos = visao === "series" ? CM_SERIES_ORDEM : CM_DEST;
   const filtros = `<div class="row" style="align-items:center;gap:10px;flex-wrap:wrap"><div class="chips" role="group" aria-label="Filtrar por status">${[["todos", `Todos · ${todos.length}`], ...CM_STATUS.map(s => [s, `${s} · ${conta(s)}`])].map(([k, t]) => `<button type="button" class="chip" data-cm-filtro="${esc(k)}" aria-pressed="${k === f}">${esc(t)}</button>`).join("")}</div>
-    <select data-cm-dest style="width:auto"><option value="">Todos os destinos</option>${CM_DEST.map(d => `<option ${d === fd ? "selected" : ""}>${esc(d)}</option>`).join("")}</select></div>`;
-  const listaHtml = semanas.length ? semanas.map(g => `<div class="cm-sem"><h4>${esc(g.k)}</h4>${g.ps.map(p => `<button type="button" class="cm-item" data-cm-sel="${esc(p.id)}" aria-current="${p.id === S.cm.sel}">
-      <span class="cm-item-top"><span class="muted small">${esc(p.dia || "")}${p.dataEnvio ? " · " + dLabel(p.dataEnvio).slice(0, 5) : ""}</span><span class="pill ${CM_PILL[p.status] || "neutral"}">${esc(p.status || "Sem conteúdo")}</span></span>
-      <strong>${esc(p.tema || "Post sem tema")}</strong>${p.destino && p.destino !== "Todos" ? `<span>${destTag(p.destino)}</span>` : ""}</button>`).join("")}</div>`).join("")
+    <select data-cm-dest style="width:auto"><option value="">Todos os destinos</option>${destinos.map(d => `<option ${d === fd ? "selected" : ""}>${esc(d)}</option>`).join("")}</select></div>`;
+  const quando = (p) => visao === "series" ? `Nº ${p.numero || "—"}` : esc(p.dia || "");
+  const listaHtml = grupos.length ? grupos.map(g => `<div class="cm-sem"><h4>${esc(g.k)}</h4>${g.ps.map(p => `<button type="button" class="cm-item" data-cm-sel="${esc(p.id)}" aria-current="${p.id === S.cm.sel}">
+      <span class="cm-item-top"><span class="muted small">${quando(p)}${p.dataEnvio ? " · " + dLabel(p.dataEnvio).slice(0, 5) : ""}</span><span class="pill ${CM_PILL[p.status] || "neutral"}">${esc(p.status || "Sem conteúdo")}</span></span>
+      <strong>${esc(p.tema || "Post sem tema")}</strong>${visao !== "series" && p.destino && p.destino !== "Todos" ? `<span>${destTag(p.destino)}</span>` : ""}</button>`).join("")}</div>`).join("")
     : `<div class="empty"><strong>Nenhum post com esse filtro</strong></div>`;
   const p = cmAtual();
   if (p) setTimeout(() => { cmCarregarFoto(p.id); cmDesenhar(); }, 0); // a arte é desenhada depois que a tela monta
-  return head + avisos + tiles + filtros + `<div class="cm-grid"><nav class="panel cm-lista" aria-label="Posts">${listaHtml}</nav><div class="cm-editor">${p ? cmEditor(p) : `<div class="empty"><strong>Escolha um post na lista</strong></div>`}</div></div>`;
+  return head + avisos + subnav + tiles + filtros + `<div class="cm-grid"><nav class="panel cm-lista" aria-label="Posts">${listaHtml}</nav><div class="cm-editor">${p ? cmEditor(p) : `<div class="empty"><strong>Escolha um post na lista</strong></div>`}</div></div>`;
 }
 const cmLinkHtml = (p) => {
   const ls = cmLinks(), l = cmLinkDoPost(p);
@@ -3361,9 +5223,12 @@ function cmEditor(p) {
   return `<section class="panel"><div class="section-head"><div><h3>${esc(p.tema || "Post sem tema")}</h3><span class="muted small" id="cm-salvo">${p.atualizadoEm ? "Salvo" : ""}</span></div>
       <div class="row"><span class="pill ${CM_PILL[p.status] || "neutral"}">${esc(p.status || "Sem conteúdo")}</span></div></div>
     <div class="cm-campos">
-      <div class="field"><label for="cm-semana">Semana</label><input type="text" id="cm-semana" data-cm-campo="semana" value="${esc(p.semana || "")}" maxlength="30"></div>
+      ${p.serie ? `<div class="field"><label for="cm-numero">Nº na série</label><input type="number" id="cm-numero" data-cm-campo="numero" value="${esc(p.numero || "")}" min="1" max="99"></div>
+      <div class="field"><label for="cm-fase">Fase</label><select id="cm-fase" data-cm-campo="fase">${[...new Set([...CM_FASES, p.fase].filter(Boolean))].map(d => `<option ${d === p.fase ? "selected" : ""}>${esc(d)}</option>`).join("")}</select></div>
+      <div class="field"><label for="cm-destino">Série (destino)</label><select id="cm-destino" data-cm-campo="destino">${CM_SERIES_ORDEM.map(d => `<option ${d === p.destino ? "selected" : ""}>${esc(d)}</option>`).join("")}</select></div>`
+    : `<div class="field"><label for="cm-semana">Semana</label><input type="text" id="cm-semana" data-cm-campo="semana" value="${esc(p.semana || "")}" maxlength="30"></div>
       <div class="field"><label for="cm-dia">Dia</label><select id="cm-dia" data-cm-campo="dia">${CM_DIAS.map(d => `<option ${d === p.dia ? "selected" : ""}>${d}</option>`).join("")}</select></div>
-      <div class="field"><label for="cm-destino">Destino</label><select id="cm-destino" data-cm-campo="destino">${CM_DEST.map(d => `<option ${d === p.destino ? "selected" : ""}>${esc(d)}</option>`).join("")}</select></div>
+      <div class="field"><label for="cm-destino">Destino</label><select id="cm-destino" data-cm-campo="destino">${CM_DEST.map(d => `<option ${d === p.destino ? "selected" : ""}>${esc(d)}</option>`).join("")}</select></div>`}
       <div class="field"><label for="cm-status">Status</label><select id="cm-status" data-cm-campo="status">${CM_STATUS.map(s => `<option ${s === p.status ? "selected" : ""}>${s}</option>`).join("")}</select></div>
       <div class="field"><label for="cm-envio">Data de envio</label><input type="date" id="cm-envio" data-cm-campo="dataEnvio" value="${esc(p.dataEnvio || "")}"></div>
       <div class="field"><label for="cm-resp">Responsável</label><input type="text" id="cm-resp" data-cm-campo="responsavel" value="${esc(p.responsavel || "")}" maxlength="60"></div>
@@ -3396,7 +5261,7 @@ function cmEditor(p) {
           <div class="field"><label for="cm-a-topo">Linha no alto (opcional)</label><input type="text" id="cm-a-topo" data-cm-arte="topo" list="cm-topos" value="${esc(a.topo)}" maxlength="70" placeholder="Ex.: grupos pequenos • roteiros completos"><datalist id="cm-topos">${CM_TOPOS.map(t => `<option value="${esc(t)}">`).join("")}</datalist></div></div>
         <label class="toggle"><input type="checkbox" data-cm-arte="etiqueta" ${a.etiqueta ? "checked" : ""}>Subtítulo dentro de uma etiqueta</label>
         <label class="toggle"><input type="checkbox" data-cm-arte="mostrarDestino" ${a.mostrarDestino ? "checked" : ""}>Mostrar o destino (Cavello)</label>
-        <div class="field" ${a.modelo === "cor" ? "hidden" : ""} id="cm-foto-box"><label for="cm-foto">Foto</label><input type="file" id="cm-foto" accept="image/jpeg,image/png,image/webp"><span class="muted small" id="cm-foto-info">${S.cm.fotos[p.id] ? "Foto escolhida. Para trocar, escolha outra." : S.cm.fotos[p.id] === null ? "Ainda sem foto." : "Carregando a foto…"}</span></div>
+        <div class="field" ${a.modelo === "cor" ? "hidden" : ""} id="cm-foto-box"><label for="cm-foto">Foto</label><div class="row" style="gap:8px;align-items:center"><button type="button" class="btn sm" data-cm="banco-escolher">Escolher do banco de fotos</button><input type="file" id="cm-foto" accept="image/jpeg,image/png,image/webp" style="max-width:240px"></div><span class="muted small" id="cm-foto-info">${S.cm.fotos[p.id] ? "Foto escolhida. Para trocar, escolha outra." : S.cm.fotos[p.id] === null ? "Ainda sem foto." : "Carregando a foto…"}</span></div>
         <div class="field" ${a.modelo === "cor" ? "hidden" : ""} id="cm-foco-box"><label for="cm-a-foco">Enquadramento da foto</label><select id="cm-a-foco" data-cm-arte="foco">${opt(CM_FOCO, a.foco)}</select></div>
         <div class="row"><button type="button" class="btn primary" data-cm="copiar-arte">Copiar imagem</button><button type="button" class="btn" data-cm="baixar-arte">Baixar PNG</button></div>
         <p class="muted small" style="margin:0">“Copiar imagem” coloca a arte na área de transferência: no WhatsApp Web é só colar. No celular, use “Baixar PNG”.</p>
@@ -3636,12 +5501,25 @@ $("#layer").addEventListener("click", async (e) => {
   try { await col("config").doc("comunidade").set({ links, padrao }, { merge: true }); S.cm.cfg = { ...(S.cm.cfg || {}), links, padrao }; registrar("Links de vendas da Comunidade atualizados", "config"); closeLayer(); render(); toast("Links salvos"); } catch (err) { toast(errMsg(err)); }
 });
 $("#main").addEventListener("click", async (e) => {
+  const vz = e.target.closest("[data-cm-visao]"); if (vz) { await cmSalvarJa(); S.cm.visao = vz.dataset.cmVisao; S.cm.sel = null; S.cm.dest = ""; try { localStorage.setItem("araya-cm-visao", S.cm.visao); } catch (_) {} render(); return; }
   const fl = e.target.closest("[data-cm-filtro]"); if (fl) { await cmSalvarJa(); S.cm.filtro = fl.dataset.cmFiltro; render(); return; }
   const sel = e.target.closest("[data-cm-sel]"); if (sel) { await cmSalvarJa(); S.cm.sel = sel.dataset.cmSel; render(); if (innerWidth < 900) { const ed = $(".cm-editor"); if (ed) ed.scrollIntoView({ behavior: "smooth", block: "start" }); } return; }
   const b = e.target.closest("[data-cm]"); if (!b) return;
   const act = b.dataset.cm, p = cmAtual();
   if (act === "config") return abrirConfigComunidade();
   if (act === "fontes") return abrirFontesComunidade();
+  if (act === "banco") return abrirBancoFotos(null);
+  if (act === "banco-escolher") return abrirBancoFotos(p);
+  if (act === "importar-series") {
+    if (cmDaVisao("series").length) return;
+    b.disabled = true; b.textContent = "Trazendo…";
+    try {
+      const lote = S.db.batch(), agora = new Date().toISOString();
+      CM_SERIES().forEach((x, i) => { const ref = col("comunidade").doc(); const doc = { ordem: 1000 + i, serie: x.dest, numero: x.n, fase: x.fase, destino: x.dest, tema: x.tema, texto: x.txt, imagem: x.img, conferir: x.conf, status: "Esperando revisão", dataEnvio: "", responsavel: "", criadoEm: agora, criadoPor: S.email }; lote.set(ref, doc); S.cm.posts[ref.id] = { id: ref.id, ...doc }; });
+      await lote.commit(); S.cm.sel = null; registrar("Séries por destino da comunidade importadas (168 posts)", "config"); render(); toast("As 7 séries foram trazidas para o portal");
+    } catch (err) { Object.keys(S.cm.posts).forEach(k => { if (S.cm.posts[k].serie && S.cm.posts[k].ordem >= 1000 && !S.cm.posts[k].atualizadoEm) delete S.cm.posts[k]; }); b.disabled = false; b.textContent = "Trazer as 7 séries (168 posts)"; toast(errMsg(err)); }
+    return;
+  }
   if (act === "importar") {
     b.disabled = true; b.textContent = "Trazendo…";
     try {
@@ -3653,9 +5531,11 @@ $("#main").addEventListener("click", async (e) => {
   }
   if (act === "novo") {
     await cmSalvarJa();
-    const ult = cmPosts().slice(-1)[0] || {}, ref = col("comunidade").doc();
-    const doc = { ordem: (ult.ordem || 0) + 1, semana: ult.semana || "Semana 1", dia: "Terça", destino: "Todos", tema: "Novo post", texto: "", imagem: "", conferir: "", status: "Sem conteúdo", dataEnvio: "", responsavel: "", criadoEm: new Date().toISOString(), criadoPor: S.email };
-    try { await ref.set(doc); S.cm.posts[ref.id] = { id: ref.id, ...doc }; S.cm.sel = ref.id; S.cm.filtro = "todos"; S.cm.dest = ""; S.cm.fotos[ref.id] = null; render(); const t = $("#cm-tema"); if (t) { t.focus(); t.select(); } } catch (err) { toast(errMsg(err)); }
+    const ref = col("comunidade").doc(), base = { tema: "Novo post", texto: "", imagem: "", conferir: "", status: "Sem conteúdo", dataEnvio: "", responsavel: "", criadoEm: new Date().toISOString(), criadoPor: S.email };
+    let doc;
+    if ((S.cm.visao || "semanal") === "series") { const serie = S.cm.dest && CM_SERIES_ORDEM.includes(S.cm.dest) ? S.cm.dest : (cmAtual() && cmAtual().serie) || CM_SERIES_ORDEM[0], daSerie = cmDaVisao("series").filter(x => x.serie === serie); doc = { ...base, serie, destino: serie, numero: Math.max(0, ...daSerie.map(x => x.numero || 0)) + 1, fase: CM_FASES[0], ordem: 1000 + cmDaVisao("series").length }; }
+    else { const ult = cmDaVisao("semanal").slice(-1)[0] || {}; doc = { ...base, ordem: (ult.ordem || 0) + 1, semana: ult.semana || "Semana 1", dia: "Terça", destino: "Todos" }; }
+    try { await ref.set(doc); S.cm.posts[ref.id] = { id: ref.id, ...doc }; S.cm.sel = ref.id; S.cm.filtro = "todos"; S.cm.fotos[ref.id] = null; render(); const t = $("#cm-tema"); if (t) { t.focus(); t.select(); } } catch (err) { toast(errMsg(err)); }
     return;
   }
   if (!p) return;
@@ -3686,8 +5566,9 @@ $("#main").addEventListener("change", async (e) => {
   const t = e.target, p = cmAtual();
   if ("cmDest" in t.dataset) { await cmSalvarJa(); S.cm.dest = t.value; render(); return; }
   if (!p) return;
-  if (t.dataset.cmCampo && ["status", "dia", "destino", "dataEnvio", "link"].includes(t.dataset.cmCampo)) {
-    cmAgendar(p.id, { [t.dataset.cmCampo]: t.value }, 0);
+  if (t.dataset.cmCampo && ["status", "dia", "destino", "dataEnvio", "link", "fase", "numero"].includes(t.dataset.cmCampo)) {
+    const k = t.dataset.cmCampo, v = k === "numero" ? (parseInt(t.value, 10) || null) : t.value;
+    cmAgendar(p.id, k === "destino" && p.serie ? { destino: v, serie: v } : { [k]: v }, 0);
     if (t.dataset.cmCampo === "status" && t.value === "Publicado") registrar(`Post da comunidade publicado: ${p.semana} · ${p.dia} · ${p.tema}`, "config");
     await cmSalvarJa(); render(); return;
   }
@@ -3709,7 +5590,7 @@ $("#main").addEventListener("change", async (e) => {
 });
 $("#main").addEventListener("input", (e) => {
   const t = e.target, p = cmAtual(); if (!p) return;
-  if (t.dataset.cmCampo && !["status", "dia", "destino", "dataEnvio", "link"].includes(t.dataset.cmCampo)) {
+  if (t.dataset.cmCampo && !["status", "dia", "destino", "dataEnvio", "link", "fase", "numero"].includes(t.dataset.cmCampo)) {
     const k = t.dataset.cmCampo;
     if (k === "texto") {
       const tituloAuto = !(p.arte && p.arte.titulo) || p.arte.titulo === cmTituloPadrao(p);
@@ -3724,6 +5605,74 @@ $("#main").addEventListener("input", (e) => {
     return;
   }
   if (t.dataset.cmArte && (t.tagName === "TEXTAREA" || t.type === "text")) { cmAgendar(p.id, { arte: { ...cmArte(p), [t.dataset.cmArte]: t.value } }); cmDesenhar(); }
+});
+
+// ---- banco de fotos: sobe várias fotos de uma vez, separadas por destino, e escolhe direto na arte ----
+// comunidadeBanco guarda a foto inteira (reduzida para caber no Firestore); comunidadeBancoMini guarda só a miniatura, para a galeria abrir rápido
+const CM_BANCO_DEST = [...CM_DEST.filter(d => d !== "Todos"), "Geral"];
+function cmMini(dataUrl) {
+  return new Promise((res) => { const img = new Image(); img.onload = () => { const r = Math.min(1, 360 / Math.max(img.width, img.height)), c = document.createElement("canvas"); c.width = Math.round(img.width * r); c.height = Math.round(img.height * r); c.getContext("2d").drawImage(img, 0, 0, c.width, c.height); res(c.toDataURL("image/jpeg", 0.72)); }; img.onerror = () => res(""); img.src = dataUrl; });
+}
+async function cmCarregarBanco() {
+  try { S.cm.banco = docsOf(await col("comunidadeBancoMini").get()).sort((a, b) => String(b.criadoEm || "").localeCompare(String(a.criadoEm || ""))); S.cm.bancoErro = false; }
+  catch (_) { S.cm.banco = []; S.cm.bancoErro = true; }
+}
+function abrirBancoFotos(post) {
+  if (post !== undefined) { S.cm.bancoPost = post ? post.id : null; S.cm.bancoDest = post && post.destino && post.destino !== "Todos" ? post.destino : (S.cm.bancoDest || ""); }
+  const p = S.cm.bancoPost ? S.cm.posts[S.cm.bancoPost] : null, banco = S.cm.banco;
+  const fd = S.cm.bancoDest || "", conta = (d) => (banco || []).filter(x => x.destino === d).length;
+  const lista = (banco || []).filter(x => !fd || x.destino === fd);
+  const corpo = banco === null || banco === undefined ? `<div class="empty"><strong>Carregando as fotos…</strong></div>`
+    : S.cm.bancoErro ? `<div class="banner warn-b"><span>Para usar o banco de fotos, publique as regras novas do Firestore (arquivo regras-firestore).</span></div>`
+    : `<div class="chips" role="group" aria-label="Filtrar por destino"><button type="button" class="chip todos" data-cmb-dest="" aria-pressed="${!fd}">Todas · ${banco.length}</button>${CM_BANCO_DEST.filter(d => conta(d) || d === fd).map(d => `<button type="button" class="chip" style="${dc(d)}" data-cmb-dest="${esc(d)}" aria-pressed="${d === fd}">${esc(d)} · ${conta(d)}</button>`).join("")}</div>
+      ${lista.length ? `<div class="cm-banco">${lista.map(x => `<figure class="cm-foto-bk">${p ? `<button type="button" class="cm-foto-usar" data-cmb-usar="${esc(x.id)}" title="Usar esta foto na arte"><img src="${x.mini}" alt="${esc(x.nome || "Foto")}" loading="lazy"></button>` : `<img src="${x.mini}" alt="${esc(x.nome || "Foto")}" loading="lazy">`}
+          <figcaption><span class="muted small">${esc(x.destino || "")}</span><button type="button" class="linkbtn small" data-cmb-del="${esc(x.id)}">Excluir</button></figcaption></figure>`).join("")}</div>`
+        : `<div class="empty"><strong>${banco.length ? "Nenhuma foto deste destino ainda" : "O banco ainda está vazio"}</strong><span>Escolha o destino e clique em “Adicionar fotos”. Dá para selecionar várias de uma vez.</span></div>`}`;
+  $("#layer").innerHTML = `<div class="overlay" data-close><div class="dialog" style="max-width:880px">
+    <div class="section-head"><div><h2>Banco de fotos</h2>${p ? `<p class="muted small" style="margin:0">Clique na foto para usar na arte de: <strong>${esc(p.tema || "")}</strong></p>` : ""}</div><button type="button" class="btn sm ghost" data-close-btn>Fechar</button></div>
+    <div class="row" style="align-items:end;gap:10px;flex-wrap:wrap"><div class="field" style="min-width:200px"><label for="cm-banco-dest">Destino das fotos novas</label><select id="cm-banco-dest">${CM_BANCO_DEST.map(d => `<option ${d === (fd || (p && p.destino !== "Todos" ? p.destino : "")) ? "selected" : ""}>${esc(d)}</option>`).join("")}</select></div>
+      <label class="btn primary">Adicionar fotos<input type="file" id="cm-banco-up" hidden multiple accept="image/jpeg,image/png,image/webp"></label>
+      <span class="muted small" id="cm-banco-msg">JPG ou PNG. Fotos do iPhone em HEIC: exporte como JPG antes.</span></div>
+    ${corpo}</div></div>`;
+  if (banco === null || banco === undefined) cmCarregarBanco().then(() => { if ($("#cm-banco-up")) abrirBancoFotos(); });
+}
+$("#layer").addEventListener("change", async (e) => {
+  const t = e.target; if (t.id !== "cm-banco-up" || !t.files || !t.files.length) return;
+  const arqs = [...t.files], destino = ($("#cm-banco-dest") || {}).value || "Geral", msg = $("#cm-banco-msg");
+  let ok = 0, falhas = 0;
+  for (let i = 0; i < arqs.length; i++) {
+    if (msg) msg.textContent = `Enviando ${i + 1} de ${arqs.length}…`;
+    try {
+      const data = await cmReduzir(arqs[i]), mini = await cmMini(data), ref = col("comunidadeBanco").doc(), agora = new Date().toISOString(), nome = arqs[i].name.replace(/\.[^.]+$/, "");
+      await ref.set({ data, destino, nome, criadoEm: agora, criadoPor: S.email });
+      await col("comunidadeBancoMini").doc(ref.id).set({ mini, destino, nome, criadoEm: agora });
+      (S.cm.banco ||= []).unshift({ id: ref.id, mini, destino, nome, criadoEm: agora }); ok++;
+    } catch (_) { falhas++; }
+  }
+  S.cm.bancoDest = destino; abrirBancoFotos();
+  const m2 = $("#cm-banco-msg"); if (m2) m2.textContent = `${ok} ${ok === 1 ? "foto adicionada" : "fotos adicionadas"} em ${destino}.` + (falhas ? ` ${falhas} não ${falhas === 1 ? "abriu" : "abriram"} (use JPG ou PNG).` : "");
+  if (ok) registrar(`${ok} ${ok === 1 ? "foto adicionada" : "fotos adicionadas"} ao banco da Comunidade (${destino})`, "config");
+});
+$("#layer").addEventListener("click", async (e) => {
+  const fd = e.target.closest("[data-cmb-dest]"); if (fd) { S.cm.bancoDest = fd.dataset.cmbDest; abrirBancoFotos(); return; }
+  const del = e.target.closest("[data-cmb-del]");
+  if (del) {
+    if (del.dataset.confirm !== "1") { del.dataset.confirm = "1"; del.textContent = "Confirmar"; return; }
+    const id = del.dataset.cmbDel;
+    try { await col("comunidadeBanco").doc(id).delete(); await col("comunidadeBancoMini").doc(id).delete(); S.cm.banco = (S.cm.banco || []).filter(x => x.id !== id); abrirBancoFotos(); toast("Foto excluída do banco"); } catch (err) { toast(errMsg(err)); }
+    return;
+  }
+  const usar = e.target.closest("[data-cmb-usar]"); if (!usar) return;
+  const p = S.cm.bancoPost ? S.cm.posts[S.cm.bancoPost] : null; if (!p) return;
+  usar.disabled = true;
+  try {
+    const d = await col("comunidadeBanco").doc(usar.dataset.cmbUsar).get(), data = d.exists ? d.data().data : null;
+    if (!data) { toast("Essa foto não está mais no banco."); usar.disabled = false; return; }
+    await col("comunidadeFotos").doc(p.id).set({ data, doBanco: usar.dataset.cmbUsar, atualizadoEm: new Date().toISOString(), atualizadoPor: S.email });
+    S.cm.fotos[p.id] = data; closeLayer();
+    const info = $("#cm-foto-info"); if (info) info.textContent = "Foto escolhida. Para trocar, escolha outra.";
+    cmDesenhar(); toast("Foto colocada na arte");
+  } catch (err) { usar.disabled = false; toast(errMsg(err)); }
 });
 
 // ---------- planilhas do Trevor (vendas e orçamentos) ----------
